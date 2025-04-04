@@ -15,6 +15,7 @@ declare module "jspdf" {
 export const exportPriceListToPDF = (template: PriceListTemplate) => {
   const doc = new jsPDF();
 
+  const MARGIN = 15;
   const TABLE_FONT_SIZE = 6.5;
   const HEADER_FONT_SIZE = 7.5;
   const TITLE_FONT_SIZE = 7.5;
@@ -24,40 +25,38 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
 
-doc.addImage(logoUrl, "PNG", 0, 0, 20, 20); // adjust width/height as per logo size
+  const columnWidth = (pageWidth - MARGIN * 2 - 10) / 2;
+  const leftColumnX = MARGIN;
+  const rightColumnX = leftColumnX + columnWidth + 10;
+  const startY = 30;
+  const HEADER_HEIGHT = 20;
 
-  // Syntax: doc.addImage(image, format, x, y, width, height)
+  const drawHeader = () => {
+    doc.setFillColor(255, 255, 255);
+    doc.rect(0, 0, pageWidth, HEADER_HEIGHT + 2, "F");
 
-  doc.setFontSize(HEADER_FONT_SIZE);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(60, 60, 60);
-  doc.text(`Effective from: ${today.toLocaleDateString()}`, 15, 18);
-  doc.text("Whatsapp: +1 501 668 0123", pageWidth - 15, 8, { align: "right" });
-  doc.text("Phone: +1 501 668 0123", pageWidth - 15, 12, { align: "right" });
-  doc.text("Email: order@valiproduce.shop", pageWidth - 15, 16, { align: "right" });
+    doc.addImage(logoUrl, "PNG", MARGIN, 0, 30, 15);
 
-  doc.setDrawColor(180, 180, 180);
-  doc.setLineWidth(0.3);
-  doc.line(10, 20, pageWidth - 10, 20);
+    doc.setFontSize(HEADER_FONT_SIZE);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(60, 60, 60);
+    doc.text(`Effective from: ${today.toLocaleDateString()}`, MARGIN, 18);
+    doc.text("Whatsapp: +1 501 400 2406", pageWidth - MARGIN, 8, { align: "right" });
+    doc.text("Phone: +1 501 669 0123", pageWidth - MARGIN, 12, { align: "right" });
+    doc.text("Email: order@valiproduce.shop", pageWidth - MARGIN, 16, { align: "right" });
 
-  const productsByCategory: Record<string, PriceListProduct[]> = {};
-  template.products.forEach((product) => {
-    if (!productsByCategory[product.category]) {
-      productsByCategory[product.category] = [];
-    }
-    productsByCategory[product.category].push(product);
-  });
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.3);
+    doc.line(MARGIN, HEADER_HEIGHT, pageWidth - MARGIN, HEADER_HEIGHT);
 
-  const sortedCategories = Object.keys(productsByCategory).sort((a, b) => {
-    return productsByCategory[b].length - productsByCategory[a].length;
-  });
-  
-
-  const columnWidth = pageWidth / 2 - 15;
-  const leftColumnX = 10;
-  const rightColumnX = pageWidth / 2 + 5;
-  const startY = 25;
-  const HEADER_HEIGHT = 20 // Slightly reduced header height
+    doc.setFontSize(5);
+    doc.text(
+      `Page ${doc.getCurrentPageInfo().pageNumber} of ${doc.getNumberOfPages()}`,
+      pageWidth - MARGIN,
+      HEADER_HEIGHT - 2,
+      { align: "right" }
+    );
+  };
 
   const generateCategoryTable = (category: string, products: PriceListProduct[]) => {
     const headers = [
@@ -75,61 +74,30 @@ doc.addImage(logoUrl, "PNG", 0, 0, 20, 20); // adjust width/height as per logo s
     return { headers, rows, category };
   };
 
-  const drawHeader = () => {
-    // Clear the header area to prevent overlapping
-    doc.setFillColor(255, 255, 255)
-    doc.rect(0, 0, pageWidth, HEADER_HEIGHT + 2, "F")
-
-    doc.addImage(logoUrl, "PNG", 8, 0, 30, 15)
-    doc.setFontSize(HEADER_FONT_SIZE)
-    doc.setFont("helvetica", "normal")
-    doc.setTextColor(60, 60, 60)
-    doc.text(`Effective from: ${today.toLocaleDateString()}`, 15, 18)
-    doc.text("Whatsapp: +1 501 668 0123", pageWidth - 15, 8, { align: "right" })
-    doc.text("Phone: +1 501 668 0123", pageWidth - 15, 12, { align: "right" })
-    doc.text("Email: order@valiproduce.shop", pageWidth - 15, 16, { align: "right" })
-
-    doc.setDrawColor(180, 180, 180)
-    doc.setLineWidth(0.3)
-    doc.line(10, HEADER_HEIGHT, pageWidth - 10, HEADER_HEIGHT)
-
-    // Add page numbers in the header area
-    doc.setFontSize(5)
-    doc.text(
-      `Page ${doc.getCurrentPageInfo().pageNumber} of ${doc.getNumberOfPages()}`,
-      pageWidth - 10,
-      HEADER_HEIGHT - 2,
-      { align: "right" },
-    )
-  }
-
-
-
   const renderCategoryTable = (category: string, x: number, y: number): number => {
-    const { headers, rows, category: categoryName } = generateCategoryTable(category, productsByCategory[category])
+    const { headers, rows, category: categoryName } = generateCategoryTable(category, productsByCategory[category]);
 
-    const pageBefore = doc.internal.getNumberOfPages()
+    const pageBefore = doc.internal.getNumberOfPages();
 
-    // Add category name as a title before the table
-    doc.setFontSize(TITLE_FONT_SIZE)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(0)
-    doc.text(categoryName.toUpperCase(), x, y)
-    y += 3
+    doc.setFontSize(TITLE_FONT_SIZE);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(0);
+    doc.text(categoryName.toUpperCase(), x, y);
+    y += 3;
 
     autoTable(doc, {
       startY: y,
       head: [headers.map((h) => h.title)],
       body: rows,
-      margin: { left: x, top: HEADER_HEIGHT + 2 }, // Set top margin to be below header
+      margin: { top: HEADER_HEIGHT + 2, left: x, right: MARGIN },
       tableWidth: columnWidth,
       styles: {
         fontSize: TABLE_FONT_SIZE,
-        cellPadding: 0.5, // Reduced padding for more compact layout
-        lineWidth: 0.1, // Thinner lines
+        cellPadding: 0.5,
+        lineWidth: 0.1,
       },
       columnStyles: {
-        0: { cellWidth: columnWidth * 0.55 }, // Slightly wider for description
+        0: { cellWidth: columnWidth * 0.55 },
         1: { cellWidth: columnWidth * 0.25, halign: "right" },
         2: { cellWidth: columnWidth * 0.2, halign: "center" },
       },
@@ -138,25 +106,30 @@ doc.addImage(logoUrl, "PNG", 0, 0, 20, 20); // adjust width/height as per logo s
         textColor: [0, 0, 0],
         fontStyle: "bold",
         halign: "center",
-        cellPadding: 0.5, // Reduced padding
+        cellPadding: 0.5,
       },
       alternateRowStyles: {
         fillColor: [250, 250, 250],
       },
-      didDrawPage: () => {
-        // Draw header on new pages
-        drawHeader()
-      },
-      // Set a safe area to prevent content from overlapping with header
-      // usedHeight: pageHeight - HEADER_HEIGHT - 10, // 10px for footer
-    })
+      didDrawPage: () => drawHeader(),
+    });
 
-    const pageAfter = doc.internal.getNumberOfPages()
-    const finalY = doc.lastAutoTable?.finalY ?? y + 10
+    const pageAfter = doc.internal.getNumberOfPages();
+    const finalY = doc.lastAutoTable?.finalY ?? y + 10;
+    return pageAfter > pageBefore ? HEADER_HEIGHT + 2 : finalY + 3;
+  };
 
-    // If a new page was added, return the starting Y position after header
-    return pageAfter > pageBefore ? HEADER_HEIGHT + 2 : finalY + 3 // Reduced spacing between tables
-  }
+  const productsByCategory: Record<string, PriceListProduct[]> = {};
+  template.products.forEach((product) => {
+    if (!productsByCategory[product.category]) {
+      productsByCategory[product.category] = [];
+    }
+    productsByCategory[product.category].push(product);
+  });
+
+  const sortedCategories = Object.keys(productsByCategory).sort(
+    (a, b) => productsByCategory[b].length - productsByCategory[a].length
+  );
 
   let leftY = startY;
   let rightY = startY;
@@ -172,19 +145,23 @@ doc.addImage(logoUrl, "PNG", 0, 0, 20, 20); // adjust width/height as per logo s
   const footerY = pageHeight - 6;
   doc.setFontSize(6);
   doc.setFont("helvetica", "italic");
-  doc.text("Pricing and availability subject to change without prior notice. © Vali Produce", pageWidth / 2, footerY, {
-    align: "center",
-  });
+  doc.text(
+    "Pricing and availability subject to change without prior notice. © Vali Produce",
+    pageWidth / 2,
+    footerY,
+    { align: "center" }
+  );
 
   const totalPagesCount = doc.getNumberOfPages();
   for (let i = 1; i <= totalPagesCount; i++) {
     doc.setPage(i);
     doc.setFontSize(6);
-    doc.text(`Page ${i} of ${totalPagesCount}`, pageWidth - 10, 22, { align: "right" });
+    doc.text(`Page ${i} of ${totalPagesCount}`, pageWidth - MARGIN, 22, { align: "right" });
   }
 
   doc.save(`vali-produce-price-list-${template.name.toLowerCase().replace(/\s+/g, "-")}.pdf`);
   return doc;
 };
+
 
 
