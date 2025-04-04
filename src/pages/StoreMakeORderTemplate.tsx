@@ -45,16 +45,16 @@ import { OrderItem } from "@/types";
 import { useNavigate } from "react-router-dom";
 import StoreRegistration from "./StoreRegistration";
 
-const CreateOrderModalStore = ({}) => {
+const CreateOrderModalStore = ({ }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
- const [selectedStore, setSelectedStore] = useState<{
-  label: string;
-  value: string;
-} | null>(
-  user && user.role !== "admin"
-    ? { label: user.storeName || user.name, value: user._id }
-    : null
-);
+  const [selectedStore, setSelectedStore] = useState<{
+    label: string;
+    value: string;
+  } | null>(
+    user && user.role !== "admin"
+      ? { label: user.storeName || user.name, value: user._id }
+      : null
+  );
 
 
   const [email, setEmail] = useState("");
@@ -75,6 +75,12 @@ const CreateOrderModalStore = ({}) => {
   const templateId = urlParams.get("templateId");
   const navigate = useNavigate();
 
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+
+
+
   console.log("Store ID:", storeId);
   console.log("Template ID:", templateId);
 
@@ -85,6 +91,11 @@ const CreateOrderModalStore = ({}) => {
       </h2>
     );
   }
+
+  const categories = [
+    "all",
+    ...new Set(template?.products.map((product) => product.category || "Uncategorized")),
+  ];
 
   const fetchStores = async () => {
     try {
@@ -242,6 +253,20 @@ const CreateOrderModalStore = ({}) => {
     setIsSubmitting(false);
   };
 
+
+  const filteredProducts = template?.products?.filter((product) => {
+    const matchesSearch = product.name
+      .toLowerCase()
+      .includes(searchTerm.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "all" || product.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
+
+
+
   const handleClose = () => {
     setSelectedStore({ label: "", value: "" });
     setQuantities({});
@@ -348,6 +373,28 @@ const CreateOrderModalStore = ({}) => {
                 </div>
 
                 <div className="border rounded-md overflow-hidden">
+                  <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
+                    <Input
+                      placeholder="Search products..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="w-full md:w-1/2"
+                    />
+
+                    <Select onValueChange={setSelectedCategory} value={selectedCategory}>
+                      <SelectTrigger className="w-full md:w-64">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -361,13 +408,16 @@ const CreateOrderModalStore = ({}) => {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {template.products.map((product) => {
+                      {filteredProducts.map((product) => {
                         const quantity = quantities[product.id] || 0;
                         const total = product.pricePerBox * quantity;
 
                         return (
                           <TableRow key={product.id}>
-                            <TableCell className="font-medium">
+
+                            <TableCell className="font-medium flex items-center gap-4">
+                            <img src={product.image} alt="" className="h-14" loading="lazy" />
+
                               {product.name}
                             </TableCell>
                             <TableCell>{product.category}</TableCell>
@@ -467,7 +517,7 @@ const CreateOrderModalStore = ({}) => {
                         <TableCell className="text-right">
                           {formatCurrency(
                             (product.unitPrice || product.pricePerBox) *
-                              product.quantity
+                            product.quantity
                           )}
                         </TableCell>
                       </TableRow>

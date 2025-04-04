@@ -14,7 +14,7 @@ exports.priceListSend = async (req, res) => {
         <p style="color: #555; text-align: center; font-size: 16px;">Hello, we have attached the latest price list for you. You can download the PDF or check our online store.</p>
         
         <div style="text-align: center; margin: 20px 0;">
-          <a href="http://localhost:3000/store/template?storeId=1234&templateId=${message}" 
+          <a href="https://www.valiproduce.shop/store/template?storeId=1234&templateId=${message}" 
              style="display: inline-block; background: #007bff; color: white; padding: 12px 20px; font-size: 16px; border-radius: 5px; text-decoration: none;">
             View Online
           </a>
