@@ -7,6 +7,7 @@ const BASE_URL = "https://api.valiproduce.shop/api/v1"
 export const endpoints = {
   LOGIN_API: BASE_URL + "/auth/login",
   SIGNUP_API: BASE_URL + "/auth/register",
+  GET_USER_API: BASE_URL + "/auth/user",
   CREATE_MEMBER_API: BASE_URL + "/auth/member",
   GET_ALL_MEMBER_API: BASE_URL + "/auth/all-members",
   GET_ALL_STORES_API: BASE_URL + "/auth/all-stores",

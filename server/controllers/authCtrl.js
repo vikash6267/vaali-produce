@@ -218,6 +218,40 @@ const getAllStoreCtrl = async (req, res) => {
 };
 
 
+const getUserByEmailCtrl = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    const user = await authModel.findOne({ email, role: "store" });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      user,
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: "Error in getting user API!",
+    });
+  }
+};
+
+
 const updateStoreCtrl = async (req, res) => {
   try {
     const {
@@ -230,7 +264,7 @@ const updateStoreCtrl = async (req, res) => {
       state,
       zipCode,
       businessDescription,
-      
+
     } = req.body;
 
     const { id } = req.params;
@@ -281,4 +315,4 @@ const updateStoreCtrl = async (req, res) => {
 
 
 
-module.exports = { registerCtrl, loginCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl ,getAllStoreCtrl};
+module.exports = { registerCtrl, loginCtrl, getUserByEmailCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl };

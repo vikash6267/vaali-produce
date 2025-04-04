@@ -10,7 +10,8 @@ const {
   GET_ALL_MEMBER_API,
   UPDATE_MEMBER_PERMISSION_API,
   UPDATE_STORE,
-  GET_ALL_STORES_API
+  GET_ALL_STORES_API,
+  GET_USER_API
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -165,6 +166,25 @@ export const getAllMembersAPI = async () => {
 
     return response?.data?.members || [];
   } catch (error) {
+    console.error("GET Product API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to get product!");
+    return [];
+  }
+
+};
+export const getUserAPI = async (email, setIsGroupOpen) => {
+
+  try {
+    const response = await apiConnector("POST", GET_USER_API, { email },)
+
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    return response?.data?.user;
+  } catch (error) {
+    setIsGroupOpen(true)
     console.error("GET Product API ERROR:", error);
     toast.error(error?.response?.data?.message || "Failed to get product!");
     return [];

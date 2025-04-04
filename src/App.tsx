@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import LandingPage from "./pages/LandingPage";
@@ -123,9 +122,9 @@ export default function App() {
         <Route
           path="/store/template"
           element={
-            <PrivateRoute isStore={isStore}>
-              <CreateOrderModalStore />
-            </PrivateRoute>
+            // <PrivateRoute isStore={isStore}>
+            <CreateOrderModalStore />
+            // </PrivateRoute>
           }
         />
         <Route
@@ -144,11 +143,14 @@ export default function App() {
             </PrivateRoute>
           }
         />
-        <Route path="/store/products" element={
-          <PrivateRoute isMember={isStore}>
-            <StoreFront />
-          </PrivateRoute>
-        } />
+        <Route
+          path="/store/products"
+          element={
+            <PrivateRoute isMember={isStore}>
+              <StoreFront />
+            </PrivateRoute>
+          }
+        />
 
         <Route path="/store" element={<Store />} />
         {/* Member Routes */}

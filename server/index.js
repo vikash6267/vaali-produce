@@ -15,7 +15,6 @@ const PORT = process.env.PORT || 8080
 connectDB();
 
 
-
 app.use(express.json())
 app.use(cookieParser());
 app.use(bodyParser.json());
