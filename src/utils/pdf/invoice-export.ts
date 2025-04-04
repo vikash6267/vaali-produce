@@ -31,68 +31,72 @@ export const exportInvoiceToPDF = (
   const PAGE_WIDTH = doc.internal.pageSize.width;
   const MARGIN = 12; // Reduced margin
   const CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN);
+  const centerX = PAGE_WIDTH / 2;
+  const rightX = PAGE_WIDTH - MARGIN;
+  const leftX = MARGIN;
+
 
   let yPos = 15; // Reduced top margin
+  if (includeLogo) {
+    const logoUrl = "/logg.png";
+    const logoHeight = 23;
+    const logoWidth = 0; // Assuming square logo. You can adjust this as per your actual image ratio.
+  
+    // Center the logo horizontally
+    const centerX = PAGE_WIDTH / 2;
+    doc.addImage(logoUrl, "PNG", centerX - 23 / 2, 5, logoWidth, logoHeight);
+  }
+  
+  // MARGIN - 8, 0, 0, 23
 
-  if (includeHeader) {
-    if (includeLogo) {
-      const logoUrl = "/logg.png"; // Yahan apna actual path dalen
-      doc.addImage(logoUrl, "PNG", MARGIN - 8, 0, 0, 23); // Shifted 5 units more to the left
-    }
-    doc.setFontSize(14); // Slightly smaller font
+  
+  // ----------- LEFT SIDE: INVOICE DETAILS -----------
+  if (order) {
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
-
-    if (invoiceTemplate === 'professional') {
-      doc.setTextColor(41, 98, 255);
-    } else {
-      doc.setTextColor(0, 0, 0);
-    }
-
-    yPos = yPos + 3
-
-    doc.text('INVOICE', 40, 15);
-
-    // Compact header information
+    doc.setTextColor(invoiceTemplate === 'professional' ? 41 : 0, 98, 255);
+    doc.text('INVOICE', leftX, yPos + 2);
+  
     doc.setFontSize(8);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Invoice #${order.id} • Date: ${new Date(order.date).toLocaleDateString()}`, MARGIN, yPos + 5);
-    yPos += 8;
-
-    if (includePaymentTerms) {
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`Invoice #: ${order.id}`, leftX, yPos + 7);
+    doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
+  
+    if (includePaymentTerms && dueDate) {
       const dueDateObj = new Date(dueDate);
-      doc.text(`Due Date: ${dueDateObj.toLocaleDateString()}`, MARGIN, yPos);
-      yPos += 4;
+      doc.text(`Due Date: ${dueDateObj.toLocaleDateString()}`, leftX, yPos + 15);
     }
   }
-
+  
+  // ----------- RIGHT SIDE: COMPANY DETAILS -----------
   if (includeCompanyDetails) {
-    if (includeLogo) {
-      // Box ka color aur size adjust kiya
-      doc.setFillColor(230, 230, 230);
-      doc.roundedRect(PAGE_WIDTH - MARGIN - 50, 10, 80, 20, 2, 2, 'F');
-
-      // Company Name
-      doc.setFontSize(10);
-      doc.setFont('helvetica', 'bold');
-      doc.setTextColor(41, 98, 255);
-      doc.text('Vali Produce', PAGE_WIDTH - MARGIN - 20, 14, { align: 'center' });
-
-      // Address aur Contact
-      doc.setFontSize(7);
-      doc.setFont('helvetica', 'normal');
-      doc.setTextColor(100, 100, 100);
-
-      // Address do line me split kiya
-      doc.text('4300 Pleasantdale Rd,', PAGE_WIDTH - MARGIN - 5, 20, { align: 'right' });
-      doc.text('Atlanta, GA 30340, USA', PAGE_WIDTH - MARGIN - 5, 24, { align: 'right' });
-
-      // Email
-      doc.text('order@valiproduce.shop', PAGE_WIDTH - MARGIN - 5, 28, { align: 'right' });
-    }
-
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(41, 98, 255);
+    doc.text('Vali Produce', rightX, yPos + 2, { align: 'right' });
+  
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('4300 Pleasantdale Rd,', rightX, yPos + 7, { align: 'right' });
+    doc.text('Atlanta, GA 30340, USA', rightX, yPos + 11, { align: 'right' });
+    doc.text('order@valiproduce.shop', rightX, yPos + 15, { align: 'right' });
   }
+  
+  // Update yPos for next content
+  yPos += 25;
+  
+  
+  
+ 
+  // ----------- INVOICE DETAILS UNDERNEATH -----------
 
-  yPos = Math.max(yPos, 35); // Reduced spacing
+
+
+
+
+
 
   // Client info section - more compact
   doc.setFillColor(245, 245, 245);
@@ -100,26 +104,44 @@ export const exportInvoiceToPDF = (
     doc.setFillColor(240, 247, 255);
   }
  // Bill To Box
-doc.roundedRect(MARGIN, yPos, CONTENT_WIDTH, 30, 2, 2, 'F'); // Box ka height 30 kiya taki sab kuch aaye
-
-// "Bill To" Heading
-doc.setFontSize(12);
-doc.setFont('helvetica', 'bold');
-doc.setTextColor(70, 70, 70);
-doc.text('Bill To:', MARGIN , yPos + 6);
-
-// Client Name
-doc.setFont('helvetica', 'normal');
-doc.text(order.clientName, MARGIN , yPos + 12);
-
-// Store Address Details
-doc.setFontSize(8);
-doc.text(order.store?.address || 'N/A', MARGIN , yPos + 18); // Agar address nahi hai to 'N/A' dikhaye
-doc.text(`${order.store?.city || ''}, ${order.store?.state || ''} ${order.store?.zipCode || ''}`, MARGIN , yPos + 22);
-doc.text(`Phone: ${order.store?.phone || 'N/A'}`, MARGIN , yPos + 27);
-
+ const boxHeight = 40;
+ doc.roundedRect(MARGIN, yPos, CONTENT_WIDTH, boxHeight, 2, 2, 'F'); 
+ 
+ // Font settings
+ doc.setFontSize(9);
+ doc.setTextColor(50, 50, 50);
+ 
+ // ---------- BILL TO ----------
+ let billToX = MARGIN + 4;
+ let billToY = yPos + 6;
+ 
+ doc.setFont('helvetica', 'bold');
+ doc.text('Sold To:', billToX, billToY);
+ 
+ doc.setFont('helvetica', 'normal');
+ doc.text(order?.clientName || 'N/A', billToX, billToY + 6);
+ doc.text(order?.store?.address || 'N/A', billToX, billToY + 11);
+ doc.text(`${order?.store?.city || ''}, ${order?.store?.state || ''} ${order?.store?.zipCode || ''}`, billToX, billToY + 16);
+ doc.text(`Phone: ${order?.store?.phone || 'N/A'}`, billToX, billToY + 21);
+ 
+ // ---------- SHIP TO ----------
+ let shipToX = PAGE_WIDTH / 2 + 4;
+ let shipToY = yPos + 6;
+ 
+ doc.setFont('helvetica', 'bold');
+ doc.text('Ship To:', shipToX, shipToY);
+ 
+ doc.setFont('helvetica', 'normal');
+ doc.text(order?.shippingName || 'N/A', shipToX, shipToY + 6);
+ doc.text(order?.shippingAddress || 'N/A', shipToX, shipToY + 11);
+ doc.text(`${order?.shippingCity || ''}, ${order?.shippingState || ''} ${order?.shippingZipCode || ''}`, shipToX, shipToY + 16);
+ doc.text(`Phone: ${order?.shippingPhone || 'N/A'}`, shipToX, shipToY + 21);
+ 
+ // Move yPos below box
+ yPos += boxHeight + 5;
+ 
 // yPos ko update kiya taki agla content overlap na ho
-yPos += 35;
+
 
 
   const tableHeaders = [

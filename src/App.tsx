@@ -59,6 +59,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+  
       <Routes>
         {/* Open Routes */}
         <Route

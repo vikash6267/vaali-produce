@@ -51,8 +51,8 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   const [editPrice, setEditPrice] = useState<string>('');
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [availableProducts,setAvailableProducts] = useState([])
-
-
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('All');
 
   const fetchProducts = async () => {
     try {
@@ -65,6 +65,9 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
           lastUpdated:product?.updatedAt
         }));
         setAvailableProducts(updatedProducts);
+        const categoryOptions = Array.from(new Set(updatedProducts.map(p => p.category)))
+  .map(category => ({ label: category, value: category }));
+
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -108,15 +111,20 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
     onSave(newTemplate);
   };
   
-  const handleToggleProduct = (product: PriceListProduct) => {
+  const handleToggleProduct = (product) => {
     const isSelected = selectedProducts.some(p => p.id === product.id);
     
     if (isSelected) {
-      setSelectedProducts(selectedProducts.filter(p => p.id !== product.id));
+      // remove from selected and add back to available
+      setSelectedProducts(prev => prev.filter(p => p.id !== product.id));
+      setAvailableProducts(prev => [...prev, product]);
     } else {
-      setSelectedProducts([...selectedProducts, product]);
+      // remove from available and add to selected
+      setAvailableProducts(prev => prev.filter(p => p.id !== product.id));
+      setSelectedProducts(prev => [...prev, { ...product, quantity: 0 }]);
     }
   };
+  
   
   const startEditingPrice = (productId: string, currentPrice: number) => {
     setEditingProductId(productId);
@@ -193,6 +201,16 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   //     image: p.image
   //   };
   // }).filter(p => !selectedProducts.some(sp => sp.id === p.id));
+
+
+  const categories = ['All', ...new Set(availableProducts.map(p => p.category))];
+
+  const filteredProducts = availableProducts.filter(product => {
+    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+  
 
   return (
     <Form {...form}>
@@ -364,6 +382,27 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
             </div>
           ) : (
             <div className="rounded-md border">
+              <div className="flex flex-col md:flex-row justify-between items-center mb-4 gap-2">
+  <Input
+    type="text"
+    placeholder="Search products..."
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    className="w-full md:w-1/2"
+  />
+
+  <select
+    value={selectedCategory}
+    onChange={(e) => setSelectedCategory(e.target.value)}
+    className="border rounded-md p-2"
+  >
+    {categories.map((cat) => (
+      <option key={cat} value={cat}>{cat}</option>
+    ))}
+  </select>
+</div>
+
+
               <ScrollArea className="h-[300px]">
                 <Table>
                   <TableHeader>
@@ -376,7 +415,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {availableProducts.map((product) => (
+                    {filteredProducts?.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">
                           <div className="flex items-center gap-3">
