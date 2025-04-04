@@ -98,8 +98,9 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
     
     const rows = products.map(product => [
       product.name.toUpperCase(),
-      formatCurrency(product.price),
-      product.quantity
+      `${formatCurrency(product.price.toFixed(2))}/${formatCurrency(product.pricePerBox.toFixed(2))}`,
+
+      ""
     ]);
     
     return { headers, rows, category };
@@ -130,8 +131,8 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
         cellPadding: 2,
       },
       columnStyles: {
-        0: { cellWidth: columnWidth * 0.6 },
-        1: { cellWidth: columnWidth * 0.2, halign: 'right' },
+        0: { cellWidth: columnWidth * 0.5 },
+        1: { cellWidth: columnWidth * 0.3, halign: 'right' },
         2: { cellWidth: columnWidth * 0.2, halign: 'center' }
       },
       headStyles: {
@@ -199,8 +200,8 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
         cellPadding: 2,
       },
       columnStyles: {
-        0: { cellWidth: columnWidth * 0.6 },
-        1: { cellWidth: columnWidth * 0.2, halign: 'right' },
+        0: { cellWidth: columnWidth * 0.5 },
+        1: { cellWidth: columnWidth * 0.3, halign: 'right' },
         2: { cellWidth: columnWidth * 0.2, halign: 'center' }
       },
       headStyles: {
