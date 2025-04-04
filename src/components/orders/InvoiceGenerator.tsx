@@ -128,7 +128,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
 
   const getTotalWithTax = () => {
     // Calculate tax (for demonstration, using 8.5% tax rate)
-    const taxRate = 0.085;
+    const taxRate = 0;
     const taxAmount = invoiceOptions.includePaymentTerms ? order.total * taxRate : 0;
     return order.total + taxAmount;
   };
@@ -301,12 +301,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                 <span className="font-medium">Subtotal:</span>
                 <span>{formatCurrency(order.total)}</span>
               </div>
-              {invoiceOptions.includePaymentTerms && (
+              {/* {invoiceOptions.includePaymentTerms && (
                 <div className="flex justify-between py-2">
                   <span className="font-medium">Tax (8.5%):</span>
                   <span>{formatCurrency(order.total * 0.085)}</span>
                 </div>
-              )}
+              )} */}
               <div className="flex justify-between py-2 border-t border-gray-300">
                 <span className="font-bold">Total:</span>
                 <span className="font-bold">{formatCurrency(getTotalWithTax())}</span>

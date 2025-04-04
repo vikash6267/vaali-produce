@@ -98,7 +98,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
     
     const rows = products.map(product => [
       product.name.toUpperCase(),
-      `${formatCurrency(product.price.toFixed(2))}/${formatCurrency(product.pricePerBox.toFixed(2))}`,
+      `${formatCurrency(product.pricePerBox.toFixed(2))}`,
 
       ""
     ]);

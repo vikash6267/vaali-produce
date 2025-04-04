@@ -47,12 +47,15 @@ import StoreRegistration from "./StoreRegistration";
 
 const CreateOrderModalStore = ({}) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
-  const [selectedStore, setSelectedStore] = useState<{
-    label: string;
-    value: string;
-  } | null>(
-    user ? { label: user.storeName || user.name, value: user._id } : null
-  );
+ const [selectedStore, setSelectedStore] = useState<{
+  label: string;
+  value: string;
+} | null>(
+  user && user.role !== "admin"
+    ? { label: user.storeName || user.name, value: user._id }
+    : null
+);
+
 
   const [email, setEmail] = useState("");
   const [template, setTemlate] = useState<PriceListTemplate | null>(null);
@@ -136,7 +139,7 @@ const CreateOrderModalStore = ({}) => {
 
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
-      return total + product.price * quantity;
+      return total + product.pricePerBox * quantity;
     }, 0);
   };
 
@@ -153,12 +156,12 @@ const CreateOrderModalStore = ({}) => {
         return {
           product: product.id,
           name: product.name,
-          price: product.price,
+          price: product.pricePerBox,
           quantity: quantity,
           productId: product.id,
           productName: product.name,
-          unitPrice: product.price,
-          total: product.price * quantity,
+          unitPrice: product.pricePerBox,
+          total: product.pricePerBox * quantity,
         };
       });
 
@@ -208,9 +211,9 @@ const CreateOrderModalStore = ({}) => {
         customerName: selectedStore.label,
         items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.price,
+          price: item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity,
+          total: (item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: order.total,
         date: order.date,
@@ -259,9 +262,9 @@ const CreateOrderModalStore = ({}) => {
         customerName: orderDetails.clientName,
         items: orderDetails.items.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.price,
+          price: item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity,
+          total: (item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: orderDetails.total,
         date: orderDetails.date,
@@ -360,7 +363,7 @@ const CreateOrderModalStore = ({}) => {
                     <TableBody>
                       {template.products.map((product) => {
                         const quantity = quantities[product.id] || 0;
-                        const total = product.price * quantity;
+                        const total = product.pricePerBox * quantity;
 
                         return (
                           <TableRow key={product.id}>
@@ -369,7 +372,7 @@ const CreateOrderModalStore = ({}) => {
                             </TableCell>
                             <TableCell>{product.category}</TableCell>
                             <TableCell className="text-right">
-                              {formatCurrency(product.price)}
+                              {formatCurrency(product.pricePerBox)}
                             </TableCell>
                             <TableCell>
                               <Input
@@ -456,14 +459,14 @@ const CreateOrderModalStore = ({}) => {
                           {product.productName || product.name}
                         </TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(product.unitPrice || product.price)}
+                          {formatCurrency(product.unitPrice || product.pricePerBox)}
                         </TableCell>
                         <TableCell className="text-center">
                           {product.quantity}
                         </TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(
-                            (product.unitPrice || product.price) *
+                            (product.unitPrice || product.pricePerBox) *
                               product.quantity
                           )}
                         </TableCell>

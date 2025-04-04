@@ -211,9 +211,10 @@ export const exportInvoiceToPDF = (
   }
 
   const subTotal = order.total;
-  const taxRate = includePaymentTerms ? 0.085 : 0;
+  // const taxRate = includePaymentTerms ? 0.085 : 0;
+  const taxRate = includePaymentTerms ? 0 : 0;
   const taxAmount = subTotal * taxRate;
-  const totalAmount = subTotal + taxAmount;
+  const totalAmount = subTotal ;
 
   doc.setFontSize(9);
 
@@ -221,11 +222,11 @@ export const exportInvoiceToPDF = (
   doc.text(formatCurrency(subTotal), PAGE_WIDTH - MARGIN, yPos, { align: 'right' });
   yPos += 5;
 
-  if (includePaymentTerms) {
-    doc.text('Tax (8.5%):', PAGE_WIDTH - MARGIN - 60, yPos);
-    doc.text(formatCurrency(taxAmount), PAGE_WIDTH - MARGIN, yPos, { align: 'right' });
-    yPos += 5;
-  }
+  // if (includePaymentTerms) {
+  //   doc.text('Tax (8.5%):', PAGE_WIDTH - MARGIN - 60, yPos);
+  //   doc.text(formatCurrency(taxAmount), PAGE_WIDTH - MARGIN, yPos, { align: 'right' });
+  //   yPos += 5;
+  // }
 
   doc.setLineWidth(0.5);
   doc.line(PAGE_WIDTH - MARGIN - 60, yPos - 2, PAGE_WIDTH - MARGIN, yPos - 2);

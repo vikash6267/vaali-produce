@@ -284,8 +284,8 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Unit</TableHead>
+                    <TableHead>Name</TableHead>
+                  
                     <TableHead className="text-right">Price</TableHead>
                     <TableHead className="text-center">Quantity</TableHead>
                     <TableHead></TableHead>
@@ -299,7 +299,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                           <Avatar className="h-10 w-10 rounded-md">
                             <AvatarImage 
                               src={product.image} 
-                              alt={product.productName}
+                              alt={product.name}
                               className="object-cover"
                             />
                             <AvatarFallback className="rounded-md bg-muted">
@@ -309,8 +309,8 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                           <span>{product.productName}</span>
                         </div>
                       </TableCell>
-                      <TableCell>{product.category}</TableCell>
-                      <TableCell>{product.unit}</TableCell>
+                      <TableCell>{product.name}</TableCell>
+                   
                       <TableCell className="text-right">
                         {editingProductId === product.id ? (
                           <div className="flex items-center justify-end gap-2">
@@ -328,7 +328,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                           </div>
                         ) : (
                           <div className="flex items-center justify-end gap-2">
-                            {formatCurrency(product.price)}
+                            {formatCurrency(product.pricePerBox)}
                             <Button 
                               variant="ghost" 
                               size="icon"
@@ -408,7 +408,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                   <TableHeader>
                     <TableRow>
                       <TableHead>Product</TableHead>
-                      <TableHead>Category</TableHead>
+                    
                       <TableHead>Unit</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead></TableHead>
@@ -422,19 +422,19 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                             <Avatar className="h-10 w-10 rounded-md">
                               <AvatarImage 
                                 src={product.image} 
-                                alt={product.productName}
+                                alt={product.name}
                                 className="object-cover"
                               />
                               <AvatarFallback className="rounded-md bg-muted">
                                 <ImageIcon className="h-5 w-5 text-muted-foreground" />
                               </AvatarFallback>
                             </Avatar>
-                            <span>{product.productName}</span>
+                            <span>{product.name}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{product.category}</TableCell>
+                     
                         <TableCell>{product.unit}</TableCell>
-                        <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(product.pricePerBox)}</TableCell>
                         <TableCell className="text-right">
                           <Button 
                             variant="ghost" 
