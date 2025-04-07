@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PriceListTemplate, PriceListProduct, InvoiceData } from '@/components/inventory/forms/formTypes';
 import { formatCurrency } from '@/utils/formatters';
-import { Check, FileText, ShoppingCart } from 'lucide-react';
+import { Check, FileText, Loader2, ShoppingCart } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { exportInvoiceToPDF } from '@/utils/pdf';
 import { getAllStoresAPI } from "@/services2/operations/auth";
@@ -31,6 +31,9 @@ import { createOrderAPI } from "@/services2/operations/order";
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import { OrderItem } from '@/types';
+import { getUserAPI } from "@/services2/operations/auth"
+import AddressForm from '@/components/AddressFields';
+
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -52,7 +55,62 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const { toast } = useToast();
   const [stores, setStores] = useState([]);
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
-  
+
+  const [storeDetails, setStoreDetails] = useState("")
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [billingAddress, setBillingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [sameAsBilling, setSameAsBilling] = useState(true)
+
+  useEffect(() => {
+    if (!selectedStore?.value) return;
+
+    const id = selectedStore.value;
+
+    const fetchStoreDetails = async () => {
+      try {
+        setStoreLoading(true);
+
+        const res = await getUserAPI({ id });
+        console.log(res)
+        if (res) {
+          setBillingAddress({
+            name: res.ownerName || "",
+            email: res.email || "",
+            address: res.address || "",
+            city: res.city || "",
+            postalCode: res.zipCode || "",
+            country: res.state || "",
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching store user:", error);
+      } finally {
+        setStoreLoading(false);
+      }
+    };
+
+    fetchStoreDetails();
+  }, [selectedStore]);
+
+
+
+
+
   useEffect(() => {
     const fetchStores = async () => {
       try {
@@ -88,12 +146,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     }, 0);
   };
 
-  const handleCreateOrder = async() => {
+  const handleCreateOrder = async () => {
     if (!template || !selectedStore) return;
 
     console.log(template);
     console.log(selectedStore);
-    
+
     const orderedProducts = template.products.filter(
       product => (quantities[product.id] || 0) > 0
     ).map(product => {
@@ -135,11 +193,13 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       status: 'pending' as const,
       paymentStatus: 'pending' as const,
       subtotal: totalAmount,
-      store: selectedStore.value
+      store: selectedStore.value,
+      billingAddress,
+      shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     };
 
     console.log(order);
-    
+
     await createOrderAPI(order, token);
 
     console.log("Created order:", order);
@@ -196,7 +256,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     if (!orderDetails) return;
 
     console.log(orderDetails);
-    
+
     try {
       const invoiceData: InvoiceData = {
         invoiceNumber: orderDetails.id,
@@ -268,6 +328,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   isSearchable={true}
                 />
 
+   {storeLoading ? (
+                <div className="flex justify-center items-center p-4">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                  <span className="text-sm">Finding user details...</span>
+                </div>
+              ) : (
+                <AddressForm
+                  billingAddress={billingAddress}
+                  setBillingAddress={setBillingAddress}
+                  shippingAddress={shippingAddress}
+                  setShippingAddress={setShippingAddress}
+                  sameAsBilling={sameAsBilling}
+                  setSameAsBilling={setSameAsBilling}
+                />
+              )}
               </div>
 
               <div className="border rounded-md overflow-hidden">

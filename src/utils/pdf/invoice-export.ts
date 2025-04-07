@@ -120,9 +120,10 @@ export const exportInvoiceToPDF = (
  
  doc.setFont('helvetica', 'normal');
  doc.text(order?.clientName || 'N/A', billToX, billToY + 6);
- doc.text(order?.store?.address || 'N/A', billToX, billToY + 11);
- doc.text(`${order?.store?.city || ''}, ${order?.store?.state || ''} ${order?.store?.zipCode || ''}`, billToX, billToY + 16);
+ doc.text(order?.billingAddress?.address || 'N/A', billToX, billToY + 11);
+ doc.text(`${order?.billingAddress?.city || ''}, ${order?.billingAddress?.state || ''} ${order?.billingAddress?.postalCode || ''}`, billToX, billToY + 16);
  doc.text(`Phone: ${order?.store?.phone || 'N/A'}`, billToX, billToY + 21);
+ 
  
  // ---------- SHIP TO ----------
  let shipToX = PAGE_WIDTH / 2 + 4;
@@ -132,9 +133,9 @@ export const exportInvoiceToPDF = (
  doc.text('Ship To:', shipToX, shipToY);
  
  doc.setFont('helvetica', 'normal');
- doc.text(order?.shippingName || 'N/A', shipToX, shipToY + 6);
- doc.text(order?.shippingAddress || 'N/A', shipToX, shipToY + 11);
- doc.text(`${order?.shippingCity || ''}, ${order?.shippingState || ''} ${order?.shippingZipCode || ''}`, shipToX, shipToY + 16);
+ doc.text(order?.shippingAddress?.address || 'N/A', shipToX, shipToY + 6);
+ doc.text(order?.shippingAddress?.city || 'N/A', shipToX, shipToY + 11);
+ doc.text(`${order?.shippingAddress?.state || ''}, ${order?.shippingAddress?.country || ''} ${order?.shippingAddress?.postalCode || ''}`, shipToX, shipToY + 16);
  doc.text(`Phone: ${order?.shippingPhone || 'N/A'}`, shipToX, shipToY + 21);
  
  // Move yPos below box
@@ -154,8 +155,8 @@ export const exportInvoiceToPDF = (
   const tableRows = order.items.map(item => [
     item.name,
     item.quantity.toString(),
-    formatCurrency(item.price),
-    formatCurrency(item.quantity * item.price)
+    formatCurrency(item.unitPrice || item.price),
+    formatCurrency(item.quantity * (item.unitPrice || item.price))
   ]);
 
   let headerStyles: any = {

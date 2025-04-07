@@ -2,7 +2,7 @@ const orderModel = require("../models/orderModle");
 
 const createOrderCtrl = async (req, res) => {
     try {
-        const { items,  status, total,clientId } = req.body;
+        const { items,  status, total,clientId ,billingAddress,shippingAddress} = req.body;
 console.log(req.body)
 
 
@@ -27,6 +27,8 @@ console.log(req.body)
             items,
             store:clientId.value,
             status,
+            shippingAddress,
+            billingAddress,
             total,
         });
 

@@ -52,6 +52,7 @@ type OrderFormValues = z.infer<typeof formSchema>;
 interface OrderEditFormProps {
   order?: Order;
   onSubmit: (data: OrderFormValues) => void;
+  setStoreDetails?: (data: string) => void;
   onCancel: () => void;
   onViewClientProfile?: () => void;
 }
@@ -61,6 +62,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   onSubmit,
   onCancel,
   onViewClientProfile,
+  setStoreDetails
 }) => {
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState([]);
@@ -168,6 +170,14 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
       price: Number(product.price),
     })
   );
+
+
+  useEffect(()=>{
+
+    
+    setStoreDetails(form.getValues("store"))
+  },[form.watch("store")])
+
 
 
   return (

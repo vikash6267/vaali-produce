@@ -172,11 +172,15 @@ export const getAllMembersAPI = async () => {
   }
 
 };
-export const getUserAPI = async (email, setIsGroupOpen) => {
 
+
+export const getUserAPI = async ({
+  email = null,
+  id = null,
+  setIsGroupOpen = () => {},
+}) => {
   try {
-    const response = await apiConnector("POST", GET_USER_API, { email },)
-
+    const response = await apiConnector("POST", GET_USER_API, { email, id });
 
     if (!response?.data?.success) {
       throw new Error(response?.data?.message || "Something went wrong!");
@@ -184,13 +188,16 @@ export const getUserAPI = async (email, setIsGroupOpen) => {
 
     return response?.data?.user;
   } catch (error) {
-    setIsGroupOpen(true)
-    console.error("GET Product API ERROR:", error);
-    toast.error(error?.response?.data?.message || "Failed to get product!");
-    return [];
-  }
+    if (typeof setIsGroupOpen === "function") {
+      setIsGroupOpen(true);
+    }
 
+    console.error("GET USER API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to get user!");
+    return null;
+  }
 };
+
 
 export const getAllStoresAPI = async () => {
 

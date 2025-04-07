@@ -35,6 +35,10 @@ export interface BulkDiscount {
   discountPercentage?: number;
   _id?: string;
 }
+export interface Store {
+  phone: number;
+  
+}
 
 export interface Order {
   id: string;
@@ -75,6 +79,8 @@ export interface OrderItem {
 
 export interface Address {
   street: string;
+  address?: string;
+  name?: string;
   city: string;
   state: string;
   country: string;

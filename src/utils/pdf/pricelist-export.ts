@@ -98,7 +98,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
       },
       columnStyles: {
         0: { cellWidth: columnWidth * 0.55 },
-        1: { cellWidth: columnWidth * 0.25, halign: "right" },
+        1: { cellWidth: columnWidth * 0.10, halign: "center" },
         2: { cellWidth: columnWidth * 0.2, halign: "center" },
       },
       headStyles: {

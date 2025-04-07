@@ -31,7 +31,7 @@ import {
   InvoiceData,
 } from "@/components/inventory/forms/formTypes";
 import { formatCurrency } from "@/utils/formatters";
-import { Check, FileText, ShoppingCart } from "lucide-react";
+import { Check, FileText, Loader2, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { exportInvoiceToPDF } from "@/utils/pdf";
 import { getAllStoresAPI } from "@/services2/operations/auth";
@@ -44,6 +44,7 @@ import { useSelector } from "react-redux";
 import { OrderItem } from "@/types";
 import { useNavigate } from "react-router-dom";
 import StoreRegistration from "./StoreRegistration";
+import AddressForm from "@/components/AddressFields";
 
 const CreateOrderModalStore = ({ }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
@@ -78,6 +79,57 @@ const CreateOrderModalStore = ({ }) => {
 
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [storeLoading, setStoreLoading] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [billingAddress, setBillingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [sameAsBilling, setSameAsBilling] = useState(true)
+
+  // useEffect(() => {
+  //   if (!selectedStore?.value) return;
+
+  //   const id = selectedStore.value;
+
+  //   const fetchStoreDetails = async () => {
+  //     try {
+  //       setStoreLoading(true);
+
+  //       const res = await getUserAPI({ id });
+  //       console.log(res)
+  //       if (res) {
+  //         setBillingAddress({
+  //           name: res.ownerName || "",
+  //           email: res.email || "",
+  //           address: res.address || "",
+  //           city: res.city || "",
+  //           postalCode: res.zipCode || "",
+  //           country: res.state || "",
+  //         });
+  //       }
+  //     } catch (error) {
+  //       console.error("Error fetching store user:", error);
+  //     } finally {
+  //       setStoreLoading(false);
+  //     }
+  //   };
+
+  //   fetchStoreDetails();
+  // }, [selectedStore]);
+
+
 
 
 
@@ -125,8 +177,19 @@ const CreateOrderModalStore = ({ }) => {
   }, []);
 
   const handleFindUser = async () => {
-    const response = await getUserAPI(email, setIsGroupOpen);
+    setStoreLoading(true);
+
+    const response = await getUserAPI({email, setIsGroupOpen});
     console.log(response);
+
+    setBillingAddress({
+      name: response.ownerName || "",
+      email: response.email || "",
+      address: response.address || "",
+      city: response.city || "",
+      postalCode: response.zipCode || "",
+      country: response.state || "",
+    });
     if (response) {
       setSelectedStore({
         label: response.storeName,
@@ -135,6 +198,8 @@ const CreateOrderModalStore = ({ }) => {
     } else {
       setIsGroupOpen(true);
     }
+    setStoreLoading(false);
+
   };
 
   const handleQuantityChange = (productId: string, value: string) => {
@@ -205,6 +270,8 @@ const CreateOrderModalStore = ({ }) => {
       paymentStatus: "pending" as const,
       subtotal: totalAmount,
       store: selectedStore.value,
+      billingAddress,
+      shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     };
 
     console.log(order);
@@ -372,6 +439,24 @@ const CreateOrderModalStore = ({ }) => {
                   </button>
                 </div>
 
+
+                {storeLoading ? (
+                  <div className="flex justify-center items-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                    <span className="text-sm">Finding user details...</span>
+                  </div>
+                ) : (
+                  <AddressForm
+                    billingAddress={billingAddress}
+                    setBillingAddress={setBillingAddress}
+                    shippingAddress={shippingAddress}
+                    setShippingAddress={setShippingAddress}
+                    sameAsBilling={sameAsBilling}
+                    setSameAsBilling={setSameAsBilling}
+                  />
+                )}
+               
+
                 <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
                     <Input
@@ -416,7 +501,7 @@ const CreateOrderModalStore = ({ }) => {
                           <TableRow key={product.id}>
 
                             <TableCell className="font-medium flex items-center gap-4">
-                            <img src={product.image} alt="" className="h-14" loading="lazy" />
+                              <img src={product.image} alt="" className="h-14" loading="lazy" />
 
                               {product.name}
                             </TableCell>

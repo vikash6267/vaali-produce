@@ -220,16 +220,24 @@ const getAllStoreCtrl = async (req, res) => {
 
 const getUserByEmailCtrl = async (req, res) => {
   try {
-    const { email } = req.body;
+    const { email, id } = req.body;
 
-    if (!email) {
+    if (!email && !id) {
       return res.status(400).json({
         success: false,
-        message: "Email is required",
+        message: "Email or ID is required",
       });
     }
 
-    const user = await authModel.findOne({ email, role: "store" });
+    let query = { role: "store" };
+
+    if (id) {
+      query._id = id;
+    } else if (email) {
+      query.email = email;
+    }
+
+    const user = await authModel.findOne(query);
 
     if (!user) {
       return res.status(404).json({
@@ -243,7 +251,7 @@ const getUserByEmailCtrl = async (req, res) => {
       user,
     });
   } catch (error) {
-    console.log(error);
+    console.log("Error in getUserByEmailCtrl:", error);
     return res.status(500).json({
       success: false,
       message: "Error in getting user API!",

@@ -75,6 +75,8 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
             clientId: order.store._id,
             clientName: order.store.storeName,
             date: order.date,
+            shippingAddress:order?.shippingAddress,
+            billingAddress:order?.billingAddress,
             status: order.status,
             items: order.items,
             total: order.total,
