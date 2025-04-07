@@ -68,6 +68,8 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   const [store, setStore] = useState([]);
   const [products, setProducts] = useState([]);
 
+
+  console.log(order)
   // Define default values for the form
   const defaultValues: OrderFormValues = {
     store: order?.store || "",
@@ -270,7 +272,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
                         <FormLabel>Product</FormLabel>
                         <FormControl>
                           <Select2
-                            {...field}
+                         
                             options={productOptions}
                             onChange={(selectedOption) => {
                               console.log(selectedOption)

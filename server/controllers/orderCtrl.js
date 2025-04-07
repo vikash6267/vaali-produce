@@ -103,6 +103,39 @@ const getOrderForStoreCtrl = async (req, res) => {
 }
 
 
+const updateOrderCtrl = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updateFields = req.body;
+  
+      // Ensure the order exists
+      const existingOrder = await orderModel.findById(id);
+      if (!existingOrder) {
+        return res.status(404).json({ success: false, message: "Order not found!" });
+      }
+  
+      // Update only the fields that are present in the request body
+      Object.keys(updateFields).forEach((key) => {
+        if (updateFields[key] !== undefined) {
+          existingOrder[key] = updateFields[key];
+        }
+      });
+  
+      await existingOrder.save();
+  
+      return res.status(200).json({
+        success: true,
+        message: "Order updated successfully",
+        updatedOrder: existingOrder,
+      });
+    } catch (error) {
+      console.error("Error updating order:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal Server Error while updating order",
+      });
+    }
+  };
+  
 
-
-module.exports = { createOrderCtrl, getAllOrderCtrl, getOrderForStoreCtrl };
+module.exports = { createOrderCtrl, getAllOrderCtrl, getOrderForStoreCtrl,updateOrderCtrl };

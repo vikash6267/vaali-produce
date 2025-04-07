@@ -52,6 +52,7 @@ import {
 import OrderEditForm from './OrderEditForm';
 import InvoiceGenerator from './InvoiceGenerator';
 import TransportationReceipt from './TransportationReceipt';
+import OrderDetailsModal from './OrderView';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -63,11 +64,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false);
   const navigate = useNavigate();
 
   const handleEdit = (order: Order) => {
-    navigate(`/orders/edit/${order.id}`);
+    navigate(`/orders/edit/${order._id}`);
   };
 
   const handleDelete = (id: string) => {
@@ -78,11 +80,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
     });
   };
 
-  const handleViewDetails = (id: string) => {
-    toast({
-      title: "View Order Details",
-      description: `Viewing details for order ${id}`,
-    });
+  const handleViewDetails = (order: Order) => {
+    setSelectedOrder(order)
+    setIsDetailsModalOpen(true)
+
+  
   };
 
   const handleViewClientProfile = (clientId: string) => {
@@ -224,6 +226,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
           </Button>
         </div>
       </div>
+      <OrderDetailsModal
+        order={selectedOrder}
+        open={isDetailsModalOpen}
+        onClose={() => setIsDetailsModalOpen(false)}
+        userRole={"admin"}
+      />
 
       <div className="rounded-md border bg-white">
         <Table>
@@ -284,7 +292,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(order.id)}>
+                        <DropdownMenuItem onClick={() => handleViewDetails(order)}>
                           <FileText size={14} className="mr-2" />
                           View Details
                         </DropdownMenuItem>

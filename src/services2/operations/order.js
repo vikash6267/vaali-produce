@@ -6,7 +6,8 @@ import { toast } from 'react-toastify';
 const { CREATE_PRODUCT,
     CREATE_ORDER,
     GET_ALL_ORDER, 
-    GET_ORDER
+    GET_ORDER,
+    UPDATE_ORDER
 } = order
 
 
@@ -39,6 +40,26 @@ export const createOrderAPI = async (formData, token) => {
 };
 
 
+export const getOrderAPI = async (id,token) => {
+
+    try {
+        const response = await apiConnector("GET", `${GET_ORDER}/${id}`,{},{
+            Authorization: `Bearer ${token}`,
+        })
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        return response?.data?.order || [];
+    } catch (error) {
+        console.error("GET GET_ALL_ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get GET_ALL_ORDER!");
+        return [];
+    }
+
+};
 export const getAllOrderAPI = async (token) => {
 
     try {
@@ -58,4 +79,32 @@ export const getAllOrderAPI = async (token) => {
         return [];
     }
 
+};
+
+export const updateOrderAPI = async (formData, token,id) => {
+
+    const toastId = toast.loading("Loading...");
+
+
+    try {
+        const response = await apiConnector("PUT", `${UPDATE_ORDER}/${id}`, formData, {
+            Authorization: `Bearer ${token}`,
+        });
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+
+        toast.success(response?.data?.message);
+
+        return response;
+    } catch (error) {
+        console.error("updateOrderAPI  API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to updateOrderAPI!");
+        return null;
+    } finally {
+
+        toast.dismiss(toastId);
+    }
 };

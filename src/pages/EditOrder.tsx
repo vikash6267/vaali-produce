@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Navbar from '@/components/layout/Navbar';
 import Sidebar from '@/components/layout/Sidebar';
@@ -9,31 +9,130 @@ import { Button } from '@/components/ui/button';
 import OrderEditForm from '@/components/orders/OrderEditForm';
 import { useToast } from '@/hooks/use-toast';
 import { mockOrders } from '@/data/orderData';
+import {getOrderAPI,updateOrderAPI} from "@/services2/operations/order"
+import { RootState } from '@/redux/store';
+import { useSelector } from 'react-redux';
+import { Order } from '@/types';
+import AddressForm from '@/components/AddressFields';
+
 
 const EditOrder = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { orderId } = useParams();
-  
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [storeDetails, setStoreDetails] = useState("")
+  const [shippingAddress, setShippingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [billingAddress, setBillingAddress] = useState({
+    name: "",
+    email: "",
+    address: "",
+    city: "",
+    postalCode: "",
+    country: "",
+  })
+  const [sameAsBilling, setSameAsBilling] = useState(false)
+
+
+  console.log(orderId)
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
   // Find the order by ID
-  const order = mockOrders.find(o => o.id === orderId);
+  
+  useEffect(() => {
+    const fetchOrder = async () => {
+      try {
+        const res = await getOrderAPI(orderId, token);
 
-  const handleSubmitOrder = (data: any) => {
+        console.log(res)
+        setShippingAddress(res?.shippingAddress)
+        setBillingAddress(res?.billingAddress)
+        const formattedOrder = {
+          id: res._id || "",
+          _id: res._id,
+          orderId: res.orderId,
+          store: res.store,
+          customer: res.customer,
+          date: res.date,
+          items: res.items.map((item: any) => ({
+            ...item,
+            productName: item.name || item.productName, // rename 'product' to 'productName'
+            productId: item.id || item._id || item.productId, // rename 'product' to 'productName'
+          })),
+          
+          status: res.status,
+          shippingAddress: res.shippingAddress,
+          billingAddress: res.billingAddress,
+          paymentMethod: res.paymentMethod,
+          paymentStatus: res.paymentStatus,
+          subtotal: res.subtotal || res.total,
+          tax: res.tax,
+          shipping: res.shipping,
+          discount: res.discount,
+          total: res.total,
+          notes: res.notes,
+          trackingNumber: res.trackingNumber,
+          clientName: res.clientName,
+          clientId: res.clientId,
+        };
+
+        setOrder(formattedOrder);
+      } catch (error) {
+        console.error("Error fetching order:", error);
+      }
+    };
+  
+    fetchOrder();
+  }, []);
+
+  interface Item {
+    quantity: number;
+    unitPrice: number;
+  }
+  const handleSubmitOrder = async(data: any) => {
     // In a real app, this would update the order in the database
+
+if(!orderId) return
+    const calculateTotal = () => {
+      const items: Item[] = data?.items || []; // Ensure data.items is an array
+      return items.reduce((total: number, item: Item) => {
+        return total + item.quantity * item.unitPrice;
+      }, 0);
+    };
+
+    console.log(calculateTotal());  // Call the function to get the result
+    const finalData = {
+      ...data,
+      billingAddress,
+      clientId: { value: data?.store },
+      shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
+      total: calculateTotal(),
+      subtotal: calculateTotal(),
+    };
+
+
+  await updateOrderAPI(finalData,token,orderId)
+    console.log(finalData);
     toast({
       title: "Order Updated",
       description: `Order ${data.orderId || orderId} has been updated successfully`,
     });
-    navigate('/orders');
+    navigate('/admin/orders');
   };
 
   const handleCancel = () => {
-    navigate('/orders');
+    navigate('/admin/orders');
   };
 
   if (!order) {
@@ -97,10 +196,21 @@ const EditOrder = () => {
                 <h2 className="text-xl font-medium">Order Details</h2>
               </div>
               
+
+              <AddressForm
+                  billingAddress={billingAddress}
+                  setBillingAddress={setBillingAddress}
+                  shippingAddress={shippingAddress}
+                  setShippingAddress={setShippingAddress}
+                  sameAsBilling={sameAsBilling}
+                  setSameAsBilling={setSameAsBilling}
+                />
               <OrderEditForm
                 order={order}
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
+                setStoreDetails={setStoreDetails}
+
               />
             </div>
           </div>

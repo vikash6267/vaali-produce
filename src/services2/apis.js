@@ -26,6 +26,7 @@ export const category = {
 
 export const product = {
   CREATE_PRODUCT: BASE_URL + "/product/create",
+
   GET_ALL_PRODUCT: BASE_URL + "/product/getAll",
   GET_PRODUCT: BASE_URL + "/product/get",
   DELETE_PRODUCT: BASE_URL + "/product/delete",
@@ -45,6 +46,7 @@ export const priceList = {
 }
 export const order = {
   CREATE_ORDER: BASE_URL + "/order/create",
+
   GET_ALL_ORDER: BASE_URL + "/order/getAll",
   GET_ORDER: BASE_URL + "/order/get",
   DELETE_ORDER: BASE_URL + "/order/delete",

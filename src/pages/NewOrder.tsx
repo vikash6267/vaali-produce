@@ -121,11 +121,11 @@ const NewOrder = () => {
       title: "Order Created",
       description: `Order ${data.orderId} has been created successfully`,
     });
-    navigate('/orders');
+    navigate('/admin/orders');
   };
 
   const handleCancel = () => {
-    navigate('/orders');
+    navigate('/admin/orders');
   };
 
   return (

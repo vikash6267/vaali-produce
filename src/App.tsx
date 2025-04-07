@@ -220,7 +220,7 @@ export default function App() {
           }
         />
         <Route
-          path="/orders/edit/:id"
+          path="/orders/edit/:orderId"
           element={
             <PrivateRoute>
               <EditOrder />
