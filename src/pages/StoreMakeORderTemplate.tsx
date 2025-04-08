@@ -83,6 +83,7 @@ const CreateOrderModalStore = ({ }) => {
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     email: "",
+    phone:"",
     address: "",
     city: "",
     postalCode: "",
@@ -92,6 +93,8 @@ const CreateOrderModalStore = ({ }) => {
     name: "",
     email: "",
     address: "",
+    phone:"",
+
     city: "",
     postalCode: "",
     country: "",
@@ -185,6 +188,7 @@ const CreateOrderModalStore = ({ }) => {
     setBillingAddress({
       name: response.ownerName || "",
       email: response.email || "",
+      phone: response.phone || "",
       address: response.address || "",
       city: response.city || "",
       postalCode: response.zipCode || "",

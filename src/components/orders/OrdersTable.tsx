@@ -53,12 +53,15 @@ import OrderEditForm from './OrderEditForm';
 import InvoiceGenerator from './InvoiceGenerator';
 import TransportationReceipt from './TransportationReceipt';
 import OrderDetailsModal from './OrderView';
+import { RootState } from '@/redux/store';
+import { useSelector } from 'react-redux';
 
 interface OrdersTableProps {
   orders: Order[];
+  fetchOrders:()=>void
 }
 
-const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
+const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -67,6 +70,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false);
   const navigate = useNavigate();
+  const user = useSelector((state: RootState) => state.auth?.user ?? null);
 
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`);
@@ -216,14 +220,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
         </div>
 
         <div className="flex gap-2">
-          <Button size="sm" variant="outline" className="h-10">
-            <RefreshCw size={16} className="mr-2" />
+          <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders}>
+            <RefreshCw size={16} className="mr-2"  />
             Refresh
           </Button>
-          <Button size="sm" className="h-10" onClick={handleNewOrder}>
+         {user.role === "admin" &&   <Button size="sm" className="h-10" onClick={handleNewOrder}>
             <Plus size={16} className="mr-2" />
             New Order
-          </Button>
+          </Button>}
         </div>
       </div>
       <OrderDetailsModal

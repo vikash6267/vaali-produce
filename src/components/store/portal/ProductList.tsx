@@ -342,6 +342,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, onAddToCart }) => {
                   src={`https://source.unsplash.com/400x300/?${product.category.toLowerCase()},${product.name.toLowerCase()}`}
                   alt={product.name}
                   className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                  loading="lazy"
                 />
                 {hasDiscount && (
                   <Badge className="absolute top-2 right-2 bg-orange-500 hover:bg-orange-600 text-white">

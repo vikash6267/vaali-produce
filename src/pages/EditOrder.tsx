@@ -30,11 +30,13 @@ const EditOrder = () => {
     address: "",
     city: "",
     postalCode: "",
+    phone:"",
     country: "",
   })
   const [billingAddress, setBillingAddress] = useState({
     name: "",
     email: "",
+    phone:"",
     address: "",
     city: "",
     postalCode: "",

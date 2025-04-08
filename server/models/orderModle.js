@@ -3,6 +3,7 @@ const mongoose = require("mongoose");
 const addressSchema = {
   name: { type: String, required: true },
   email: { type: String },
+  phone: { type: String },
   address: { type: String, required: true },
   city: { type: String, required: true },
   postalCode: { type: String, required: true },

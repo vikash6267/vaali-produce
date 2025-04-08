@@ -203,6 +203,7 @@ export const ImageUploadField = ({
                     src={field.value}
                     alt="Product preview"
                     className="w-full h-full object-cover"
+                    loading="lazy"
                   />
                 ) : (
                   <ImageIcon className="h-8 w-8 text-muted-foreground/30" />

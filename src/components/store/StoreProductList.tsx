@@ -201,6 +201,7 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
                     src={product.image || `https://source.unsplash.com/400x300/?${product.category.toLowerCase()}`}
                     alt={product.name}
                     className="object-cover w-full h-full transition-transform group-hover:scale-105"
+                    loading="lazy"
                   />
                   
                   {hasBulkDiscount && (

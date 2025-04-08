@@ -65,6 +65,7 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
     email: "",
     address: "",
     city: "",
+    phone:"",
     postalCode: "",
     country: "",
   })
@@ -72,6 +73,7 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
     name: "",
     email: "",
     address: "",
+    phone:"",
     city: "",
     postalCode: "",
     country: "",
@@ -284,6 +286,7 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
                         src={item.image || "/placeholder.svg"}
                         alt={item.name}
                         className="h-full w-full object-cover"
+                        loading="lazy"
                       />
                     </div>
                     <div className="ml-4 flex-1">
@@ -477,7 +480,20 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
                     onChange={(e) => setBillingAddress({ ...billingAddress, email: e.target.value })}
                   />
                 </div>
-
+ <div className="grid gap-1.5">
+          <label htmlFor="billing-email" className="text-sm font-medium">
+            Phone
+          </label>
+          <Input
+            id="billing-email"
+            type="email"
+            placeholder="01234567890"
+            value={billingAddress.phone}
+            onChange={(e) =>
+              setBillingAddress({ ...billingAddress, phone: e.target.value })
+            }
+          />
+        </div>
                 <div className="grid gap-1.5">
                   <label htmlFor="billing-address" className="text-sm font-medium">
                     Address
@@ -572,7 +588,20 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
                         onChange={(e) => setShippingAddress({ ...shippingAddress, email: e.target.value })}
                       />
                     </div>
-
+                    <div className="grid gap-1.5">
+          <label htmlFor="billing-email" className="text-sm font-medium">
+            Phone
+          </label>
+          <Input
+            id="billing-email"
+            type="email"
+            placeholder="01234567890"
+            value={billingAddress.phone}
+            onChange={(e) =>
+              setShippingAddress({ ...billingAddress, phone: e.target.value })
+            }
+          />
+        </div>
                     <div className="grid gap-1.5">
                       <label htmlFor="shipping-address" className="text-sm font-medium">
                         Address

@@ -169,6 +169,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
           src={product.image || `https://source.unsplash.com/400x300/?${product.category.toLowerCase()}`}
           alt={product.name}
           className="object-cover w-full h-full transition-transform group-hover:scale-105"
+          loading="lazy"
         />
         {(hasDiscount || hasBulkDiscount) && (
           <Badge className="absolute top-2 right-2 bg-primary text-white">

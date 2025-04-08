@@ -80,6 +80,7 @@ export interface OrderItem {
 export interface Address {
   street: string;
   address?: string;
+  phone?: string;
   name?: string;
   city: string;
   state: string;

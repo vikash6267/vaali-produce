@@ -62,6 +62,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     name: "",
     email: "",
     address: "",
+    phone:"",
     city: "",
     postalCode: "",
     country: "",
@@ -69,6 +70,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [billingAddress, setBillingAddress] = useState({
     name: "",
     email: "",
+    phone:"",
     address: "",
     city: "",
     postalCode: "",
@@ -95,6 +97,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             city: res.city || "",
             postalCode: res.zipCode || "",
             country: res.state || "",
+            phone:res.phone || "",
           });
         }
       } catch (error) {

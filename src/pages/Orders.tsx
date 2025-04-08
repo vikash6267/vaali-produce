@@ -12,6 +12,7 @@ import { Plus, FileText, Receipt } from 'lucide-react';
 import { getAllOrderAPI } from "@/services2/operations/order";
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
+import { Loader2 } from "lucide-react";
 
 const Orders = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -21,24 +22,31 @@ const Orders = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const user = useSelector((state: RootState) => state.auth?.user ?? null);
+  const [loading, setLoading] = useState(false); // Step 1
 
-  useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const res = await getAllOrderAPI(token);
-        console.log(res);
-        const formattedOrders = res.map(order => ({
-          id: order?.orderNumber || `#${order._id.toString().slice(-5)}`,
-          date: new Date(order.createdAt).toLocaleDateString(), // Formatting date
-          clientName: order.store?.storeName || "Unknown", // Handling potential undefined values
-          ...order // Retaining other fields
-        }));
+  const fetchOrders = async () => {
+    setLoading(true); // Step 2
+    try {
+      const res = await getAllOrderAPI(token);
+      console.log(res);
   
-        setOrders(formattedOrders);
-      } catch (error) {
-        console.error("Error fetching orders:", error);
-      }
-    };
+      const formattedOrders = res.map(order => ({
+        id: order?.orderNumber || `#${order._id.toString().slice(-5)}`,
+        date: new Date(order.createdAt).toLocaleDateString(),
+        clientName: order.store?.storeName || "Unknown",
+        ...order
+      }));
+  
+      setOrders(formattedOrders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+    } finally {
+      setLoading(false); // Step 3
+    }
+  };
+  useEffect(() => {
+   
   
     fetchOrders(); // Call the function
   }, [token]);
@@ -60,7 +68,7 @@ const Orders = () => {
               title="Order Management" 
               description="Manage orders, generate invoices, and track shipments"
             >
-              <div className="flex flex-col sm:flex-row gap-2">
+        { user.role === "admin" &&     <div className="flex flex-col sm:flex-row gap-2">
                 <Button onClick={handleNewOrder}>
                   <Plus size={16} className="mr-2" />
                   New Order
@@ -73,11 +81,11 @@ const Orders = () => {
                   <Receipt size={16} className="mr-2" />
                   Receipts
                 </Button> */}
-              </div>
+              </div>}
             </PageHeader>
             
             <Tabs defaultValue="orders" className="mt-6">
-              <TabsList className="w-full max-w-md grid grid-cols-2 mb-6">
+         { user.role === "admin" &&       <TabsList className="w-full max-w-md grid grid-cols-2 mb-6">
                 <TabsTrigger value="orders" className="flex items-center">
                   <FileText size={16} className="mr-2" />
                   Orders List
@@ -86,10 +94,21 @@ const Orders = () => {
                   <Receipt size={16} className="mr-2" />
                   Advanced Management
                 </TabsTrigger>
-              </TabsList>
+              </TabsList>}
               
               <TabsContent value="orders">
-                <OrdersTable orders={orders} />
+                {
+                    <div className="p-4">
+                    {loading ? (
+                      <div className="flex justify-center items-center h-40">
+                        <Loader2 className="animate-spin w-8 h-8 text-gray-500" />
+                      </div>
+                    ) : (
+                     
+                <OrdersTable orders={orders} fetchOrders={fetchOrders} />
+                    )}
+                  </div>
+                }
               </TabsContent>
               
               <TabsContent value="advanced">

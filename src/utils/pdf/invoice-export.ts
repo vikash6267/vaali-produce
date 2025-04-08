@@ -115,29 +115,30 @@ export const exportInvoiceToPDF = (
  let billToX = MARGIN + 4;
  let billToY = yPos + 6;
  
- doc.setFont('helvetica', 'bold');
- doc.text('Sold To:', billToX, billToY);
- 
- doc.setFont('helvetica', 'normal');
- doc.text(order?.clientName || 'N/A', billToX, billToY + 6);
- doc.text(order?.billingAddress?.address || 'N/A', billToX, billToY + 11);
- doc.text(`${order?.billingAddress?.city || ''}, ${order?.billingAddress?.state || ''} ${order?.billingAddress?.postalCode || ''}`, billToX, billToY + 16);
- doc.text(`Phone: ${order?.store?.phone || 'N/A'}`, billToX, billToY + 21);
- 
- 
- // ---------- SHIP TO ----------
- let shipToX = PAGE_WIDTH / 2 + 4;
- let shipToY = yPos + 6;
- 
- doc.setFont('helvetica', 'bold');
- doc.text('Ship To:', shipToX, shipToY);
- 
- doc.setFont('helvetica', 'normal');
- doc.text(order?.shippingAddress?.address || 'N/A', shipToX, shipToY + 6);
- doc.text(order?.shippingAddress?.city || 'N/A', shipToX, shipToY + 11);
- doc.text(`${order?.shippingAddress?.state || ''}, ${order?.shippingAddress?.country || ''} ${order?.shippingAddress?.postalCode || ''}`, shipToX, shipToY + 16);
- doc.text(`Phone: ${order?.shippingPhone || 'N/A'}`, shipToX, shipToY + 21);
- 
+
+ // ---------- BILL TO ----------
+doc.setFont('helvetica', 'bold');
+doc.text('Bill To:', billToX, billToY);
+
+doc.setFont('helvetica', 'normal');
+doc.text(order?.billingAddress?.name || 'N/A', billToX, billToY + 6);
+doc.text(order?.billingAddress?.address || 'N/A', billToX, billToY + 11);
+doc.text(`${order?.billingAddress?.city || ''}, ${order?.billingAddress?.state || ''} ${order?.billingAddress?.postalCode || ''}`, billToX, billToY + 16);
+doc.text(`Phone: ${order?.billingAddress?.phone || 'N/A'}`, billToX, billToY + 21);
+
+// ---------- SHIP TO ----------
+let shipToX = PAGE_WIDTH / 2 + 4;
+let shipToY = yPos + 6;
+
+doc.setFont('helvetica', 'bold');
+doc.text('Ship To:', shipToX, shipToY);
+
+doc.setFont('helvetica', 'normal');
+doc.text(order?.shippingAddress?.name || 'N/A', shipToX, shipToY + 6);
+doc.text(order?.shippingAddress?.address || 'N/A', shipToX, shipToY + 11);
+doc.text(`${order?.shippingAddress?.city || ''}, ${order?.shippingAddress?.state || ''} ${order?.shippingAddress?.postalCode || ''}`, shipToX, shipToY + 16);
+doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY + 21);
+
  // Move yPos below box
  yPos += boxHeight + 5;
  
@@ -153,7 +154,7 @@ export const exportInvoiceToPDF = (
   ];
 
   const tableRows = order.items.map(item => [
-    item.name,
+    item.name || item.productName,
     item.quantity.toString(),
     formatCurrency(item.unitPrice || item.price),
     formatCurrency(item.quantity * (item.unitPrice || item.price))

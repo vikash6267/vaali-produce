@@ -44,6 +44,20 @@ const AddressForm = ({
             }
           />
         </div>
+        <div className="grid gap-1.5">
+          <label htmlFor="billing-email" className="text-sm font-medium">
+            Phone
+          </label>
+          <Input
+            id="billing-email"
+            type="email"
+            placeholder="01234567890"
+            value={billingAddress.phone}
+            onChange={(e) =>
+              setBillingAddress({ ...billingAddress, phone: e.target.value })
+            }
+          />
+        </div>
 
         <div className="grid gap-1.5">
           <label htmlFor="billing-address" className="text-sm font-medium">
@@ -158,6 +172,20 @@ const AddressForm = ({
               />
             </div>
 
+            <div className="grid gap-1.5">
+          <label htmlFor="billing-email" className="text-sm font-medium">
+            Phone
+          </label>
+          <Input
+            id="billing-email"
+            type="email"
+            placeholder="01234567890"
+            value={shippingAddress.phone}
+            onChange={(e) =>
+              setShippingAddress({ ...billingAddress, phone: e.target.value })
+            }
+          />
+        </div>
             <div className="grid gap-1.5">
               <label htmlFor="shipping-address" className="text-sm font-medium">
                 Address

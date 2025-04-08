@@ -120,6 +120,14 @@ export default function App() {
             </PrivateRoute>
           }
         />
+           <Route
+          path="/store/orders"
+          element={
+            <PrivateRoute>
+              <Orders />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/store/template"
           element={

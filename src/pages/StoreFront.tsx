@@ -117,7 +117,7 @@ const StoreFront = () => {
         <header className="bg-white border-b sticky top-0 z-10">
           <div className="container mx-auto px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <img src="/placeholder.svg" alt="Logo" className="h-8 w-8" />
+              <img src="/placeholder.svg" alt="Logo" className="h-8 w-8" loading="lazy" />
               <div>
                 <h1 className="text-lg font-bold">Store Portal</h1>
                 <p className="text-xs text-muted-foreground">Find and order products</p>

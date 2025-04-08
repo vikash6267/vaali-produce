@@ -71,6 +71,11 @@ const storeNavigation = [
     path: "/store/products",
     icon: <Package size={18} />,
   },
+  {
+    name: "My Orders",
+    path: "/store/orders",
+    icon: <ShoppingCart size={18} />,
+  },
 ];
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
