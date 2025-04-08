@@ -169,7 +169,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     (product) => ({
       value: product.id,
       label: product.name,
-      price: Number(product.price),
+      price: Number(product.pricePerBox),
     })
   );
 

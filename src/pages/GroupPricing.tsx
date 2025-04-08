@@ -11,6 +11,7 @@ interface GroupPricingData {
   min_quantity: number;
   max_quantity: number;
   product_id: string;
+  storeId?: string[];
   group_ids: string[];
   status: string;
   updated_at: string;

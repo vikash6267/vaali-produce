@@ -36,6 +36,7 @@ interface Product {
   _id: string;
   name: string;
   price: number;
+  pricePerBox?: number;
   category: string;
   description: string;
   quantity: number;
@@ -99,7 +100,7 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
     addToCart({
       id: product._id,
       name: product.name,
-      price: product.price,
+      price: product.pricePerBox,
       quantity,
       image: product.image || `https://source.unsplash.com/400x300/?${product.category.toLowerCase()}`,
       category: product.category,
@@ -140,7 +141,7 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
   // Calculate discounted price for display
   const getDiscountedPrice = (product: Product, quantity: number) => {
     if (!product.bulkDiscount || product.bulkDiscount.length === 0) {
-      return product.price;
+      return product.pricePerBox;
     }
     
     // Sort discounts and find applicable one
@@ -148,11 +149,11 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
     
     for (const discount of sortedDiscounts) {
       if (quantity >= discount.minQuantity) {
-        return product.price * (1 - discount.discountPercent / 100);
+        return product.pricePerBox * (1 - discount.discountPercent / 100);
       }
     }
     
-    return product.price;
+    return product.pricePerBox;
   };
   
   return (
@@ -192,7 +193,7 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
             const quantity = getQuantity(product._id);
             const hasBulkDiscount = product.bulkDiscount && product.bulkDiscount.length > 0;
             const discountedPrice = getDiscountedPrice(product, quantity);
-            const isDiscounted = discountedPrice < product.price;
+            const isDiscounted = discountedPrice < product.pricePerBox;
             
             return (
               <Card key={product._id} className="overflow-hidden group transition-all hover:shadow-md">
@@ -228,10 +229,10 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
                     {isDiscounted ? (
                       <>
                         <span className="text-xl font-bold">${discountedPrice.toFixed(2)}</span>
-                        <span className="text-muted-foreground line-through">${product.price.toFixed(2)}</span>
+                        <span className="text-muted-foreground line-through">${product.pricePerBox.toFixed(2)}</span>
                       </>
                     ) : (
-                      <span className="text-xl font-bold">${product.price.toFixed(2)}</span>
+                      <span className="text-xl font-bold">${product.pricePerBox.toFixed(2)}</span>
                     )}
                     <span className="text-sm text-muted-foreground">/{product.unit}</span>
                   </div>
@@ -290,7 +291,7 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
                   >
                     <ShoppingCart className="h-4 w-4 mr-2" />
                     {isDiscounted 
-                      ? `Add with ${Math.round((1 - discountedPrice/product.price) * 100)}% Off` 
+                      ? `Add with ${Math.round((1 - discountedPrice/product.pricePerBox) * 100)}% Off` 
                       : 'Add to Cart'
                     }
                   </Button>

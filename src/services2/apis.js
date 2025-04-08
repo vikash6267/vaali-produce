@@ -44,6 +44,15 @@ export const priceList = {
   UPDATE_PRICE_LIST: BASE_URL + "/price-list-templates/update",
 
 }
+
+export const groupPricing = {
+  CREATE_GROUP_PRICING: BASE_URL + "/pricing/create",
+  GET_ALL_GROUP_PRICING: BASE_URL + "/pricing/getAll",
+  GET_GROUP_PRICING: BASE_URL + "/pricing/get",
+  DELETE_GROUP_PRICING: BASE_URL + "/pricing/delete",
+  UPDATE_GROUP_PRICING: BASE_URL + "/pricing/update",
+
+}
 export const order = {
   CREATE_ORDER: BASE_URL + "/order/create",
 

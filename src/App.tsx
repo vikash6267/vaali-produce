@@ -35,6 +35,7 @@ import PrivateRoute from "@/components/auth/PrivateRoute";
 import OpenRoute from "@/components/auth/OpenRoute";
 import CreateOrderModalStore from "./pages/StoreMakeORderTemplate";
 import StoreRegistration from "./pages/StoreRegistration";
+import GroupPricing from "./pages/GroupPricing";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -208,6 +209,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <Orders />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/pricing"
+          element={
+            <PrivateRoute>
+              <GroupPricing />
             </PrivateRoute>
           }
         />

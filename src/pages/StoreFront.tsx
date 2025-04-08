@@ -16,6 +16,7 @@ import Navbar from '@/components/layout/Navbar';
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import { getAllOrderAPI } from "@/services2/operations/order";
+import {getAllGroupPricingAPI} from "@/services2/operations/groupPricing"
 
 const StoreFront = () => {
   const navigate = useNavigate();
@@ -26,6 +27,8 @@ const StoreFront = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const token = useSelector((state: RootState) => state.auth?.token ?? null);
+    const user = useSelector((state: RootState) => state.auth?.user ?? null);
   
 
       
@@ -36,7 +39,7 @@ const StoreFront = () => {
 
 
 
-  const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  
   const fetchOrders = async () => {
     try {
       const res = await getAllOrderAPI(token);
@@ -59,33 +62,58 @@ const StoreFront = () => {
     fetchOrders(); // Call the function
   }, [token]);
 
+console.log(user)
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const data = await getAllGroupPricingAPI();
+      console.log('Group Pricing Data:', data);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        // Fetch products
-        const productsResponse = await fetch('http://localhost:8080/api/v1/product/getAll');
-        const productsData = await productsResponse.json();
-        
-        if (productsData.success) {
-          setProducts(productsData.products || []);
-        }
-        
-       
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load data. Please try again.",
-          variant: "destructive"
+      const productsResponse = await fetch('http://localhost:8080/api/v1/product/getAll');
+      const productsData = await productsResponse.json();
+      console.log('Products Data:', productsData);
+
+      if (productsData.success) {
+        const updatedProducts = productsData.products.map(product => {
+          let updatedProduct = { ...product };
+
+          // Find matching pricing group for the user
+          const matchingPricingGroup = data.find(group =>
+            group.storeId.includes(user._id)
+          );
+
+          if (matchingPricingGroup) {
+            // Check if current product is in pricing group
+            const productMatch = matchingPricingGroup.product_arrayjson.find(p =>
+              p.product_id === product._id
+            );
+
+            if (productMatch) {
+              updatedProduct.pricePerBox = parseFloat(productMatch.new_price);
+            }
+          }
+
+          return updatedProduct;
         });
-      } finally {
-        setLoading(false);
+
+        setProducts(updatedProducts);
       }
-    };
-    
-    fetchData();
-  }, [toast]);
+
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load data. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  fetchData();
+}, [toast]);
+
   
   const CartButton = () => {
     const { totalItems } = useCart();
