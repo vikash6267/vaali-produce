@@ -155,10 +155,12 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
 
   const tableRows = order.items.map(item => [
     item.name || item.productName,
-    item.quantity.toString(),
+    `${item.quantity}${item.pricingType && item.pricingType !== "box" ? " " + item.pricingType : ""}`,
     formatCurrency(item.unitPrice || item.price),
     formatCurrency(item.quantity * (item.unitPrice || item.price))
   ]);
+  
+  
 
   let headerStyles: any = {
     fillColor: [245, 245, 245],

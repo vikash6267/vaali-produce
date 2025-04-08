@@ -23,10 +23,10 @@ const NewOrder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
-  
-  
-  
-  
+
+
+
+
   const [storeDetails, setStoreDetails] = useState("")
   const [storeLoading, setStoreLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
@@ -34,7 +34,7 @@ const NewOrder = () => {
     email: "",
     address: "",
     city: "",
-    phone:"",
+    phone: "",
 
     postalCode: "",
     country: "",
@@ -44,7 +44,7 @@ const NewOrder = () => {
     email: "",
     address: "",
     city: "",
-    phone:"",
+    phone: "",
 
     postalCode: "",
     country: "",
@@ -168,15 +168,15 @@ const NewOrder = () => {
                 </div>
               ) : (
                 <>
-     <AddressForm
-                  billingAddress={billingAddress}
-                  setBillingAddress={setBillingAddress}
-                  shippingAddress={shippingAddress}
-                  setShippingAddress={setShippingAddress}
-                  sameAsBilling={sameAsBilling}
-                  setSameAsBilling={setSameAsBilling}
-                />
-                  </>
+                  <AddressForm
+                    billingAddress={billingAddress}
+                    setBillingAddress={setBillingAddress}
+                    shippingAddress={shippingAddress}
+                    setShippingAddress={setShippingAddress}
+                    sameAsBilling={sameAsBilling}
+                    setSameAsBilling={setSameAsBilling}
+                  />
+                </>
               )}
 
 

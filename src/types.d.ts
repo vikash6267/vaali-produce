@@ -68,6 +68,7 @@ export interface Order {
 export interface OrderItem {
   product: string;
   name: string;
+  pricingType?: string;
   quantity: number;
   price: number;
   productId?: string;

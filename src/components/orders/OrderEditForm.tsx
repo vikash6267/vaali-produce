@@ -43,6 +43,7 @@ const formSchema = z.object({
       productName: z.string().min(1, "Product name is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
       unitPrice: z.number().min(0, "Unit price must be at least 0"),
+      pricingType: z.enum(["box", "unit"])
     })
   ),
 });
@@ -74,15 +75,20 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   const defaultValues: OrderFormValues = {
     store: order?.store || "",
     status: order?.status || "pending",
-    items: order?.items || [
+    items: (order?.items || [
       {
         productId: "",
         productName: "",
         quantity: 1,
         unitPrice: 0,
+        pricingType: "box"
       },
-    ],
+    ]).map((item) => ({
+      ...item,
+      pricingType: item.pricingType === "unit" ? "unit" : "box" // force correct typing
+    })),
   };
+  
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -165,13 +171,18 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
 
 
-  const productOptions: { value: string; label: string, price: Number }[] = products.map(
-    (product) => ({
-      value: product.id,
-      label: product.name,
-      price: Number(product.pricePerBox),
-    })
-  );
+  const productOptions: {
+    value: string;
+    label: string;
+    pricePerBox: number;
+    pricePerUnit: number;
+  }[] = products.map((product) => ({
+    value: product.id,
+    label: product.name,
+    pricePerBox: Number(product.pricePerBox),
+    pricePerUnit: Number(product.price), // Make sure this exists in product
+  }));
+  
 
 
   useEffect(()=>{
@@ -260,112 +271,154 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
           {form.watch("items").map((_, index) => {
             return (
-              <div key={index} className="grid grid-cols-12 gap-2 mb-4 items-end">
-
-                {/* Product Select Dropdown */}
-                <div className="col-span-3">
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.productId`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product</FormLabel>
-                        <FormControl>
-                          <Select2
-                         
-                            options={productOptions}
-                            onChange={(selectedOption) => {
-                              console.log(selectedOption)
-                              field.onChange(selectedOption.value);
-                              form.setValue(`items.${index}.productName`, selectedOption.label);
-                              form.setValue(`items.${index}.unitPrice`, selectedOption.price);
-                            }}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Product Name (Disabled) */}
-                <div className="col-span-3">
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.productName`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Product Name</FormLabel>
-                        <FormControl>
-                          <Input {...field} disabled />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Quantity */}
-                <div className="col-span-2">
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.quantity`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Quantity</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseInt(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Unit Price */}
-                <div className="col-span-3">
-                  <FormField
-                    control={form.control}
-                    name={`items.${index}.unitPrice`}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Unit Price ($)</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="number"
-                            step="0.01"
-                            {...field}
-                            onChange={(e) =>
-                              field.onChange(parseFloat(e.target.value) || 0)
-                            }
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                {/* Remove Item Button */}
-                <div className="col-span-1">
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => removeItem(index)}
-                    disabled={form.watch("items").length <= 1}
-                  >
-                    <Trash2 className="h-5 w-5" />
-                  </Button>
-                </div>
-
+              <div key={index} className="grid grid-cols-12 gap-2 mb-4 items-center">
+              {/* Product Select Dropdown */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.productId`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Product</FormLabel>
+                      <FormControl>
+                        <Select2
+                          options={productOptions}
+                          onChange={(selectedOption) => {
+                            const pricingType = form.getValues(`items.${index}.pricingType`);
+                            form.setValue(`items.${index}.productId`, selectedOption.value);
+                            form.setValue(`items.${index}.productName`, selectedOption.label);
+                            const unitPrice =
+                              pricingType === "unit"
+                                ? selectedOption.pricePerUnit
+                                : selectedOption.pricePerBox;
+                            form.setValue(`items.${index}.unitPrice`, unitPrice);
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </div>
+            
+              {/* Product Name (Disabled) */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.productName`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input {...field} disabled />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            
+              {/* Pricing Type Selector */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.pricingType`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Type</FormLabel>
+                      <FormControl>
+                        <Select
+                          value={field.value}
+                          onValueChange={(value) => {
+                            field.onChange(value);
+                            const selectedProduct = productOptions.find(
+                              (opt) => opt.value === form.getValues(`items.${index}.productId`)
+                            );
+                            if (selectedProduct) {
+                              const price =
+                                value === "box"
+                                  ? selectedProduct.pricePerBox
+                                  : selectedProduct.pricePerUnit;
+                              form.setValue(`items.${index}.unitPrice`, price);
+                            }
+                          }}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="box">Per Box</SelectItem>
+                            <SelectItem value="unit">Per Unit</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            
+              {/* Quantity */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.quantity`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Qty</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            
+              {/* Unit Price */}
+              <div className="col-span-2">
+                <FormField
+                  control={form.control}
+                  name={`items.${index}.unitPrice`}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Price</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          {...field}
+                          onChange={(e) =>
+                            field.onChange(parseFloat(e.target.value) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            
+              {/* Remove Item Button */}
+              <div className="col-span-1 flex items-center justify-center">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeItem(index)}
+                  disabled={form.watch("items").length <= 1}
+                >
+                  <Trash2 className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+            
             );
           })}
 
