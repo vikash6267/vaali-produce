@@ -88,7 +88,7 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
   const { toast } = useToast();
   const [bolGenerated, setBolGenerated] = useState(false);
   const [bolNumber, setBolNumber] = useState(`BOL-${Math.floor(100000 + Math.random() * 900000)}`);
-  
+  console.log(order)
   const form = useForm<BolFormValues>({
     resolver: zodResolver(bolSchema),
     defaultValues: {
@@ -98,11 +98,11 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
       shipperState: "CA",
       shipperZip: "94123",
       
-      consigneeName: order.clientName,
-      consigneeAddress: "Client Address",
-      consigneeCity: "Client City",
-      consigneeState: "CA",
-      consigneeZip: "90210",
+      consigneeName: order.shippingAddress.name,
+      consigneeAddress: order.shippingAddress.address,
+      consigneeCity: order.shippingAddress.city,
+      consigneeState: order.shippingAddress.country,
+      consigneeZip: order.shippingAddress.postalCode,
       
       carrierName: "Vali Produce",
       trailerNumber: `TR-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -132,7 +132,9 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
       description: "The Bill of Lading has been sent to your printer."
     });
   };
-
+  const calculateTotalPieces = () => {
+    return order.items.reduce((acc, item) => acc + item.quantity, 0);
+  };
   const handleDownload = () => {
     const formData = form.getValues();
     
@@ -155,7 +157,8 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
       specialInstructions: formData.specialInstructions,
       hazardousMaterials: formData.hazardousMaterials || false,
       signatureShipper: formData.signatureShipper,
-      serviceLevel: formData.serviceLevel
+      serviceLevel: formData.serviceLevel,
+      totalQuantity:calculateTotalPieces()
     };
     
     const success = generateBillOfLadingPDF(order, bolData);
@@ -200,9 +203,7 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
     return Math.round(order.items.reduce((acc, item) => acc + (item.quantity * 2), 0));
   };
   
-  const calculateTotalPieces = () => {
-    return order.items.reduce((acc, item) => acc + item.quantity, 0);
-  };
+ 
   
   return (
     <Dialog open={open} onOpenChange={onClose}>

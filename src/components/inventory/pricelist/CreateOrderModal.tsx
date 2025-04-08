@@ -76,7 +76,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     postalCode: "",
     country: "",
   })
-  const [sameAsBilling, setSameAsBilling] = useState(true)
+  const [sameAsBilling, setSameAsBilling] = useState(false)
 
   useEffect(() => {
     if (!selectedStore?.value) return;

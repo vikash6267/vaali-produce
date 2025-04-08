@@ -49,7 +49,7 @@ const NewOrder = () => {
     postalCode: "",
     country: "",
   })
-  const [sameAsBilling, setSameAsBilling] = useState(true)
+  const [sameAsBilling, setSameAsBilling] = useState(false)
 
   useEffect(() => {
     if (!storeDetails) return;
@@ -120,6 +120,10 @@ const NewOrder = () => {
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     };
+
+    console.log(shippingAddress)
+    console.log(billingAddress)
+    
     await createOrderAPI(order, token)
 
 

@@ -45,6 +45,7 @@ export interface BillOfLadingData {
   carrierName: string;
   trailerNumber: string;
   sealNumber?: string;
+  totalQuantity?: any;
   freightTerms: "Prepaid" | "Collect" | "Third Party";
   specialInstructions?: string;
   hazardousMaterials: boolean;

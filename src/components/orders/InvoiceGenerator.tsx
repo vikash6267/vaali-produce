@@ -259,22 +259,30 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
             </div>
           )}
           
-          <div className={`mb-8 ${invoiceOptions.invoiceTemplate === 'professional' ? 'bg-primary/5 p-4 rounded-md' : ''}`}>
-            <h4 className="text-gray-600 font-medium mb-2">Bill To:</h4>
-            <p className="font-medium">{order.clientName}</p>
-            <p className="text-sm text-gray-600">Client ID: {order.clientId}</p>
-            <p className="text-sm text-gray-600">Order Date: {formatDate(order.date)}</p>
-            <p className="text-sm text-gray-600">Status: <span className="capitalize">{order.status}</span></p>
-            {onViewClientProfile && (
-              <Button 
-                variant="link" 
-                className="p-0 h-auto text-sm text-primary" 
-                onClick={onViewClientProfile}
-              >
-                View Client Profile
-              </Button>
-            )}
-          </div>
+          <div className={`mb-8 flex justify-between gap-4 ${invoiceOptions.invoiceTemplate === 'professional' ? 'bg-primary/5 p-4 rounded-md' : ''}`}>
+  {/* Sold To Section */}
+  <div className="w-1/2">
+    <h4 className="text-gray-600 font-medium mb-2">Sold To:</h4>
+    <p className="font-medium">{order?.billingAddress?.name || 'N/A'}</p>
+    <p className="text-sm text-gray-600">{order?.billingAddress?.address || 'N/A'}</p>
+    <p className="text-sm text-gray-600">
+      {order?.billingAddress?.city || ''}, {order?.billingAddress?.state || ''} {order?.billingAddress?.postalCode || ''}
+    </p>
+    <p className="text-sm text-gray-600">Phone: {order?.billingAddress?.phone || 'N/A'}</p>
+  </div>
+
+  {/* Ship To Section */}
+  <div className="w-1/2">
+    <h4 className="text-gray-600 font-medium mb-2">Ship To:</h4>
+    <p className="font-medium">{order?.shippingAddress?.name || 'N/A'}</p>
+    <p className="text-sm text-gray-600">{order?.shippingAddress?.address || 'N/A'}</p>
+    <p className="text-sm text-gray-600">
+      {order?.shippingAddress?.city || ''}, {order?.shippingAddress?.state || ''} {order?.shippingAddress?.postalCode || ''}
+    </p>
+    <p className="text-sm text-gray-600">Phone: {order?.shippingAddress?.phone || 'N/A'}</p>
+  </div>
+</div>
+
           
           <table className="w-full mb-8">
             <thead>
@@ -289,7 +297,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
               {order.items.map((item, index) => (
                 <tr key={index} className={`border-b ${index % 2 === 0 && invoiceOptions.invoiceTemplate === 'detailed' ? 'bg-muted/20' : 'border-gray-200'}`}>
                   <td className="py-3">{item.productName || item.name                  }</td>
-                  <td className="text-right py-3">{item.quantity}</td>
+                  <td className="text-right py-3">    {item.quantity}{item.pricingType && item.pricingType !== "box" ? " " + item.pricingType : ""}</td>
                   <td className="text-right py-3">{formatCurrency(item.unitPrice ||item.price)}</td>
                   <td className="text-right py-3">{formatCurrency(item.quantity * (item.unitPrice ||item.price))}</td>
                 </tr>

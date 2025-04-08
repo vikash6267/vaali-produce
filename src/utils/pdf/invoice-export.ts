@@ -116,9 +116,9 @@ export const exportInvoiceToPDF = (
  let billToY = yPos + 6;
  
 
- // ---------- BILL TO ----------
+ // ---------- SOLD TO ----------
 doc.setFont('helvetica', 'bold');
-doc.text('Bill To:', billToX, billToY);
+doc.text('Sold To:', billToX, billToY);
 
 doc.setFont('helvetica', 'normal');
 doc.text(order?.billingAddress?.name || 'N/A', billToX, billToY + 6);
