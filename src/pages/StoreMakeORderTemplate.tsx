@@ -262,7 +262,7 @@ const CreateOrderModalStore = ({ }) => {
     const totalAmount = calculateTotal();
 
     const order = {
-      id: `ORD-${Math.floor(Math.random() * 10000)
+      id: `${Math.floor(Math.random() * 10000)
         .toString()
         .padStart(4, "0")}`,
       date: new Date().toISOString(),
