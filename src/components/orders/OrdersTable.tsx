@@ -40,7 +40,8 @@ import {
   User,
   ReceiptText,
   FilePlus2,
-  PencilRuler
+  PencilRuler,
+  Wrench
 } from 'lucide-react';
 import { Order, formatCurrency, formatDate } from '@/lib/data';
 import { cn } from '@/lib/utils';
@@ -55,6 +56,7 @@ import TransportationReceipt from './TransportationReceipt';
 import OrderDetailsModal from './OrderView';
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
+import WorkOrderForm from './WorkOrder';
 
 interface OrdersTableProps {
   orders: Order[];
@@ -71,6 +73,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
   const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false);
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
+  const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null);
 
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`);
@@ -129,6 +132,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
           description: `Creating ${docType} for order ${order.id}`,
         });
     }
+  };
+
+  const handleCreateWorkOrder = (order: Order) => {
+    setWorkOrderDialogOrder(order);
   };
 
   const handleNewOrder = () => {
@@ -335,6 +342,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
                               <PencilRuler size={14} className="mr-2" />
                               Custom Document
                             </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
+                        <Wrench className="mr-2 h-4 w-4" /> Create Work Order
+                      </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
 
@@ -372,6 +382,18 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
           </DialogContent>
         </Dialog>
       )}
+
+
+         <Dialog open={!!workOrderDialogOrder} onOpenChange={(open) => !open && setWorkOrderDialogOrder(null)}>
+              <DialogContent className="max-w-4xl p-0">
+                {workOrderDialogOrder && (
+                  <WorkOrderForm 
+                    order={workOrderDialogOrder}
+                    onClose={() => setWorkOrderDialogOrder(null)} 
+                  />
+                )}
+              </DialogContent>
+            </Dialog>
     </div>
   );
 };

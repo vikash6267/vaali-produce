@@ -1,0 +1,287 @@
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { Order } from '@/types';
+
+export interface WorkOrderOptions {
+  workOrderNumber: string;
+  assignedTo: string;
+  department?: string;
+  startDate?: string;
+  dueDate?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  equipmentNeeded?: string[];
+  specialInstructions?: string;
+  includeCompanyLogo?: boolean;
+  itemInstructions?: Record<string, string>;
+}
+
+export const exportWorkOrderToPDF = (
+  order: Order,
+  options: WorkOrderOptions,
+  isPreview: boolean = false
+) => {
+  const doc = new jsPDF();
+  
+  const PAGE_WIDTH = doc.internal.pageSize.width;
+  const MARGIN = 12;
+  const CONTENT_WIDTH = PAGE_WIDTH - (2 * MARGIN);
+  
+
+  const logoUrl = "/logg.png";
+  const logoHeight = 23;
+  const logoWidth = 0; // Assuming square logo. You can adjust this as per your actual image ratio.
+  const rightX = PAGE_WIDTH - MARGIN;
+  const leftX = MARGIN;
+
+
+  let yPos = 15;
+    const centerX = PAGE_WIDTH / 2;
+    doc.addImage(logoUrl, "PNG", centerX - 23 / 2, 5, logoWidth, logoHeight);
+
+   // ----------- LEFT SIDE: INVOICE DETAILS -----------
+  if (true) {
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor( 41 );
+    doc.text('WORK ORDER', leftX, yPos + 2);
+  
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(`WO #: ${order.orderNumber}`, leftX, yPos + 7);
+    doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
+  
+  }
+  
+  // ----------- RIGHT SIDE: COMPANY DETAILS -----------
+  if (true) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(41, 98, 255);
+    doc.text('Vali Produce', rightX, yPos + 2, { align: 'right' });
+  
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    doc.text('4300 Pleasantdale Rd,', rightX, yPos + 7, { align: 'right' });
+    doc.text('Atlanta, GA 30340, USA', rightX, yPos + 11, { align: 'right' });
+    doc.text('order@valiproduce.shop', rightX, yPos + 15, { align: 'right' });
+  }
+  
+  yPos += 20;
+  
+  // Order and assignment information
+  const columnWidth = CONTENT_WIDTH / 2 - 2;
+  
+  doc.setFillColor(245, 245, 245);
+  doc.rect(MARGIN, yPos, columnWidth, 28, 'F');
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(70, 70, 70);
+  doc.text('Order Information:', MARGIN + 4, yPos + 6);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(`Order #: ${order.id}`, MARGIN + 4, yPos + 12);
+  doc.text(`Client: ${order.clientName}`, MARGIN + 4, yPos + 18);
+  doc.text(`Order Date: ${order.date}`, MARGIN + 4, yPos + 24);
+  
+  doc.setFillColor(245, 245, 245);
+  doc.rect(MARGIN + columnWidth + 4, yPos, columnWidth, 28, 'F');
+  
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Assignment Details:', MARGIN + columnWidth + 8, yPos + 6);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(`Assigned To: ${options.assignedTo}`, MARGIN + columnWidth + 8, yPos + 12);
+  
+  if (options.department) {
+    doc.text(`Department: ${options.department}`, MARGIN + columnWidth + 8, yPos + 18);
+  }
+  
+  if (options.priority) {
+    const priorityColor = {
+      low: [0, 128, 0],      // Green
+      medium: [255, 165, 0],  // Orange
+      high: [255, 69, 0],     // Red-Orange
+      urgent: [255, 0, 0]     // Red
+    }[options.priority];
+    
+    doc.setTextColor(priorityColor[0], priorityColor[1], priorityColor[2]);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Priority: ${options.priority.toUpperCase()}`, MARGIN + columnWidth + 8, yPos + 24);
+    doc.setTextColor(70, 70, 70);
+    doc.setFont('helvetica', 'normal');
+  }
+  
+  yPos += 36;
+  
+  // Schedule details
+  if (false && options.startDate || options.dueDate) {
+    doc.setFillColor(240, 247, 255);
+    doc.rect(MARGIN, yPos, CONTENT_WIDTH, 18, 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Schedule Information:', MARGIN + 4, yPos + 6);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    let scheduleText = '';
+    
+    if (options.startDate) {
+      scheduleText += `Start Date: ${options.startDate}`;
+    }
+    
+    if (options.startDate && options.dueDate) {
+      scheduleText += '   |   ';
+    }
+    
+    if (options.dueDate) {
+      scheduleText += `Due Date: ${options.dueDate}`;
+    }
+    
+    doc.text(scheduleText, MARGIN + 4, yPos + 14);
+    
+    yPos += 24;
+  }
+  
+  // Equipment needed
+  if (false && options.equipmentNeeded && options.equipmentNeeded.length > 0) {
+    doc.setFillColor(250, 250, 245);
+    doc.rect(MARGIN, yPos, CONTENT_WIDTH, 18 + (options.equipmentNeeded.length > 2 ? 6 : 0), 'F');
+    
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Equipment Needed:', MARGIN + 4, yPos + 6);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    
+    const equipmentText = options.equipmentNeeded.join(', ');
+    
+    doc.text(equipmentText, MARGIN + 4, yPos + 14, {
+      maxWidth: CONTENT_WIDTH - 8
+    });
+    
+    yPos += 24 + (options.equipmentNeeded.length > 2 ? 6 : 0);
+  }
+  
+  // Items table
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.text('Order Items to Process:', MARGIN, yPos);
+  
+  yPos += 6;
+  
+  // Modified table headers - includes instructions column
+  const tableHeaders = [
+    { header: 'Product Name', dataKey: 'description' },
+    { header: 'Qty', dataKey: 'quantity' },
+    { header: 'Instructions', dataKey: 'instructions' }
+  ];
+  
+  const tableRows = order.items.map(item => [
+    item.productName,
+    item.quantity.toString(),
+    options.itemInstructions?.[item.productId] || ''
+  ]);
+  
+  autoTable(doc, {
+    startY: yPos,
+    head: [tableHeaders.map(col => col.header)],
+    body: tableRows,
+    margin: { left: MARGIN, right: MARGIN },
+    headStyles: {
+      fillColor: [41, 98, 255],
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      lineWidth: 0.1,
+      fontSize: 8
+    },
+    bodyStyles: {
+      lineWidth: 0.1,
+      fontSize: 8
+    },
+    columnStyles: {
+      0: { cellWidth: CONTENT_WIDTH * 0.4 }, // Product Name
+      1: { cellWidth: CONTENT_WIDTH * 0.15, halign: 'center' }, // Qty centered
+      2: { cellWidth: CONTENT_WIDTH * 0.45 } // Instructions
+    },
+    alternateRowStyles: {
+      fillColor: [250, 250, 250]
+    }
+  });
+  
+  
+  
+  if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
+    yPos = doc.lastAutoTable.finalY + 10;
+  } else {
+    yPos += 100;
+  }
+  
+  // Special instructions
+  if (options.specialInstructions) {
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(9);
+    doc.text('Special Instructions:', MARGIN, yPos);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.setFillColor(245, 245, 245);
+    doc.rect(MARGIN, yPos + 4, CONTENT_WIDTH, 30, 'F');
+    doc.text(options.specialInstructions, MARGIN + 4, yPos + 12, {
+      maxWidth: CONTENT_WIDTH - 8
+    });
+    
+    yPos += 40;
+  }
+  
+  // Signature section
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text('Completion Signatures:', MARGIN, yPos);
+  
+  yPos += 6;
+  
+  // Create signature boxes
+  const signatureWidth = CONTENT_WIDTH / 2 - 5;
+  
+  // Box 1: Completed By
+  doc.setLineWidth(0.1);
+  doc.rect(MARGIN, yPos, signatureWidth, 25);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Completed By:', MARGIN + 4, yPos + 6);
+  doc.line(MARGIN + 4, yPos + 16, MARGIN + signatureWidth - 4, yPos + 16);
+  doc.text('Signature', MARGIN + 4, yPos + 22);
+  doc.text('Date: ________________', MARGIN + signatureWidth - 50, yPos + 22);
+  
+  // Box 2: Approved By
+  doc.rect(MARGIN + signatureWidth + 10, yPos, signatureWidth, 25);
+  doc.text('Approved By:', MARGIN + signatureWidth + 14, yPos + 6);
+  doc.line(MARGIN + signatureWidth + 14, yPos + 16, MARGIN + 2 * signatureWidth + 6, yPos + 16);
+  doc.text('Signature', MARGIN + signatureWidth + 14, yPos + 22);
+  doc.text('Date: ________________', MARGIN + 2 * signatureWidth - 40, yPos + 22);
+  
+  // Footer
+  const footerY = doc.internal.pageSize.height - 10;
+  doc.setFontSize(7);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(150, 150, 150);
+  doc.text('This work order is based on Order #' + order.id + '. Complete all tasks according to company procedures.', PAGE_WIDTH / 2, footerY, { align: 'center' });
+  
+  // If in preview mode, return the document without saving
+  if (isPreview) {
+    return doc;
+  }
+  
+  doc.save(`work-order-${options.workOrderNumber}.pdf`);
+  
+  return doc;
+};

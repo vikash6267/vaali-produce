@@ -3,7 +3,8 @@ import { Order } from '@/lib/data';
 import { 
   exportInvoiceToPDF, 
   exportTransportationReceiptToPDF, 
-  exportBillOfLadingToPDF 
+  exportBillOfLadingToPDF ,
+  exportWorkOrderToPDF
 } from './pdf';
 
 export interface InvoiceOptions {
@@ -53,6 +54,18 @@ export interface BillOfLadingData {
   serviceLevel: "Standard" | "Expedited" | "Same Day";
 }
 
+export interface WorkOrderData {
+  workOrderNumber: string;
+  assignedTo: string;
+  department?: string;
+  startDate?: string;
+  dueDate?: string;
+  priority?: 'low' | 'medium' | 'high' | 'urgent';
+  equipmentNeeded?: string[];
+  specialInstructions?: string;
+  includeCompanyLogo?: boolean;
+}
+
 export const generateInvoicePDF = (order: Order, options: InvoiceOptions) => {
   try {
     exportInvoiceToPDF(order, {
@@ -97,3 +110,16 @@ export const generateBillOfLadingPDF = (
     return false;
   }
 };
+
+export const generateWorkOrderPDF = (
+  order: Order,
+  data: WorkOrderData
+) => {
+  try {
+    exportWorkOrderToPDF(order, data);
+    return true;
+  } catch (error) {
+    console.error('Error generating work order PDF:', error);
+    return false;
+  }
+}

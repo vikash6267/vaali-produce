@@ -51,18 +51,18 @@ export const exportBillOfLadingToPDF = (
   doc.text("BILL OF LADING", MARGIN + CONTENT_WIDTH - 10, 15, {
     align: "right",
   });
-  yPos += 5;
-
+  yPos += 1;
+  
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
   doc.text(
-    `B/L #: ${data.bolNumber} • Date: ${new Date(
-      order.date
-    ).toLocaleDateString()}`,
-    MARGIN,
-    yPos + 6
+    `B/L #: ${data.bolNumber} • Date: ${new Date(order.date).toLocaleDateString()}`,
+    MARGIN + CONTENT_WIDTH - 10,
+    yPos + 4,
+    { align: "right" }
   );
   yPos += 12;
+  
 
   const columnWidth = CONTENT_WIDTH / 2 - 2;
 
