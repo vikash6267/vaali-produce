@@ -132,7 +132,7 @@ console.log(data)
 
   };
 
-  const units = ["lb", "oz", "units", "boxes", "bunches", "cases", "pallets"];
+  const units = ["lb", "oz", "units", "boxes", "bunches", "cases", "pallets","ml"];
 
   const hasErrors = Object.keys(form.formState.errors).length > 0;
 
