@@ -58,7 +58,7 @@ export const exportInvoiceToPDF = (
     doc.text('INVOICE', leftX, yPos + 2);
   
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(80, 80, 80);
     doc.text(`Invoice #: ${order.id}`, leftX, yPos + 7);
     doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
@@ -77,7 +77,7 @@ export const exportInvoiceToPDF = (
     doc.text('Vali Produce', rightX, yPos + 2, { align: 'right' });
   
     doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 100, 100);
     doc.text('4300 Pleasantdale Rd,', rightX, yPos + 7, { align: 'right' });
     doc.text('Atlanta, GA 30340, USA', rightX, yPos + 11, { align: 'right' });
@@ -120,7 +120,7 @@ export const exportInvoiceToPDF = (
 doc.setFont('helvetica', 'bold');
 doc.text('Sold To:', billToX, billToY);
 
-doc.setFont('helvetica', 'normal');
+doc.setFont('helvetica', 'bold');
 doc.text(order?.billingAddress?.name || 'N/A', billToX, billToY + 6);
 doc.text(order?.billingAddress?.address || 'N/A', billToX, billToY + 11);
 doc.text(`${order?.billingAddress?.city || ''}, ${order?.billingAddress?.state || ''} ${order?.billingAddress?.postalCode || ''}`, billToX, billToY + 16);
@@ -133,7 +133,7 @@ let shipToY = yPos + 6;
 doc.setFont('helvetica', 'bold');
 doc.text('Ship To:', shipToX, shipToY);
 
-doc.setFont('helvetica', 'normal');
+doc.setFont('helvetica', 'bold');
 doc.text(order?.shippingAddress?.name || 'N/A', shipToX, shipToY + 6);
 doc.text(order?.shippingAddress?.address || 'N/A', shipToX, shipToY + 11);
 doc.text(`${order?.shippingAddress?.city || ''}, ${order?.shippingAddress?.state || ''} ${order?.shippingAddress?.postalCode || ''}`, shipToX, shipToY + 16);
@@ -186,13 +186,14 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
     headStyles: headerStyles,
     bodyStyles: {
       lineWidth: 0.1,
-      fontSize: 10 // Smaller font size for table body
+      fontSize: 10, // Smaller font size for table body
+      fontStyle: 'bold' // Make body text bold
     },
     columnStyles: {
       0: { cellWidth: 'auto' },
-      1: { cellWidth: 20, halign: 'right' }, // Narrower column
-      2: { cellWidth: 30, halign: 'right' }, // Narrower column
-      3: { cellWidth: 30, halign: 'right' } // Narrower column
+      1: { cellWidth: 20, halign: 'right' },
+      2: { cellWidth: 30, halign: 'right' },
+      3: { cellWidth: 30, halign: 'right' }
     },
     alternateRowStyles: {
       fillColor: invoiceTemplate === 'minimal' ? [255, 255, 255] : [250, 250, 250]
@@ -207,6 +208,7 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
       }
     }
   });
+  
 
   if (doc.lastAutoTable && doc.lastAutoTable.finalY) {
     yPos = doc.lastAutoTable.finalY + 8; // Reduced spacing

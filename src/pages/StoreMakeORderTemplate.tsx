@@ -45,7 +45,7 @@ import { OrderItem } from "@/types";
 import { useNavigate } from "react-router-dom";
 import StoreRegistration from "./StoreRegistration";
 import AddressForm from "@/components/AddressFields";
-import { getAllProductAPI } from "@/services2/operations/product"
+import {getAllProductAPI} from "@/services2/operations/product"
 
 const CreateOrderModalStore = ({ }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
@@ -85,7 +85,7 @@ const CreateOrderModalStore = ({ }) => {
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     email: "",
-    phone: "",
+    phone:"",
     address: "",
     city: "",
     postalCode: "",
@@ -95,7 +95,7 @@ const CreateOrderModalStore = ({ }) => {
     name: "",
     email: "",
     address: "",
-    phone: "",
+    phone:"",
 
     city: "",
     postalCode: "",
@@ -142,10 +142,10 @@ const CreateOrderModalStore = ({ }) => {
         const updatedProducts = response.map((product) => ({
           ...product,
           id: product._id,
-          lastUpdated: product?.updatedAt
+          lastUpdated:product?.updatedAt
         }));
         setProducts(updatedProducts);
-
+   
 
       }
     } catch (error) {
@@ -154,9 +154,9 @@ const CreateOrderModalStore = ({ }) => {
   };
 
 
-  useEffect(() => {
-    fetchProducts()
-  }, [])
+useEffect(()=>{
+  fetchProducts()
+},[])
   console.log("Store ID:", storeId);
   console.log("Template ID:", templateId);
 
@@ -203,7 +203,7 @@ const CreateOrderModalStore = ({ }) => {
   const handleFindUser = async () => {
     setStoreLoading(true);
 
-    const response = await getUserAPI({ email, setIsGroupOpen });
+    const response = await getUserAPI({email, setIsGroupOpen});
     console.log(response);
 
     setBillingAddress({
@@ -238,55 +238,55 @@ const CreateOrderModalStore = ({ }) => {
 
   const calculateSubtotal = () => {
     if (!template) return 0;
-
+  
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
       return total + product.pricePerBox * quantity;
     }, 0);
   };
-
+  
   const calculateShipping = () => {
     if (!template) return 0;
-
+  
     let maxShipping = 0;
-
+  
     template.products.forEach((product) => {
       const quantity = quantities[product.id] || 0;
       if (quantity <= 0) return;
-
+  
       const matchedProduct = products.find((p) => p.id === product.id);
       const shippingCost = matchedProduct?.shippinCost || 0;
-
+  
       if (shippingCost > maxShipping) {
         maxShipping = shippingCost;
       }
     });
-
+  
     return maxShipping;
   };
-
-
-
+  
+  
+  
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
   };
-
+  
   const handleCreateOrder = async () => {
     if (!template || !selectedStore) return;
     const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"];
     const checkEmptyFields = (address: any) =>
       requiredFields.some((field) => !address?.[field]);
-
+  
     const billingInvalid = checkEmptyFields(billingAddress);
     const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress);
-
+  
     if (billingInvalid || shippingInvalid) {
       toast({
         title: "Incomplete Address",
         description: "Please fill all required address fields.",
         variant: "destructive",
       });
-
+     
       return;
     }
 
@@ -337,7 +337,7 @@ const CreateOrderModalStore = ({ }) => {
       status: "pending" as const,
       paymentStatus: "pending" as const,
       subtotal: totalAmount,
-      shippinCost: calculateShipping(),
+      shippinCost:calculateShipping(),
       store: selectedStore.value,
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
@@ -364,7 +364,7 @@ const CreateOrderModalStore = ({ }) => {
         })),
         total: order.total,
         date: order.date,
-        shippinCost: calculateShipping()
+        shippinCost:calculateShipping()
       };
 
       exportInvoiceToPDF({
@@ -377,7 +377,7 @@ const CreateOrderModalStore = ({ }) => {
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: order.subtotal,
-        shippinCost: calculateShipping()
+        shippinCost:calculateShipping()
       });
     } catch (error) {
       console.error("Error generating invoice PDF:", error);
@@ -443,7 +443,7 @@ const CreateOrderModalStore = ({ }) => {
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: orderDetails.total,
-        shippinCost: calculateShipping()
+        shippinCost:calculateShipping()
 
       });
 
@@ -528,7 +528,7 @@ const CreateOrderModalStore = ({ }) => {
                     setSameAsBilling={setSameAsBilling}
                   />
                 )}
-
+               
 
                 <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
@@ -606,27 +606,27 @@ const CreateOrderModalStore = ({ }) => {
                   </Table>
                 </div>
 
-                {/* Summary Row */}
-                <div className="flex justify-end px-6 py-4 bg-muted border-t">
-                  <div className="w-full max-w-xl">
-                    <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
-                      <div className="w-1/3 text-center">Subtotal</div>
-                      <div className="w-1/3 text-center">Shipping Cost</div>
-                      <div className="w-1/3 text-center">Total</div>
-                    </div>
-                    <div className="flex justify-between font-bold text-lg">
-                      <div className="w-1/3 text-center">
-                        {formatCurrency(calculateSubtotal())}
-                      </div>
-                      <div className="w-1/3 text-center">
-                        {formatCurrency(calculateShipping())}
-                      </div>
-                      <div className="w-1/3 text-center text-green-600">
-                        {formatCurrency(calculateTotal())}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            {/* Summary Row */}
+  <div className="flex justify-end px-6 py-4 bg-muted border-t">
+    <div className="w-full max-w-xl">
+      <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
+        <div className="w-1/3 text-center">Subtotal</div>
+        <div className="w-1/3 text-center">Shipping Cost</div>
+        <div className="w-1/3 text-center">Total</div>
+      </div>
+      <div className="flex justify-between font-bold text-lg">
+        <div className="w-1/3 text-center">
+          {formatCurrency(calculateSubtotal())}
+        </div>
+        <div className="w-1/3 text-center">
+          {formatCurrency(calculateShipping())}
+        </div>
+        <div className="w-1/3 text-center text-green-600">
+          {formatCurrency(calculateTotal())}
+        </div>
+      </div>
+    </div>
+  </div>
 
               </div>
 
@@ -663,60 +663,60 @@ const CreateOrderModalStore = ({ }) => {
               </div>
 
               <div className="border rounded-md overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="text-center">Quantity</TableHead>
-                      <TableHead className="text-right">Total</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {orderDetails?.items.map((product, index) => (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {product.productName || product.name}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(product.unitPrice || product.pricePerBox)}
-                        </TableCell>
-                        <TableCell className="text-center">{product.quantity}</TableCell>
-                        <TableCell className="text-right">
-                          {formatCurrency(
-                            (product.unitPrice || product.pricePerBox) * product.quantity
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+  <Table>
+    <TableHeader>
+      <TableRow>
+        <TableHead>Product</TableHead>
+        <TableHead className="text-right">Price</TableHead>
+        <TableHead className="text-center">Quantity</TableHead>
+        <TableHead className="text-right">Total</TableHead>
+      </TableRow>
+    </TableHeader>
+    <TableBody>
+      {orderDetails?.items.map((product, index) => (
+        <TableRow key={index}>
+          <TableCell className="font-medium">
+            {product.productName || product.name}
+          </TableCell>
+          <TableCell className="text-right">
+            {formatCurrency(product.unitPrice || product.pricePerBox)}
+          </TableCell>
+          <TableCell className="text-center">{product.quantity}</TableCell>
+          <TableCell className="text-right">
+            {formatCurrency(
+              (product.unitPrice || product.pricePerBox) * product.quantity
+            )}
+          </TableCell>
+        </TableRow>
+      ))}
+    </TableBody>
+  </Table>
 
-                {/* Summary Row */}
-                <div className="flex justify-end px-6 py-4 bg-muted border-t">
-                  <div className="w-full max-w-xl">
-                    <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
-                      <div className="w-1/3 text-center">Subtotal</div>
-                      <div className="w-1/3 text-center">Shipping Cost</div>
-                      <div className="w-1/3 text-center">Total</div>
-                    </div>
-                    <div className="flex justify-between font-bold text-lg">
-                      <div className="w-1/3 text-center">
-                        {formatCurrency(calculateSubtotal())}
-                      </div>
-                      <div className="w-1/3 text-center">
-                        {formatCurrency(calculateShipping())}
-                      </div>
-                      <div className="w-1/3 text-center text-green-600">
-                        {formatCurrency(calculateTotal())}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+  {/* Summary Row */}
+  <div className="flex justify-end px-6 py-4 bg-muted border-t">
+    <div className="w-full max-w-xl">
+      <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
+        <div className="w-1/3 text-center">Subtotal</div>
+        <div className="w-1/3 text-center">Shipping Cost</div>
+        <div className="w-1/3 text-center">Total</div>
+      </div>
+      <div className="flex justify-between font-bold text-lg">
+        <div className="w-1/3 text-center">
+          {formatCurrency(calculateSubtotal())}
+        </div>
+        <div className="w-1/3 text-center">
+          {formatCurrency(calculateShipping())}
+        </div>
+        <div className="w-1/3 text-center text-green-600">
+          {formatCurrency(calculateTotal())}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
 
-
+              
 
               <div className="flex justify-between items-center mt-6">
                 <Button variant="outline" onClick={handleClose}>

@@ -46,7 +46,7 @@ export const exportWorkOrderToPDF = (
     doc.text('WORK ORDER', leftX, yPos + 2);
   
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(80, 80, 80);
     doc.text(`WO #: ${order.orderNumber}`, leftX, yPos + 7);
     doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
@@ -61,7 +61,7 @@ export const exportWorkOrderToPDF = (
     doc.text('Vali Produce', rightX, yPos + 2, { align: 'right' });
   
     doc.setFontSize(7);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(100, 100, 100);
     doc.text('4300 Pleasantdale Rd,', rightX, yPos + 7, { align: 'right' });
     doc.text('Atlanta, GA 30340, USA', rightX, yPos + 11, { align: 'right' });
@@ -81,7 +81,7 @@ export const exportWorkOrderToPDF = (
   doc.setTextColor(70, 70, 70);
   doc.text('Order Information:', MARGIN + 4, yPos + 6);
   
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.text(`Order #: ${order.id}`, MARGIN + 4, yPos + 12);
   doc.text(`Client: ${order.clientName}`, MARGIN + 4, yPos + 18);
@@ -94,7 +94,7 @@ export const exportWorkOrderToPDF = (
   doc.setFontSize(9);
   doc.text('Assignment Details:', MARGIN + columnWidth + 8, yPos + 6);
   
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.text(`Assigned To: ${options.assignedTo}`, MARGIN + columnWidth + 8, yPos + 12);
   
@@ -114,7 +114,7 @@ export const exportWorkOrderToPDF = (
     doc.setFont('helvetica', 'bold');
     doc.text(`Priority: ${options.priority.toUpperCase()}`, MARGIN + columnWidth + 8, yPos + 24);
     doc.setTextColor(70, 70, 70);
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
   }
   
   yPos += 36;
@@ -128,7 +128,7 @@ export const exportWorkOrderToPDF = (
     doc.setFontSize(9);
     doc.text('Schedule Information:', MARGIN + 4, yPos + 6);
     
-    doc.setFont('helvetica', 'normal');
+    doc.setFont('helvetica', 'bold');
     doc.setFontSize(8);
     
     let scheduleText = '';
@@ -205,7 +205,8 @@ export const exportWorkOrderToPDF = (
     },
     bodyStyles: {
       lineWidth: 0.1,
-      fontSize: 8
+      fontSize: 8,
+      fontStyle: 'bold' // Make body text bold
     },
     columnStyles: {
       0: { cellWidth: CONTENT_WIDTH * 0.4 }, // Product Name
@@ -216,6 +217,7 @@ export const exportWorkOrderToPDF = (
       fillColor: [250, 250, 250]
     }
   });
+  
   
   
   
@@ -255,7 +257,7 @@ export const exportWorkOrderToPDF = (
   // Box 1: Completed By
   doc.setLineWidth(0.1);
   doc.rect(MARGIN, yPos, signatureWidth, 25);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont('helvetica', 'bold');
   doc.setFontSize(8);
   doc.text('Completed By:', MARGIN + 4, yPos + 6);
   doc.line(MARGIN + 4, yPos + 16, MARGIN + signatureWidth - 4, yPos + 16);
