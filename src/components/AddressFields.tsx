@@ -1,5 +1,5 @@
 import { Input } from "@/components/ui/input";
-import React from "react";
+import React, { useState } from "react";
 
 const AddressForm = ({
   billingAddress,
@@ -9,6 +9,8 @@ const AddressForm = ({
   sameAsBilling,
   setSameAsBilling,
 }) => {
+  const [canSubmit, setCanSubmit] = useState(false);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -22,6 +24,7 @@ const AddressForm = ({
           </label>
           <Input
             id="billing-name"
+            required
             placeholder="Your name"
             value={billingAddress.name}
             onChange={(e) =>
@@ -50,7 +53,9 @@ const AddressForm = ({
           </label>
           <Input
             id="billing-email"
-            type="email"
+            type="number"
+            required
+
             placeholder="01234567890"
             value={billingAddress.phone}
             onChange={(e) =>
@@ -66,6 +71,8 @@ const AddressForm = ({
           <Input
             id="billing-address"
             placeholder="Street address"
+            required
+            
             value={billingAddress.address}
             onChange={(e) =>
               setBillingAddress({ ...billingAddress, address: e.target.value })
@@ -81,6 +88,8 @@ const AddressForm = ({
             <Input
               id="billing-city"
               placeholder="City"
+            required
+
               value={billingAddress.city}
               onChange={(e) =>
                 setBillingAddress({ ...billingAddress, city: e.target.value })
@@ -94,6 +103,8 @@ const AddressForm = ({
             <Input
               id="billing-postal"
               placeholder="Postal code"
+            required
+
               value={billingAddress.postalCode}
               onChange={(e) =>
                 setBillingAddress({
@@ -107,10 +118,12 @@ const AddressForm = ({
 
         <div className="grid gap-1.5">
           <label htmlFor="billing-country" className="text-sm font-medium">
-            Country
+          State
           </label>
           <Input
             id="billing-country"
+            required
+
             placeholder="Country"
             value={billingAddress.country}
             onChange={(e) =>
@@ -240,7 +253,7 @@ const AddressForm = ({
 
             <div className="grid gap-1.5">
               <label htmlFor="shipping-country" className="text-sm font-medium">
-                Country
+                State
               </label>
               <Input
                 id="shipping-country"

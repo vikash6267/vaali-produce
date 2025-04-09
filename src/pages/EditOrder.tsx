@@ -113,6 +113,25 @@ if(!orderId) return
       }, 0);
     };
 
+
+    const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"];
+    const checkEmptyFields = (address: any) =>
+      requiredFields.some((field) => !address?.[field]);
+  
+    const billingInvalid = checkEmptyFields(billingAddress);
+    const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress);
+  
+    if (billingInvalid || shippingInvalid) {
+      toast({
+        title: "Incomplete Address",
+        description: "Please fill all required address fields.",
+        variant: "destructive",
+      });
+     
+      return;
+    }
+
+
     console.log(calculateTotal());  // Call the function to get the result
     const finalData = {
       ...data,
