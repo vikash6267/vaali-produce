@@ -113,26 +113,40 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-4">
       <div className="flex justify-between items-start">
-        <div>
-          <h3 className="text-xl font-semibold text-gray-800">{template.name}</h3>
-          <p className="text-gray-500 text-sm mt-1">Created on {formattedDate}</p>
-          {template.description && (
-            <p className="text-gray-600 mt-2">{template.description}</p>
-          )}
-          <div className="mt-2">
-            {template.status === 'active' && (
-              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                Active
-              </Badge>
-            )}
-            {template.status === 'draft' && (
-              <Badge variant="secondary">Draft</Badge>
-            )}
-            {template.status === 'archived' && (
-              <Badge variant="destructive">Archived</Badge>
-            )}
-          </div>
-        </div>
+      <div>
+  <h3 className="text-xl font-semibold text-black">{template.name}</h3>
+  <p className="text-black text-sm mt-1">Created on {formattedDate}</p>
+  {template.description && (
+    <p className="text-black mt-2">{template.description}</p>
+  )}
+  
+  <div className="mt-2">
+    {template.status === 'active' && (
+      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+        Active
+      </Badge>
+    )}
+    {template.status === 'draft' && (
+      <Badge variant="secondary">Draft</Badge>
+    )}
+    {template.status === 'archived' && (
+      <Badge variant="destructive">Archived</Badge>
+    )}
+  </div>
+
+  {/* 🚀 Copy URL Button */}
+  <button
+    onClick={() => {
+      const url = `http://valiproduce.shop/store/template?templateId=${template.id}`;
+      navigator.clipboard.writeText(url);
+      alert("URL copied to clipboard!");
+    }}
+    className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+  >
+    Copy URL
+  </button>
+</div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">

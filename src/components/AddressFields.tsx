@@ -133,18 +133,25 @@ const AddressForm = ({
         </div>
       </div>
 
-      <div className="flex items-center space-x-2 py-2">
-        <input
-          type="checkbox"
-          id="same-as-billing"
-          checked={sameAsBilling}
-          onChange={(e) => setSameAsBilling(e.target.checked)}
-          className="rounded border-gray-300"
-        />
-        <label htmlFor="same-as-billing" className="text-sm">
-          Shipping address same as billing
-        </label>
-      </div>
+      <div className="flex items-center gap-2 py-1">
+  <input
+    type="checkbox"
+    id="same-as-billing"
+    checked={sameAsBilling}
+    onChange={(e) => setSameAsBilling(e.target.checked)}
+    className="w-3 h-3 p-0 m-0 align-middle accent-blue-600 cursor-pointer"
+    style={{ minWidth: "16px" }}
+  />
+  <label htmlFor="same-as-billing" className="text-sm cursor-pointer text-gray-700 leading-none">
+    Shipping address same as billing
+  </label>
+</div>
+
+
+
+
+
+
 
       {!sameAsBilling && (
         <>

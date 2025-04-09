@@ -47,7 +47,7 @@ export const exportWorkOrderToPDF = (
   
     doc.setFontSize(8);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(80, 80, 80);
+    doc.setTextColor(0, 0, 0);
     doc.text(`WO #: ${order.orderNumber}`, leftX, yPos + 7);
     doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
   
@@ -62,7 +62,7 @@ export const exportWorkOrderToPDF = (
   
     doc.setFontSize(7);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 100, 100);
+    doc.setTextColor(0, 0, 0);
     doc.text('4300 Pleasantdale Rd,', rightX, yPos + 7, { align: 'right' });
     doc.text('Atlanta, GA 30340, USA', rightX, yPos + 11, { align: 'right' });
     doc.text('order@valiproduce.shop', rightX, yPos + 15, { align: 'right' });
@@ -78,7 +78,7 @@ export const exportWorkOrderToPDF = (
   
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(9);
-  doc.setTextColor(70, 70, 70);
+  doc.setTextColor(0, 0, 0);
   doc.text('Order Information:', MARGIN + 4, yPos + 6);
   
   doc.setFont('helvetica', 'bold');
@@ -113,7 +113,7 @@ export const exportWorkOrderToPDF = (
     doc.setTextColor(priorityColor[0], priorityColor[1], priorityColor[2]);
     doc.setFont('helvetica', 'bold');
     doc.text(`Priority: ${options.priority.toUpperCase()}`, MARGIN + columnWidth + 8, yPos + 24);
-    doc.setTextColor(70, 70, 70);
+    doc.setTextColor(0, 0, 0);
     doc.setFont('helvetica', 'bold');
   }
   
@@ -205,6 +205,8 @@ export const exportWorkOrderToPDF = (
     },
     bodyStyles: {
       lineWidth: 0.1,
+      textColor: [0, 0, 0],
+
       fontSize: 8,
       fontStyle: 'bold' // Make body text bold
     },
@@ -228,7 +230,7 @@ export const exportWorkOrderToPDF = (
   }
   
   // Special instructions
-  if (options.specialInstructions) {
+  if (false && options.specialInstructions) {
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(9);
     doc.text('Special Instructions:', MARGIN, yPos);

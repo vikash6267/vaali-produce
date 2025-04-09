@@ -42,6 +42,7 @@ import { useSelector } from "react-redux";
 import { OrderItem } from "@/types";
 import { getUserAPI } from "@/services2/operations/auth";
 import AddressForm from "@/components/AddressFields";
+import { getAllProductAPI } from "@/services2/operations/product"
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -54,6 +55,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   onClose,
   template,
 }) => {
+  
+  
+  
   const [selectedStore, setSelectedStore] = useState<{
     label: string;
     value: string;
@@ -66,6 +70,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const { toast } = useToast();
   const [stores, setStores] = useState([]);
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const [products, setProducts] = useState([])
 
   const [storeDetails, setStoreDetails] = useState("");
   const [storeLoading, setStoreLoading] = useState(false);
@@ -88,6 +93,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     country: "",
   });
   const [sameAsBilling, setSameAsBilling] = useState(false);
+
+
 
   useEffect(() => {
     if (!selectedStore?.value) return;
@@ -121,6 +128,26 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     fetchStoreDetails();
   }, [selectedStore]);
 
+
+  const fetchProducts = async () => {
+    try {
+      const response = await getAllProductAPI()
+      if (response) {
+        const updatedProducts = response.map((product) => ({
+          ...product,
+          id: product._id,
+          lastUpdated: product?.updatedAt,
+        }))
+        setProducts(updatedProducts)
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error)
+    }
+  }
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
   useEffect(() => {
     const fetchStores = async () => {
       try {
@@ -147,71 +174,85 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     }));
   };
 
-  const calculateTotal = () => {
-    if (!template) return 0;
+  const calculateSubtotal = () => {
+    if (!template) return 0
 
     return template.products.reduce((total, product) => {
-      const quantity = quantities[product.id] || 0;
-      return total + product.price * quantity;
-    }, 0);
-  };
-
-  const handleCreateOrder = async () => {
-    if (!template || !selectedStore) return;
-
-
-    const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"];
-  const checkEmptyFields = (address: any) =>
-    requiredFields.some((field) => !address?.[field]);
-
-  const billingInvalid = checkEmptyFields(billingAddress);
-  const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress);
-
-  if (billingInvalid || shippingInvalid) {
-    toast({
-      title: "Incomplete Address",
-      description: "Please fill all required address fields.",
-      variant: "destructive",
-    });
-    setIsSubmitting(false);
-    return;
+      const quantity = quantities[product.id] || 0
+      return total + product.pricePerBox * quantity
+    }, 0)
   }
 
-  
-    console.log(template);
-    console.log(selectedStore);
+  const calculateShipping = () => {
+    if (!template) return 0
+
+    let maxShipping = 0
+
+    template.products.forEach((product) => {
+      const quantity = quantities[product.id] || 0
+      if (quantity <= 0) return
+
+      const matchedProduct = products.find((p) => p.id === product.id)
+      const shippingCost = matchedProduct?.shippinCost || 0
+
+      if (shippingCost > maxShipping) {
+        maxShipping = shippingCost
+      }
+    })
+
+    return maxShipping
+  }
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateShipping()
+  }
+
+  const handleCreateOrder = async () => {
+    if (!template || !selectedStore) return
+    const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"]
+    const checkEmptyFields = (address: any) => requiredFields.some((field) => !address?.[field])
+
+    const billingInvalid = checkEmptyFields(billingAddress)
+    const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress)
+
+    if (billingInvalid || shippingInvalid) {
+      toast({
+        title: "Incomplete Address",
+        description: "Please fill all required address fields.",
+        variant: "destructive",
+      })
+
+      return
+    }
 
     const orderedProducts = template.products
       .filter((product) => (quantities[product.id] || 0) > 0)
       .map((product) => {
-        const quantity = quantities[product.id] || 0;
+        const quantity = quantities[product.id] || 0
         return {
           product: product.id,
           name: product.name,
-          price: product.price,
+          price: product.pricePerBox,
           quantity: quantity,
           productId: product.id,
           productName: product.name,
-          unitPrice: product.price,
-          total: product.price * quantity,
-        };
-      });
-
-    console.log(orderedProducts);
+          unitPrice: product.pricePerBox,
+          total: product.pricePerBox * quantity,
+        }
+      })
 
     if (orderedProducts.length === 0) {
       toast({
         title: "No Products Selected",
         description: "Please select at least one product to create an order",
         variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
+      })
+      setIsSubmitting(false)
+      return
     }
 
-    const selectedStoreName =
-      stores.find((store) => store.id === selectedStore)?.name || "";
-    const totalAmount = calculateTotal();
+    const selectedStoreName = stores.find((store) => store.id === selectedStore)?.name || ""
+    const totalAmount = calculateTotal()
 
     const order = {
       id: `${Math.floor(Math.random() * 10000)
@@ -225,19 +266,16 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       status: "pending" as const,
       paymentStatus: "pending" as const,
       subtotal: totalAmount,
+      shippinCost: calculateShipping(),
       store: selectedStore.value,
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
-    };
+    }
 
-    console.log(order);
+    await createOrderAPI(order, token)
 
-    await createOrderAPI(order, token);
-
-    console.log("Created order:", order);
-
-    setOrderDetails(order);
-    setOrderConfirmed(true);
+    setOrderDetails(order)
+    setOrderConfirmed(true)
 
     try {
       const invoiceData: InvoiceData = {
@@ -245,13 +283,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         customerName: selectedStore.label,
         items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.price,
+          price: item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity,
+          total: (item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: order.total,
         date: order.date,
-      };
+        shippinCost: calculateShipping(),
+      }
 
       exportInvoiceToPDF({
         id: invoiceData.invoiceNumber,
@@ -263,18 +302,19 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: order.subtotal,
-      });
+        shippinCost: calculateShipping(),
+      })
     } catch (error) {
-      console.error("Error generating invoice PDF:", error);
+      console.error("Error generating invoice PDF:", error)
     }
 
     toast({
       title: "Order Created Successfully",
       description: `Order ${order.id} has been created for ${selectedStore.label}`,
-    });
+    })
 
-    setIsSubmitting(false);
-  };
+    setIsSubmitting(false)
+  }
 
   const handleClose = () => {
     setSelectedStore({ label: "", value: "" });
@@ -295,9 +335,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         customerName: orderDetails.clientName,
         items: orderDetails.items.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.price,
+          price: item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity,
+          total: (item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: orderDetails.total,
         date: orderDetails.date,
@@ -313,6 +353,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: orderDetails.total,
+        shippinCost: calculateShipping(),
+
       });
 
       toast({
@@ -394,7 +436,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   <TableBody>
                     {template.products.map((product) => {
                       const quantity = quantities[product.id] || 0;
-                      const total = product.price * quantity;
+                      const total = product.pricePerBox * quantity;
 
                       return (
                         <TableRow key={product.id}>
@@ -403,7 +445,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                           </TableCell>
                           <TableCell>{product.category}</TableCell>
                           <TableCell className="text-right">
-                            {formatCurrency(product.price)}
+                            {formatCurrency(product.pricePerBox)}
                           </TableCell>
                           <TableCell>
                             <Input
@@ -426,16 +468,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 </Table>
               </div>
 
-              <div className="flex justify-end">
-                <div className="bg-muted p-4 rounded-md">
-                  <div className="text-sm text-muted-foreground mb-1">
-                    Order Total
-                  </div>
-                  <div className="text-2xl font-bold">
-                    {formatCurrency(calculateTotal())}
+              <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
+                  <div className="w-full sm:max-w-xl">
+                    <div className="grid grid-cols-3 gap-2 font-medium text-muted-foreground text-xs sm:text-sm mb-1">
+                      <div className="text-center">Subtotal</div>
+                      <div className="text-center">Shipping Cost</div>
+                      <div className="text-center">Total</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 font-bold text-sm sm:text-lg">
+                      <div className="text-center">{formatCurrency(calculateSubtotal())}</div>
+                      <div className="text-center">{formatCurrency(calculateShipping())}</div>
+                      <div className="text-center text-green-600">{formatCurrency(calculateTotal())}</div>
+                    </div>
                   </div>
                 </div>
-              </div>
             </div>
 
             <DialogFooter>
@@ -487,14 +533,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                         {product.productName || product.name}
                       </TableCell>
                       <TableCell className="text-right">
-                        {formatCurrency(product.unitPrice || product.price)}
+                        {formatCurrency(product.unitPrice || product.pricePerBox)}
                       </TableCell>
                       <TableCell className="text-center">
                         {product.quantity}
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(
-                          (product.unitPrice || product.price) *
+                          (product.unitPrice || product.pricePerBox) *
                             product.quantity
                         )}
                       </TableCell>
@@ -503,7 +549,20 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 </TableBody>
               </Table>
             </div>
-
+            <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
+                  <div className="w-full sm:max-w-xl">
+                    <div className="grid grid-cols-3 gap-2 font-medium text-muted-foreground text-xs sm:text-sm mb-1">
+                      <div className="text-center">Subtotal</div>
+                      <div className="text-center">Shipping Cost</div>
+                      <div className="text-center">Total</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 font-bold text-sm sm:text-lg">
+                      <div className="text-center">{formatCurrency(calculateSubtotal())}</div>
+                      <div className="text-center">{formatCurrency(calculateShipping())}</div>
+                      <div className="text-center text-green-600">{formatCurrency(calculateTotal())}</div>
+                    </div>
+                  </div>
+                </div>
             <div className="flex justify-between items-center mt-6">
               <Button variant="outline" onClick={handleClose}>
                 Close
