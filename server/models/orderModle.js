@@ -19,6 +19,10 @@ const orderSchema = new mongoose.Schema(
     orderNumber: {
       type: String,
     },
+    shippinCost: {
+      type: Number,
+      default:0
+    },
     store: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "auth",

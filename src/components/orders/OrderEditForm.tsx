@@ -43,6 +43,7 @@ const formSchema = z.object({
       productName: z.string().min(1, "Product name is required"),
       quantity: z.number().min(1, "Quantity must be at least 1"),
       unitPrice: z.number().min(0, "Unit price must be at least 0"),
+      shippinCost: z.number().optional(),
       pricingType: z.enum(["box", "unit"])
     })
   ),
@@ -81,11 +82,13 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
         productName: "",
         quantity: 1,
         unitPrice: 0,
-        pricingType: "box"
+        pricingType: "box",
+        shippinCost:0
       },
     ]).map((item) => ({
       ...item,
-      pricingType: item.pricingType === "unit" ? "unit" : "box" // force correct typing
+      pricingType: item.pricingType === "unit" ? "unit" : "box" ,
+      shippinCost:item.shippinCost || 0// force correct typing
     })),
   };
   
@@ -119,13 +122,60 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     }
   };
 
-  const calculateTotal = () => {
+  // const calculateTotal = () => {
+  //   const items = form.getValues("items");
+  //   return items.reduce(
+  //     (total, item) => total + item.quantity * item.unitPrice,
+  //     0
+  //   );
+  // };
+
+
+  // const calculateSubtotal = () => {
+  //   const items = form.getValues("items");
+  //   return items.reduce(
+  //     (total, item) => total + item.quantity * item.unitPrice,
+  //     0
+  //   );
+  // };
+  
+  // const calculateShipping = () => {
+  //   const items = form.getValues("items");
+  //   return Math.max(...items.map((item) => item.shippinCost || 0), 0);
+  // };
+
+
+
+  const calculateSubtotal = () => {
     const items = form.getValues("items");
     return items.reduce(
       (total, item) => total + item.quantity * item.unitPrice,
       0
     );
   };
+  
+  const calculateShipping = () => {
+    const items = form.getValues("items");
+    return items.reduce(
+      (total, item) => total + item.quantity * (item.shippinCost || 0),
+      0
+    );
+  };
+  
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateShipping();
+  };
+  
+
+  const getMaxShippingCost = () => {
+    const items = form.getValues("items");
+    if (!items || items.length === 0) return 0;
+  
+    return Math.max(...items.map(item => item.shippinCost || 0));
+  };
+  
+  
+  
 
   const fetchStores = async () => {
     setLoading(true);
@@ -176,11 +226,13 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     label: string;
     pricePerBox: number;
     pricePerUnit: number;
+    shippinCost:number
   }[] = products.map((product) => ({
     value: product.id,
     label: product.name,
     pricePerBox: Number(product.pricePerBox),
     pricePerUnit: Number(product.price), // Make sure this exists in product
+    shippinCost: Number(product.shippinCost || 0), // Make sure this exists in product
   }));
   
 
@@ -292,6 +344,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
                                 ? selectedOption.pricePerUnit
                                 : selectedOption.pricePerBox;
                             form.setValue(`items.${index}.unitPrice`, unitPrice);
+                            form.setValue(`items.${index}.shippinCost`, selectedOption.shippinCost);
                           }}
                         />
                       </FormControl>
@@ -432,9 +485,23 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
             Add Item
           </Button>
 
-          <div className="mt-4 text-right">
-            <p className="font-medium">Total: ${calculateTotal().toFixed(2)}</p>
-          </div>
+          {/* Order Summary */}
+          <div className="p-4 border rounded-md bg-gray-50 mt-4 space-y-2">
+  <div className="flex justify-between">
+    <span className="font-medium">Subtotal:</span>
+    <span>$ {calculateSubtotal().toFixed(2)}</span>
+  </div>
+  <div className="flex justify-between">
+    <span className="font-medium">Shipping:</span>
+    <span>$ {calculateShipping().toFixed(2)}</span>
+  </div>
+  <div className="flex justify-between text-lg font-semibold border-t pt-2">
+    <span>Total:</span>
+    <span>$ {calculateTotal().toFixed(2)}</span>
+  </div>
+</div>
+
+
         </div>
 
         <div className="flex justify-end gap-3">

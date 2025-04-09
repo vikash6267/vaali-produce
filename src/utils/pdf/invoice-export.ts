@@ -214,7 +214,9 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
     yPos += 50;
   }
 
-  const subTotal = order.total;
+  const subTotal = order.total - order.shippinCost ;
+  const ShippingCost = order.shippinCost;
+  const allTotal = subTotal+ ShippingCost
   // const taxRate = includePaymentTerms ? 0.085 : 0;
   const taxRate = includePaymentTerms ? 0 : 0;
   const taxAmount = subTotal * taxRate;
@@ -224,6 +226,9 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
 
   doc.text('Subtotal:', PAGE_WIDTH - MARGIN - 60, yPos);
   doc.text(formatCurrency(subTotal), PAGE_WIDTH - MARGIN, yPos, { align: 'right' });
+  yPos += 5;
+  doc.text('Shipping Cost:', PAGE_WIDTH - MARGIN - 60, yPos);
+  doc.text(formatCurrency(ShippingCost), PAGE_WIDTH - MARGIN, yPos, { align: 'right' });
   yPos += 5;
 
   // if (includePaymentTerms) {
@@ -236,7 +241,7 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
   doc.line(PAGE_WIDTH - MARGIN - 60, yPos - 2, PAGE_WIDTH - MARGIN, yPos - 2);
   doc.setFont('helvetica', 'bold');
   doc.text('Total:', PAGE_WIDTH - MARGIN - 60, yPos + 4);
-  doc.text(formatCurrency(totalAmount), PAGE_WIDTH - MARGIN, yPos + 4, { align: 'right' });
+  doc.text(formatCurrency(allTotal), PAGE_WIDTH - MARGIN, yPos + 4, { align: 'right' });
 
   // if (includePaymentTerms) {
   //   yPos += 15;

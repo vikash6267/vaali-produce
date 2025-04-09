@@ -96,16 +96,40 @@ const NewOrder = () => {
     quantity: number;
     unitPrice: number;
   }
+
   const handleSubmitOrder = async (data: any) => {
     // In a real app, this would save the order to the database
     console.log(data);
 
-    const calculateTotal = () => {
-      const items: Item[] = data?.items || []; // Ensure data.items is an array
-      return items.reduce((total: number, item: Item) => {
-        return total + item.quantity * item.unitPrice;
-      }, 0);
+
+
+    const calculateSubtotal = () => {
+      const items = data?.items || [];
+      return items.reduce(
+        (total, item) => total + item.quantity * item.unitPrice,
+        0
+      );
     };
+    
+    const calculateShipping = () => {
+      const items = data?.items || [];
+      return items.reduce(
+        (total, item) => total + item.quantity * (item.shippinCost || 0),
+        0
+      );
+    };
+    
+    const calculateTotal = () => {
+      return calculateSubtotal() + calculateShipping();
+    };
+
+
+    // const calculateTotal = () => {
+    //   const items: Item[] = data?.items || []; // Ensure data.items is an array
+    //   return items.reduce((total: number, item: Item) => {
+    //     return total + item.quantity * item.unitPrice;
+    //   }, 0);
+    // };
 
     console.log(calculateTotal());  // Call the function to get the result
 
@@ -117,13 +141,13 @@ const NewOrder = () => {
       items: data?.items,
       total: calculateTotal(),
       status: data?.status,
+      shippinCost:calculateShipping(),
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     };
 
-    console.log(shippingAddress)
-    console.log(billingAddress)
-    
+   console.log(order)
+   
     await createOrderAPI(order, token)
 
 

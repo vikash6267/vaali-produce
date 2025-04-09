@@ -2,7 +2,7 @@ const orderModel = require("../models/orderModle");
 
 const createOrderCtrl = async (req, res) => {
     try {
-        const { items,  status, total,clientId ,billingAddress,shippingAddress} = req.body;
+        const { items,  status, total,clientId ,billingAddress,shippingAddress , shippinCost=0} = req.body;
 console.log(req.body)
 
 
@@ -30,6 +30,7 @@ console.log(req.body)
             shippingAddress,
             billingAddress,
             total,
+            shippinCost
         });
 
         await newOrder.save();

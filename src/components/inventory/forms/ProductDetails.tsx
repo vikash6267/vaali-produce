@@ -36,6 +36,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
         placeholder="Enter product name"
         description="Name of the product"
       />
+    
 
       {!simplified && (
         <ImageUploadField
@@ -136,7 +137,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           placeholder="0.00"
         />
       </div>
-
+      <TextField
+        control={control}
+        name="shippinCost"
+         type="number"
+        label="Shipping Cost"
+        placeholder="Shipping Cost"
+        description="Shipping Cost"
+      />
       <TextField
         control={control}
         name="threshold"

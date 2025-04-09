@@ -44,6 +44,7 @@ export interface Order {
   id: string;
   _id?: string;
   orderId?: string;
+  orderNumber?: string;
   store?: string;
   customer?: string;
   date: string;
@@ -57,6 +58,7 @@ export interface Order {
   tax?: number;
   shipping?: number;
   discount?: number;
+  shippinCost?: number;
   total: number;
   notes?: string;
   trackingNumber?: string;

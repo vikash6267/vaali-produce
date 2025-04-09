@@ -85,7 +85,10 @@ const ProductSchema = new mongoose.Schema(
         {
             type: String,
         },
-
+        shippinCost: {
+            type: Number,
+            default: 0
+        },
     },
     { timestamps: true }
 );

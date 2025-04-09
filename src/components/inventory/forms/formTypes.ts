@@ -22,6 +22,7 @@ export const formSchema = z.object({
   weightVariation: z.coerce.number().min(0).max(100).optional(),
   expiryDate: z.string().optional(),
   batchInfo: z.string().optional(),
+  shippinCost: z.number().optional(),
   origin: z.string().optional(),
   organic: z.boolean().default(false).optional(),
   storageInstructions: z.string().optional(),

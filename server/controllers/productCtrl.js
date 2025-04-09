@@ -24,7 +24,8 @@ const createProductCtrl = async (req, res) => {
             storageInstructions,
             boxSize,
             pricePerBox,
-            image
+            image,
+            shippinCost=0
         } = req.body;
 
       
@@ -48,6 +49,7 @@ const createProductCtrl = async (req, res) => {
             batchInfo,
             origin,
             organic,
+            shippinCost,
             storageInstructions,
             boxSize,
             pricePerBox,
@@ -162,7 +164,8 @@ const updateProductCtrl = async (req, res) => {
             storageInstructions,
             boxSize,
             pricePerBox,
-            image
+            image,
+            shippinCost
         } = req.body;
 
         const { id } = req.params;
@@ -200,6 +203,7 @@ const updateProductCtrl = async (req, res) => {
         product.boxSize = boxSize || product.boxSize;
         product.pricePerBox = pricePerBox || product.pricePerBox;
         product.image = image;
+        product.shippinCost = shippinCost;
 
         await product.save();
 

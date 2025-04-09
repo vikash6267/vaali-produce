@@ -46,6 +46,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
       storageInstructions: "",
       boxSize: 0,
       pricePerBox: 0,
+      shippinCost:0
     },
   });
 
@@ -81,6 +82,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           storageInstructions: response.storageInstructions || "",
           boxSize: response.boxSize || 0,
           pricePerBox: response.pricePerBox || 0,
+          shippinCost:response.shippinCost || 0
         });
       }
     } catch (error) {
@@ -111,7 +113,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
     getAllCategories();
   }, []);
   const onSubmit = async (data: FormValues) => {
-
+console.log(data)
     if(isEditProduct){
       await updateProductAPI(editProduct,data, token);
       onSuccess();
