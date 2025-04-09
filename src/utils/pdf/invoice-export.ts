@@ -63,7 +63,7 @@ export const exportInvoiceToPDF = (
     doc.text(`Invoice #: ${order.id}`, leftX, yPos + 7);
     doc.text(`Date: ${new Date(order.date).toLocaleDateString()}`, leftX, yPos + 11);
   
-    if (includePaymentTerms && dueDate) {
+    if (false && includePaymentTerms && dueDate) {
       const dueDateObj = new Date(dueDate);
       doc.text(`Due Date: ${dueDateObj.toLocaleDateString()}`, leftX, yPos + 15);
     }
