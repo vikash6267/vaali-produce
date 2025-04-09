@@ -1,13 +1,13 @@
-import React, { useState } from 'react';
-import { Order, formatCurrency, formatDate } from '@/lib/data';
-import { Button } from '@/components/ui/button';
+import React, { useState } from "react";
+import { Order, formatCurrency, formatDate } from "@/lib/data";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
-} from '@/components/ui/dialog';
+  DialogFooter,
+} from "@/components/ui/dialog";
 import {
   FileText,
   Printer,
@@ -18,9 +18,9 @@ import {
   CalendarClock,
   BadgeCheck,
   Settings2,
-  ChevronDown
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  ChevronDown,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import {
   Popover,
   PopoverContent,
@@ -36,7 +36,7 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { exportInvoiceToPDF } from '@/utils/pdf';
+import { exportInvoiceToPDF } from "@/utils/pdf";
 
 interface InvoiceGeneratorProps {
   order: Order;
@@ -45,7 +45,12 @@ interface InvoiceGeneratorProps {
   onViewClientProfile?: () => void;
 }
 
-const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClose, onViewClientProfile }) => {
+const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
+  order,
+  open,
+  onClose,
+  onViewClientProfile,
+}) => {
   const { toast } = useToast();
   const [invoiceOptions, setInvoiceOptions] = useState({
     includeHeader: true,
@@ -53,8 +58,10 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
     includePaymentTerms: true,
     includeLogo: true,
     includeSignature: false,
-    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
-    invoiceTemplate: "standard"
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split("T")[0], // 30 days from now
+    invoiceTemplate: "standard",
   });
   const [showOptions, setShowOptions] = useState(false);
 
@@ -62,34 +69,31 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
     window.print();
     toast({
       title: "Print requested",
-      description: "The invoice has been sent to your printer."
+      description: "The invoice has been sent to your printer.",
     });
   };
 
-  console.log(order)
+  console.log(order);
   const handleDownload = () => {
-
-
     exportInvoiceToPDF({
       id: order.orderNumber as any,
       clientId: (order.store as any)._id,
       clientName: (order.store as any).storeName,
-      shippinCost:order.shippinCost || 0,
+      shippinCost: order.shippinCost || 0,
       date: order.date,
       shippingAddress: order?.shippingAddress,
       billingAddress: order?.billingAddress,
       status: order.status,
       items: order.items,
       total: order.total,
-      paymentStatus: 'pending',
+      paymentStatus: "pending",
       subtotal: order.total,
-      store: order.store
+      store: order.store,
     });
-
 
     toast({
       title: "Download initiated",
-      description: "The invoice is being downloaded as a PDF."
+      description: "The invoice is being downloaded as a PDF.",
     });
     // In a real app, this would generate and download a PDF
   };
@@ -97,7 +101,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
   const handleEmail = () => {
     toast({
       title: "Email sent",
-      description: `Invoice has been emailed to the client.`
+      description: `Invoice has been emailed to the client.`,
     });
     // In a real app, this would send an email with the invoice
   };
@@ -105,7 +109,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
   const handleCopyLink = () => {
     toast({
       title: "Link copied",
-      description: "Invoice link has been copied to clipboard."
+      description: "Invoice link has been copied to clipboard.",
     });
     // In a real app, this would copy a link to the clipboard
   };
@@ -113,7 +117,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
   const handleShare = () => {
     toast({
       title: "Share options opened",
-      description: "Choose how you want to share this invoice."
+      description: "Choose how you want to share this invoice.",
     });
     // In a real app, this would open sharing options
   };
@@ -125,17 +129,18 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
   const handleOptionChange = (key: keyof typeof invoiceOptions, value: any) => {
     setInvoiceOptions({
       ...invoiceOptions,
-      [key]: value
+      [key]: value,
     });
   };
 
   const getTotalWithTax = () => {
     // Calculate tax (for demonstration, using 8.5% tax rate)
     const taxRate = 0;
-    const taxAmount = invoiceOptions.includePaymentTerms ? order.total * taxRate : 0;
+    const taxAmount = invoiceOptions.includePaymentTerms
+      ? order.total * taxRate
+      : 0;
     return order.total + taxAmount;
   };
-
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -148,7 +153,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
         </DialogHeader>
 
         <div className="flex justify-end mb-4">
-          <Button variant="outline" size="sm" onClick={toggleOptions} className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={toggleOptions}
+            className="flex items-center gap-1"
+          >
             <Settings2 className="h-4 w-4" />
             Options
             <ChevronDown className="h-4 w-4 ml-1" />
@@ -165,7 +175,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                   <Switch
                     id="includeHeader"
                     checked={invoiceOptions.includeHeader}
-                    onCheckedChange={(checked) => handleOptionChange('includeHeader', checked)}
+                    onCheckedChange={(checked) =>
+                      handleOptionChange("includeHeader", checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -173,15 +185,21 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                   <Switch
                     id="includeCompanyDetails"
                     checked={invoiceOptions.includeCompanyDetails}
-                    onCheckedChange={(checked) => handleOptionChange('includeCompanyDetails', checked)}
+                    onCheckedChange={(checked) =>
+                      handleOptionChange("includeCompanyDetails", checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="includePaymentTerms">Include Tax & Terms</Label>
+                  <Label htmlFor="includePaymentTerms">
+                    Include Tax & Terms
+                  </Label>
                   <Switch
                     id="includePaymentTerms"
                     checked={invoiceOptions.includePaymentTerms}
-                    onCheckedChange={(checked) => handleOptionChange('includePaymentTerms', checked)}
+                    onCheckedChange={(checked) =>
+                      handleOptionChange("includePaymentTerms", checked)
+                    }
                   />
                 </div>
               </div>
@@ -191,7 +209,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                   <Switch
                     id="includeLogo"
                     checked={invoiceOptions.includeLogo}
-                    onCheckedChange={(checked) => handleOptionChange('includeLogo', checked)}
+                    onCheckedChange={(checked) =>
+                      handleOptionChange("includeLogo", checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between">
@@ -199,7 +219,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                   <Switch
                     id="includeSignature"
                     checked={invoiceOptions.includeSignature}
-                    onCheckedChange={(checked) => handleOptionChange('includeSignature', checked)}
+                    onCheckedChange={(checked) =>
+                      handleOptionChange("includeSignature", checked)
+                    }
                   />
                 </div>
                 <div className="flex items-center justify-between gap-2">
@@ -208,16 +230,22 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                     id="dueDate"
                     type="date"
                     value={invoiceOptions.dueDate}
-                    onChange={(e) => handleOptionChange('dueDate', e.target.value)}
+                    onChange={(e) =>
+                      handleOptionChange("dueDate", e.target.value)
+                    }
                     className="w-36"
                   />
                 </div>
               </div>
               <div className="md:col-span-2">
-                <Label htmlFor="invoiceTemplate" className="mb-2 block">Template Style</Label>
+                <Label htmlFor="invoiceTemplate" className="mb-2 block">
+                  Template Style
+                </Label>
                 <Select
                   value={invoiceOptions.invoiceTemplate}
-                  onValueChange={(value) => handleOptionChange('invoiceTemplate', value)}
+                  onValueChange={(value) =>
+                    handleOptionChange("invoiceTemplate", value)
+                  }
                 >
                   <SelectTrigger id="invoiceTemplate">
                     <SelectValue placeholder="Select template" />
@@ -234,60 +262,115 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
           </div>
         )}
 
-        <div className={`invoice-container p-6 border rounded-md bg-white ${invoiceOptions.invoiceTemplate === 'minimal' ? 'font-sans' : invoiceOptions.invoiceTemplate === 'professional' ? 'font-serif' : ''}`}>
+        <div
+          className={`invoice-container p-6 border rounded-md bg-white ${
+            invoiceOptions.invoiceTemplate === "minimal"
+              ? "font-sans"
+              : invoiceOptions.invoiceTemplate === "professional"
+              ? "font-serif"
+              : ""
+          }`}
+        >
           {invoiceOptions.includeHeader && (
             <div className="flex justify-between mb-8">
               <div>
-                <h2 className={`text-2xl font-bold text-gray-800 ${invoiceOptions.invoiceTemplate === 'professional' ? 'text-primary' : ''}`}>INVOICE</h2>
+                <h2
+                  className={`text-2xl font-bold text-gray-800 ${
+                    invoiceOptions.invoiceTemplate === "professional"
+                      ? "text-primary"
+                      : ""
+                  }`}
+                >
+                  INVOICE
+                </h2>
                 <p className="text-sm text-gray-600">Invoice #{order.id}</p>
-                <p className="text-sm text-gray-600">Date: {formatDate(order.date)}</p>
-                {invoiceOptions.includePaymentTerms && (
+                <p className="text-sm text-gray-600">
+                  Date: {formatDate(order.date)}
+                </p>
+                {/* {invoiceOptions.includePaymentTerms && (
                   <p className="text-sm text-gray-600">Due Date: {formatDate(invoiceOptions.dueDate)}</p>
-                )}
+                )} */}
               </div>
               {invoiceOptions.includeCompanyDetails && (
                 <div className="text-right">
                   {invoiceOptions.includeLogo && (
-                    <div className={`${invoiceOptions.invoiceTemplate === 'professional' ? 'bg-primary/10 p-2 rounded' : ''} mb-2`}>
-                      <h3 className="text-xl font-bold text-primary">Vali Produce</h3>
+                    <div
+                      className={`${
+                        invoiceOptions.invoiceTemplate === "professional"
+                          ? "bg-primary/10 p-2 rounded"
+                          : ""
+                      } mb-2`}
+                    >
+                      <h3 className="text-xl font-bold text-primary">
+                        Vali Produce
+                      </h3>
                     </div>
                   )}
                   <p className="text-sm text-gray-600">123 Harvest Lane</p>
                   <p className="text-sm text-gray-600">Farmington, CA 94123</p>
-                  <p className="text-sm text-gray-600">contact@freshproduce.co</p>
+                  <p className="text-sm text-gray-600">
+                    contact@freshproduce.co
+                  </p>
                 </div>
               )}
             </div>
           )}
 
-          <div className={`mb-8 flex justify-between gap-4 ${invoiceOptions.invoiceTemplate === 'professional' ? 'bg-primary/5 p-4 rounded-md' : ''}`}>
+          <div
+            className={`mb-8 flex justify-between gap-4 ${
+              invoiceOptions.invoiceTemplate === "professional"
+                ? "bg-primary/5 p-4 rounded-md"
+                : ""
+            }`}
+          >
             {/* Sold To Section */}
             <div className="w-1/2">
               <h4 className="text-gray-600 font-medium mb-2">Sold To:</h4>
-              <p className="font-medium">{order?.billingAddress?.name || 'N/A'}</p>
-              <p className="text-sm text-gray-600">{order?.billingAddress?.address || 'N/A'}</p>
-              <p className="text-sm text-gray-600">
-                {order?.billingAddress?.city || ''}, {order?.billingAddress?.state || ''} {order?.billingAddress?.postalCode || ''}
+              <p className="font-medium">
+                {order?.billingAddress?.name || "N/A"}
               </p>
-              <p className="text-sm text-gray-600">Phone: {order?.billingAddress?.phone || 'N/A'}</p>
+              <p className="text-sm text-gray-600">
+                {order?.billingAddress?.address || "N/A"}
+              </p>
+              <p className="text-sm text-gray-600">
+                {order?.billingAddress?.city || ""},{" "}
+                {order?.billingAddress?.state || ""}{" "}
+                {order?.billingAddress?.postalCode || ""}
+              </p>
+              <p className="text-sm text-gray-600">
+                Phone: {order?.billingAddress?.phone || "N/A"}
+              </p>
             </div>
 
             {/* Ship To Section */}
             <div className="w-1/2">
               <h4 className="text-gray-600 font-medium mb-2">Ship To:</h4>
-              <p className="font-medium">{order?.shippingAddress?.name || 'N/A'}</p>
-              <p className="text-sm text-gray-600">{order?.shippingAddress?.address || 'N/A'}</p>
-              <p className="text-sm text-gray-600">
-                {order?.shippingAddress?.city || ''}, {order?.shippingAddress?.state || ''} {order?.shippingAddress?.postalCode || ''}
+              <p className="font-medium">
+                {order?.shippingAddress?.name || "N/A"}
               </p>
-              <p className="text-sm text-gray-600">Phone: {order?.shippingAddress?.phone || 'N/A'}</p>
+              <p className="text-sm text-gray-600">
+                {order?.shippingAddress?.address || "N/A"}
+              </p>
+              <p className="text-sm text-gray-600">
+                {order?.shippingAddress?.city || ""},{" "}
+                {order?.shippingAddress?.state || ""}{" "}
+                {order?.shippingAddress?.postalCode || ""}
+              </p>
+              <p className="text-sm text-gray-600">
+                Phone: {order?.shippingAddress?.phone || "N/A"}
+              </p>
             </div>
           </div>
 
-
           <table className="w-full mb-8">
             <thead>
-              <tr className={`border-b ${invoiceOptions.invoiceTemplate === 'professional' ? 'bg-primary/10 text-primary' : 'border-gray-300'}`}>
+              <tr
+                className={`border-b ${
+                  invoiceOptions.invoiceTemplate === "professional"
+                    ? "bg-primary/10 text-primary"
+                    : "border-gray-300"
+                }`}
+              >
                 <th className="text-left py-2">Item</th>
                 <th className="text-right py-2">Quantity</th>
                 <th className="text-right py-2">Unit Price</th>
@@ -296,21 +379,49 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
             </thead>
             <tbody>
               {order.items.map((item, index) => (
-                <tr key={index} className={`border-b ${index % 2 === 0 && invoiceOptions.invoiceTemplate === 'detailed' ? 'bg-muted/20' : 'border-gray-200'}`}>
+                <tr
+                  key={index}
+                  className={`border-b ${
+                    index % 2 === 0 &&
+                    invoiceOptions.invoiceTemplate === "detailed"
+                      ? "bg-muted/20"
+                      : "border-gray-200"
+                  }`}
+                >
                   <td className="py-3">{item.productName || item.name}</td>
-                  <td className="text-right py-3">    {item.quantity}{item.pricingType && item.pricingType !== "box" ? " " + item.pricingType : ""}</td>
-                  <td className="text-right py-3">{formatCurrency(item.unitPrice || item.price)}</td>
-                  <td className="text-right py-3">{formatCurrency(item.quantity * (item.unitPrice || item.price))}</td>
+                  <td className="text-right py-3">
+                    {" "}
+                    {item.quantity}
+                    {item.pricingType && item.pricingType !== "box"
+                      ? " " + item.pricingType
+                      : ""}
+                  </td>
+                  <td className="text-right py-3">
+                    {formatCurrency(item.unitPrice || item.price)}
+                  </td>
+                  <td className="text-right py-3">
+                    {formatCurrency(
+                      item.quantity * (item.unitPrice || item.price)
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
 
           <div className="flex justify-end">
-            <div className={`w-64 ${invoiceOptions.invoiceTemplate === 'professional' ? 'border p-4 rounded-md shadow-sm' : ''}`}>
+            <div
+              className={`w-64 ${
+                invoiceOptions.invoiceTemplate === "professional"
+                  ? "border p-4 rounded-md shadow-sm"
+                  : ""
+              }`}
+            >
               <div className="flex justify-between py-2">
                 <span className="font-medium">Subtotal:</span>
-                <span>{formatCurrency(order.total - (order.shippinCost || 0))}</span>
+                <span>
+                  {formatCurrency(order.total - (order.shippinCost || 0))}
+                </span>
               </div>
               <div className="flex justify-between py-2">
                 <span className="font-medium">Shipping Cost:</span>
@@ -324,7 +435,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
               )} */}
               <div className="flex justify-between py-2 border-t border-gray-300">
                 <span className="font-bold">Total:</span>
-                <span className="font-bold">{formatCurrency(getTotalWithTax())}</span>
+                <span className="font-bold">
+                  {formatCurrency(getTotalWithTax())}
+                </span>
               </div>
             </div>
           </div>
@@ -333,7 +446,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
             <div className="mt-8 pt-8 border-t border-gray-300 text-center text-gray-600 text-sm">
               <p className="mb-2">Thank you for your business!</p>
 
-              {invoiceOptions.invoiceTemplate === 'detailed' && (
+              {invoiceOptions.invoiceTemplate === "detailed" && (
                 <div className="flex items-center justify-center mt-2 text-primary">
                   <BadgeCheck className="h-4 w-4 mr-1" />
                   <span>Approved and Ready for Payment</span>
@@ -349,7 +462,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                   <div className="border-b border-dashed mb-2 pb-4">
                     <p className="text-gray-400 italic">Digital Signature</p>
                   </div>
-                  <p className="text-sm text-gray-600">Authorized Representative</p>
+                  <p className="text-sm text-gray-600">
+                    Authorized Representative
+                  </p>
                 </div>
               </div>
             </div>
@@ -376,19 +491,27 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
                     <Label htmlFor="scheduleTime">Time</Label>
                     <Input id="scheduleTime" type="time" />
                   </div>
-                  <Button className="w-full" onClick={() => {
-                    toast({
-                      title: "Invoice Scheduled",
-                      description: "The invoice has been scheduled for delivery."
-                    });
-                  }}>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      toast({
+                        title: "Invoice Scheduled",
+                        description:
+                          "The invoice has been scheduled for delivery.",
+                      });
+                    }}
+                  >
                     Confirm Schedule
                   </Button>
                 </div>
               </PopoverContent>
             </Popover>
 
-            <Button variant="outline" onClick={handleCopyLink} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handleCopyLink}
+              className="flex-1"
+            >
               <Copy className="mr-2 h-4 w-4" />
               Copy Link
             </Button>
@@ -400,7 +523,11 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
               Print
             </Button>
 
-            <Button variant="outline" onClick={handleDownload} className="flex-1">
+            <Button
+              variant="outline"
+              onClick={handleDownload}
+              className="flex-1"
+            >
               <Download className="mr-2 h-4 w-4" />
               Download
             </Button>
@@ -410,7 +537,11 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({ order, open, onClos
               Email
             </Button>
 
-            <Button variant="secondary" onClick={handleShare} className="flex-none">
+            <Button
+              variant="secondary"
+              onClick={handleShare}
+              className="flex-none"
+            >
               <Share2 className="h-4 w-4" />
             </Button>
           </div>

@@ -1,22 +1,20 @@
-
-import React, { useEffect, useState } from 'react';
-import Navbar from '@/components/layout/Navbar';
-import Sidebar from '@/components/layout/Sidebar';
-import PageHeader from '@/components/shared/PageHeader';
-import { FileText, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useNavigate } from 'react-router-dom';
-import OrderEditForm from '@/components/orders/OrderEditForm';
-import { useToast } from '@/hooks/use-toast';
-import { RootState } from '@/redux/store';
-import { useSelector } from 'react-redux';
+import React, { useEffect, useState } from "react";
+import Navbar from "@/components/layout/Navbar";
+import Sidebar from "@/components/layout/Sidebar";
+import PageHeader from "@/components/shared/PageHeader";
+import { FileText, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import OrderEditForm from "@/components/orders/OrderEditForm";
+import { useToast } from "@/hooks/use-toast";
+import { RootState } from "@/redux/store";
+import { useSelector } from "react-redux";
 import { createOrderAPI } from "@/services2/operations/order"; // Fixed the import case
-import { string } from 'zod';
-import { Input } from '@/components/ui/input';
-import { getUserAPI } from "@/services2/operations/auth"
+import { string } from "zod";
+import { Input } from "@/components/ui/input";
+import { getUserAPI } from "@/services2/operations/auth";
 import { Loader2 } from "lucide-react";
-import AddressForm from '@/components/AddressFields';
-
+import AddressForm from "@/components/AddressFields";
 
 const NewOrder = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -24,10 +22,7 @@ const NewOrder = () => {
   const { toast } = useToast();
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
-
-
-
-  const [storeDetails, setStoreDetails] = useState("")
+  const [storeDetails, setStoreDetails] = useState("");
   const [storeLoading, setStoreLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
@@ -38,7 +33,7 @@ const NewOrder = () => {
 
     postalCode: "",
     country: "",
-  })
+  });
   const [billingAddress, setBillingAddress] = useState({
     name: "",
     email: "",
@@ -48,8 +43,8 @@ const NewOrder = () => {
 
     postalCode: "",
     country: "",
-  })
-  const [sameAsBilling, setSameAsBilling] = useState(false)
+  });
+  const [sameAsBilling, setSameAsBilling] = useState(false);
 
   useEffect(() => {
     if (!storeDetails) return;
@@ -61,7 +56,7 @@ const NewOrder = () => {
         setStoreLoading(true);
 
         const res = await getUserAPI({ id });
-        console.log(res)
+        console.log(res);
         if (res) {
           setBillingAddress({
             name: res.ownerName || "",
@@ -83,12 +78,6 @@ const NewOrder = () => {
     fetchStoreDetails();
   }, [storeDetails]);
 
-
-
-
-
-
-
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
@@ -101,8 +90,6 @@ const NewOrder = () => {
     // In a real app, this would save the order to the database
     console.log(data);
 
-
-
     const calculateSubtotal = () => {
       const items = data?.items || [];
       return items.reduce(
@@ -110,7 +97,7 @@ const NewOrder = () => {
         0
       );
     };
-    
+
     const calculateShipping = () => {
       const items = data?.items || [];
       return items.reduce(
@@ -118,11 +105,10 @@ const NewOrder = () => {
         0
       );
     };
-    
+
     const calculateTotal = () => {
       return calculateSubtotal() + calculateShipping();
     };
-
 
     // const calculateTotal = () => {
     //   const items: Item[] = data?.items || []; // Ensure data.items is an array
@@ -131,35 +117,35 @@ const NewOrder = () => {
     //   }, 0);
     // };
 
-    console.log(calculateTotal());  // Call the function to get the result
-
+    console.log(calculateTotal()); // Call the function to get the result
 
     const order = {
-      id: `ORD-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      id: `${Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0")}`,
       date: new Date().toISOString(),
       clientId: { value: data?.store },
       items: data?.items,
       total: calculateTotal(),
       status: data?.status,
-      shippinCost:calculateShipping(),
+      shippinCost: calculateShipping(),
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     };
 
-   console.log(order)
-   
-    await createOrderAPI(order, token)
+    console.log(order);
 
+    await createOrderAPI(order, token);
 
     toast({
       title: "Order Created",
       description: `Order ${data.orderId} has been created successfully`,
     });
-    navigate('/admin/orders');
+    navigate("/admin/orders");
   };
 
   const handleCancel = () => {
-    navigate('/admin/orders');
+    navigate("/admin/orders");
   };
 
   return (
@@ -187,8 +173,6 @@ const NewOrder = () => {
                 <h2 className="text-xl font-medium">Order Details</h2>
               </div>
 
-
-
               {storeLoading ? (
                 <div className="flex justify-center items-center p-4">
                   <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
@@ -207,18 +191,11 @@ const NewOrder = () => {
                 </>
               )}
 
-
-
-
-
-
               <OrderEditForm
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
                 setStoreDetails={setStoreDetails}
               />
-
-
             </div>
           </div>
         </main>

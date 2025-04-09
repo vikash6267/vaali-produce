@@ -1,6 +1,6 @@
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { Order } from '@/lib/data';
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
+import { Order } from "@/lib/data";
 
 export const exportBillOfLadingToPDF = (
   order: Order,
@@ -46,14 +46,22 @@ export const exportBillOfLadingToPDF = (
   doc.addImage(logoUrl, "PNG", MARGIN - 8, 0, 0, 23);
 
   doc.setFontSize(14);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(0, 0, 0);
-  doc.text('BILL OF LADING', 40, 15);
+  doc.text("BILL OF LADING", MARGIN + CONTENT_WIDTH - 10, 15, {
+    align: "right",
+  });
   yPos += 5;
 
   doc.setFontSize(8);
   doc.setTextColor(100, 100, 100);
-  doc.text(`B/L #: ${data.bolNumber} • Date: ${new Date(order.date).toLocaleDateString()}`, MARGIN, yPos + 6);
+  doc.text(
+    `B/L #: ${data.bolNumber} • Date: ${new Date(
+      order.date
+    ).toLocaleDateString()}`,
+    MARGIN,
+    yPos + 6
+  );
   yPos += 12;
 
   const columnWidth = CONTENT_WIDTH / 2 - 2;
@@ -62,43 +70,51 @@ export const exportBillOfLadingToPDF = (
 
   // Shipper box
   doc.setFillColor(245, 245, 245);
-  doc.rect(MARGIN, yPos, columnWidth, 30, 'F');
+  doc.rect(MARGIN, yPos, columnWidth, 30, "F");
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(70, 70, 70);
-  doc.text('SHIPPER', MARGIN + 4, yPos + 6);
+  doc.text("SHIPPER", MARGIN + 4, yPos + 6);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text(data.shipperName, MARGIN + 4, yPos + 12);
   doc.text(data.shipperAddress, MARGIN + 4, yPos + 18);
-  doc.text(`${data.shipperCity}, ${data.shipperState} ${data.shipperZip}`, MARGIN + 4, yPos + 24);
+  doc.text(
+    `${data.shipperCity}, ${data.shipperState} ${data.shipperZip}`,
+    MARGIN + 4,
+    yPos + 24
+  );
 
   // Consignee box
   doc.setFillColor(245, 245, 245);
-  doc.rect(MARGIN + columnWidth + 4, yPos, columnWidth, 30, 'F');
+  doc.rect(MARGIN + columnWidth + 4, yPos, columnWidth, 30, "F");
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont("helvetica", "bold");
   doc.setTextColor(70, 70, 70);
-  doc.text('CONSIGNEE', MARGIN + columnWidth + 8, yPos + 6);
+  doc.text("CONSIGNEE", MARGIN + columnWidth + 8, yPos + 6);
 
-  doc.setFont('helvetica', 'normal');
+  doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
   doc.text(data.consigneeName, MARGIN + columnWidth + 8, yPos + 12);
   doc.text(data.consigneeAddress, MARGIN + columnWidth + 8, yPos + 18);
-  doc.text(`${data.consigneeCity}, ${data.consigneeState} ${data.consigneeZip}`, MARGIN + columnWidth + 8, yPos + 24);
+  doc.text(
+    `${data.consigneeCity}, ${data.consigneeState} ${data.consigneeZip}`,
+    MARGIN + columnWidth + 8,
+    yPos + 24
+  );
 
   yPos += 36;
   addPageIfNeeded(28);
 
   // Carrier Information
   doc.setFillColor(230, 240, 255);
-  doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, 'F');
+  doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, "F");
 
   doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
+  doc.setFont("helvetica", "bold");
   // doc.text('CARRIER INFORMATION', MARGIN + 4, yPos + 6);
 
   // doc.setFont('helvetica', 'normal');
@@ -111,61 +127,65 @@ export const exportBillOfLadingToPDF = (
 
   // Commodity Table
   const tableHeaders = [
-    { header: 'Quantity', dataKey: 'pieces' },
-    { header: 'Description', dataKey: 'description' },
+    { header: "Quantity", dataKey: "pieces" },
+    { header: "Description", dataKey: "description" },
     // { header: 'Weight', dataKey: 'weight' },
     // { header: 'NMFC', dataKey: 'nmfc' },
     // { header: 'Class', dataKey: 'class' },
     // { header: 'HM', dataKey: 'hazardous' }
   ];
 
-  const tableRows = order.items.map(item => [
+  const tableRows = order.items.map((item) => [
     item.quantity.toString(),
     item.productName,
     `${Math.round(item.quantity * 2)} lbs`,
-    '157250',
-    '50',
-    data.hazardousMaterials ? 'X' : ''
+    "157250",
+    "50",
+    data.hazardousMaterials ? "X" : "",
   ]);
 
   autoTable(doc, {
     startY: yPos,
-    head: [tableHeaders.map(col => col.header)],
+    head: [tableHeaders.map((col) => col.header)],
     body: tableRows,
-    foot: [[
-      `${data.totalQuantity}`, // Total Pieces
-      'Total',
-      '', '', '', ''             // Other columns left empty
-    ]],
+    foot: [
+      [
+        `${data.totalQuantity}`, // Total Pieces
+        "Total",
+        "",
+        "",
+        "",
+        "", // Other columns left empty
+      ],
+    ],
     margin: { left: MARGIN, right: MARGIN },
     headStyles: {
       fillColor: [240, 240, 240],
       textColor: [70, 70, 70],
       fontSize: 8,
-      cellPadding: 2
+      cellPadding: 2,
     },
     bodyStyles: {
       fontSize: 8,
-      cellPadding: 2
+      cellPadding: 2,
     },
     footStyles: {
       fillColor: [245, 245, 245],
       textColor: [0, 0, 0],
-      fontStyle: 'bold',
+      fontStyle: "bold",
       fontSize: 8,
-      halign: 'left',
-      cellPadding: 2
+      halign: "left",
+      cellPadding: 2,
     },
     columnStyles: {
       0: { cellWidth: 25 },
-      1: { cellWidth: 'auto' },
-      2: { cellWidth: 35, halign: 'right' },
-      3: { cellWidth: 35, halign: 'center' },
-      4: { cellWidth: 25, halign: 'center' },
-      5: { cellWidth: 20, halign: 'center' }
-    }
+      1: { cellWidth: "auto" },
+      2: { cellWidth: 35, halign: "right" },
+      3: { cellWidth: 35, halign: "center" },
+      4: { cellWidth: 25, halign: "center" },
+      5: { cellWidth: 20, halign: "center" },
+    },
   });
-  
 
   yPos = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 8 : yPos + 50;
   addPageIfNeeded(30);
@@ -173,12 +193,12 @@ export const exportBillOfLadingToPDF = (
   // Special Instructions
   if (data.specialInstructions) {
     doc.setFontSize(8);
-    doc.setFont('helvetica', 'bold');
-    doc.text('SPECIAL INSTRUCTIONS:', MARGIN, yPos);
+    doc.setFont("helvetica", "bold");
+    doc.text("SPECIAL INSTRUCTIONS:", MARGIN, yPos);
 
-    doc.setFont('helvetica', 'normal');
+    doc.setFont("helvetica", "normal");
     doc.setFillColor(245, 245, 245);
-    doc.rect(MARGIN, yPos + 3, CONTENT_WIDTH, 12, 'F');
+    doc.rect(MARGIN, yPos + 3, CONTENT_WIDTH, 12, "F");
     doc.text(data.specialInstructions, MARGIN + 3, yPos + 10);
     yPos += 20;
   }
@@ -187,22 +207,22 @@ export const exportBillOfLadingToPDF = (
 
   // Signature and Date
   doc.setFontSize(8);
-  doc.setFont('helvetica', 'bold');
-  doc.setFont('helvetica', 'italic');
+  doc.setFont("helvetica", "bold");
+  doc.setFont("helvetica", "italic");
   doc.text(data.signatureShipper, MARGIN + 4, yPos + 10);
-  doc.setFont('helvetica', 'normal');
+  doc.setFont("helvetica", "normal");
   doc.text(`Date: ${new Date().toLocaleDateString()}`, MARGIN + 100, yPos + 10);
 
   // Footer
   const footerY = doc.internal.pageSize.height - 10;
   doc.setFontSize(7);
-  doc.setFont('helvetica', 'italic');
+  doc.setFont("helvetica", "italic");
   doc.setTextColor(150, 150, 150);
   doc.text(
-    'BOL is subject to terms and conditions of the carrier. This is a computer-generated document.',
+    "BOL is subject to terms and conditions of the carrier. This is a computer-generated document.",
     PAGE_WIDTH / 2,
     footerY,
-    { align: 'center' }
+    { align: "center" }
   );
 
   // Page Numbers
@@ -211,7 +231,9 @@ export const exportBillOfLadingToPDF = (
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Page ${i} of ${totalPagesCount}`, PAGE_WIDTH - MARGIN, 10, { align: 'right' });
+    doc.text(`Page ${i} of ${totalPagesCount}`, PAGE_WIDTH - MARGIN, 10, {
+      align: "right",
+    });
   }
 
   doc.save(`bill-of-lading-${order.id}.pdf`);

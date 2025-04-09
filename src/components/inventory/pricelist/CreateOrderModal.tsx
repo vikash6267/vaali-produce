@@ -1,39 +1,47 @@
-
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { PriceListTemplate, PriceListProduct, InvoiceData } from '@/components/inventory/forms/formTypes';
-import { formatCurrency } from '@/utils/formatters';
-import { Check, FileText, Loader2, ShoppingCart } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-import { exportInvoiceToPDF } from '@/utils/pdf';
+  TableRow,
+} from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  PriceListTemplate,
+  PriceListProduct,
+  InvoiceData,
+} from "@/components/inventory/forms/formTypes";
+import { formatCurrency } from "@/utils/formatters";
+import { Check, FileText, Loader2, ShoppingCart } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { exportInvoiceToPDF } from "@/utils/pdf";
 import { getAllStoresAPI } from "@/services2/operations/auth";
 import Select2 from "react-select";
 import { createOrderAPI } from "@/services2/operations/order";
-import { RootState } from '@/redux/store';
-import { useSelector } from 'react-redux';
-import { OrderItem } from '@/types';
-import { getUserAPI } from "@/services2/operations/auth"
-import AddressForm from '@/components/AddressFields';
-
+import { RootState } from "@/redux/store";
+import { useSelector } from "react-redux";
+import { OrderItem } from "@/types";
+import { getUserAPI } from "@/services2/operations/auth";
+import AddressForm from "@/components/AddressFields";
 
 interface CreateOrderModalProps {
   isOpen: boolean;
@@ -44,9 +52,12 @@ interface CreateOrderModalProps {
 const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   isOpen,
   onClose,
-  template
+  template,
 }) => {
-  const [selectedStore, setSelectedStore] = useState<{ label: string; value: string } | null>(null);
+  const [selectedStore, setSelectedStore] = useState<{
+    label: string;
+    value: string;
+  } | null>(null);
 
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,27 +67,27 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [stores, setStores] = useState([]);
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
-  const [storeDetails, setStoreDetails] = useState("")
+  const [storeDetails, setStoreDetails] = useState("");
   const [storeLoading, setStoreLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     email: "",
     address: "",
-    phone:"",
+    phone: "",
     city: "",
     postalCode: "",
     country: "",
-  })
+  });
   const [billingAddress, setBillingAddress] = useState({
     name: "",
     email: "",
-    phone:"",
+    phone: "",
     address: "",
     city: "",
     postalCode: "",
     country: "",
-  })
-  const [sameAsBilling, setSameAsBilling] = useState(false)
+  });
+  const [sameAsBilling, setSameAsBilling] = useState(false);
 
   useEffect(() => {
     if (!selectedStore?.value) return;
@@ -88,7 +99,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         setStoreLoading(true);
 
         const res = await getUserAPI({ id });
-        console.log(res)
+        console.log(res);
         if (res) {
           setBillingAddress({
             name: res.ownerName || "",
@@ -97,7 +108,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             city: res.city || "",
             postalCode: res.zipCode || "",
             country: res.state || "",
-            phone:res.phone || "",
+            phone: res.phone || "",
           });
         }
       } catch (error) {
@@ -109,10 +120,6 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
     fetchStoreDetails();
   }, [selectedStore]);
-
-
-
-
 
   useEffect(() => {
     const fetchStores = async () => {
@@ -134,9 +141,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   const handleQuantityChange = (productId: string, value: string) => {
     const quantity = parseInt(value) || 0;
-    setQuantities(prev => ({
+    setQuantities((prev) => ({
       ...prev,
-      [productId]: quantity
+      [productId]: quantity,
     }));
   };
 
@@ -145,7 +152,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
-      return total + (product.price * quantity);
+      return total + product.price * quantity;
     }, 0);
   };
 
@@ -155,21 +162,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     console.log(template);
     console.log(selectedStore);
 
-    const orderedProducts = template.products.filter(
-      product => (quantities[product.id] || 0) > 0
-    ).map(product => {
-      const quantity = quantities[product.id] || 0;
-      return {
-        product: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: quantity,
-        productId: product.id,
-        productName: product.name,
-        unitPrice: product.price,
-        total: product.price * quantity
-      };
-    });
+    const orderedProducts = template.products
+      .filter((product) => (quantities[product.id] || 0) > 0)
+      .map((product) => {
+        const quantity = quantities[product.id] || 0;
+        return {
+          product: product.id,
+          name: product.name,
+          price: product.price,
+          quantity: quantity,
+          productId: product.id,
+          productName: product.name,
+          unitPrice: product.price,
+          total: product.price * quantity,
+        };
+      });
 
     console.log(orderedProducts);
 
@@ -177,24 +184,27 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       toast({
         title: "No Products Selected",
         description: "Please select at least one product to create an order",
-        variant: "destructive"
+        variant: "destructive",
       });
       setIsSubmitting(false);
       return;
     }
 
-    const selectedStoreName = stores.find(store => store.id === selectedStore)?.name || '';
+    const selectedStoreName =
+      stores.find((store) => store.id === selectedStore)?.name || "";
     const totalAmount = calculateTotal();
 
     const order = {
-      id: `ORD-${Math.floor(Math.random() * 10000).toString().padStart(4, '0')}`,
+      id: `${Math.floor(Math.random() * 10000)
+        .toString()
+        .padStart(4, "0")}`,
       date: new Date().toISOString(),
       clientId: selectedStore,
       clientName: selectedStore?.label,
       items: orderedProducts,
       total: totalAmount,
-      status: 'pending' as const,
-      paymentStatus: 'pending' as const,
+      status: "pending" as const,
+      paymentStatus: "pending" as const,
       subtotal: totalAmount,
       store: selectedStore.value,
       billingAddress,
@@ -214,14 +224,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       const invoiceData: InvoiceData = {
         invoiceNumber: order.id,
         customerName: selectedStore.label,
-        items: orderedProducts.map(item => ({
+        items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
           price: item.unitPrice || item.price,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity
+          total: (item.unitPrice || item.price) * item.quantity,
         })),
         total: order.total,
-        date: order.date
+        date: order.date,
       };
 
       exportInvoiceToPDF({
@@ -229,11 +239,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         clientId: selectedStore.value,
         clientName: invoiceData.customerName,
         date: invoiceData.date,
-        status: 'pending',
+        status: "pending",
         items: orderedProducts,
         total: invoiceData.total,
-        paymentStatus: 'pending',
-        subtotal: order.subtotal
+        paymentStatus: "pending",
+        subtotal: order.subtotal,
       });
     } catch (error) {
       console.error("Error generating invoice PDF:", error);
@@ -264,14 +274,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       const invoiceData: InvoiceData = {
         invoiceNumber: orderDetails.id,
         customerName: orderDetails.clientName,
-        items: orderDetails.items.map(item => ({
+        items: orderDetails.items.map((item) => ({
           productName: item.productName || item.name,
           price: item.unitPrice || item.price,
           quantity: item.quantity,
-          total: (item.unitPrice || item.price) * item.quantity
+          total: (item.unitPrice || item.price) * item.quantity,
         })),
         total: orderDetails.total,
-        date: orderDetails.date
+        date: orderDetails.date,
       };
 
       exportInvoiceToPDF({
@@ -279,23 +289,23 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         clientId: orderDetails.clientId.value,
         clientName: invoiceData.customerName,
         date: invoiceData.date,
-        status: 'pending',
+        status: "pending",
         items: orderDetails.items,
         total: invoiceData.total,
-        paymentStatus: 'pending',
-        subtotal: orderDetails.total
+        paymentStatus: "pending",
+        subtotal: orderDetails.total,
       });
 
       toast({
         title: "Order Confirmation Downloaded",
-        description: "The order confirmation PDF has been generated"
+        description: "The order confirmation PDF has been generated",
       });
     } catch (error) {
       console.error("Error generating confirmation PDF:", error);
       toast({
         title: "Error",
         description: "Failed to generate confirmation PDF",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -307,13 +317,14 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {orderConfirmed ? 'Order Confirmation' : 'Create Order from Price List'}
+            {orderConfirmed
+              ? "Order Confirmation"
+              : "Create Order from Price List"}
           </DialogTitle>
           <DialogDescription>
             {orderConfirmed
-              ? 'Your order has been created successfully. You can download the confirmation PDF.'
-              : `Create a new order based on "${template?.name}" price list.`
-            }
+              ? "Your order has been created successfully. You can download the confirmation PDF."
+              : `Create a new order based on "${template?.name}" price list.`}
           </DialogDescription>
         </DialogHeader>
 
@@ -331,21 +342,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   isSearchable={true}
                 />
 
-   {storeLoading ? (
-                <div className="flex justify-center items-center p-4">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                  <span className="text-sm">Finding user details...</span>
-                </div>
-              ) : (
-                <AddressForm
-                  billingAddress={billingAddress}
-                  setBillingAddress={setBillingAddress}
-                  shippingAddress={shippingAddress}
-                  setShippingAddress={setShippingAddress}
-                  sameAsBilling={sameAsBilling}
-                  setSameAsBilling={setSameAsBilling}
-                />
-              )}
+                {storeLoading ? (
+                  <div className="flex justify-center items-center p-4">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+                    <span className="text-sm">Finding user details...</span>
+                  </div>
+                ) : (
+                  <AddressForm
+                    billingAddress={billingAddress}
+                    setBillingAddress={setBillingAddress}
+                    shippingAddress={shippingAddress}
+                    setShippingAddress={setShippingAddress}
+                    sameAsBilling={sameAsBilling}
+                    setSameAsBilling={setSameAsBilling}
+                  />
+                )}
               </div>
 
               <div className="border rounded-md overflow-hidden">
@@ -355,26 +366,34 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <TableHead className="w-[300px]">Product</TableHead>
                       <TableHead>Category</TableHead>
                       <TableHead className="text-right">Price</TableHead>
-                      <TableHead className="w-[150px] text-center">Quantity</TableHead>
+                      <TableHead className="w-[150px] text-center">
+                        Quantity
+                      </TableHead>
                       <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {template.products.map(product => {
+                    {template.products.map((product) => {
                       const quantity = quantities[product.id] || 0;
                       const total = product.price * quantity;
 
                       return (
                         <TableRow key={product.id}>
-                          <TableCell className="font-medium">{product.name}</TableCell>
+                          <TableCell className="font-medium">
+                            {product.name}
+                          </TableCell>
                           <TableCell>{product.category}</TableCell>
-                          <TableCell className="text-right">{formatCurrency(product.price)}</TableCell>
+                          <TableCell className="text-right">
+                            {formatCurrency(product.price)}
+                          </TableCell>
                           <TableCell>
                             <Input
                               type="number"
                               min="0"
-                              value={quantity || ''}
-                              onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                              value={quantity || ""}
+                              onChange={(e) =>
+                                handleQuantityChange(product.id, e.target.value)
+                              }
                               className="w-20 mx-auto"
                             />
                           </TableCell>
@@ -390,8 +409,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
               <div className="flex justify-end">
                 <div className="bg-muted p-4 rounded-md">
-                  <div className="text-sm text-muted-foreground mb-1">Order Total</div>
-                  <div className="text-2xl font-bold">{formatCurrency(calculateTotal())}</div>
+                  <div className="text-sm text-muted-foreground mb-1">
+                    Order Total
+                  </div>
+                  <div className="text-2xl font-bold">
+                    {formatCurrency(calculateTotal())}
+                  </div>
                 </div>
               </div>
             </div>
@@ -402,7 +425,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
               </Button>
               <Button
                 onClick={handleCreateOrder}
-                disabled={!selectedStore || isSubmitting || calculateTotal() === 0}
+                disabled={
+                  !selectedStore || isSubmitting || calculateTotal() === 0
+                }
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Create Order
@@ -416,9 +441,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <Check className="h-5 w-5 text-green-600" />
               </div>
               <div>
-                <h3 className="font-medium text-green-800">Order Created Successfully</h3>
+                <h3 className="font-medium text-green-800">
+                  Order Created Successfully
+                </h3>
                 <p className="text-green-700 text-sm mt-1">
-                  Order #{orderDetails?.id} has been created for {orderDetails?.clientName}
+                  Order #{orderDetails?.id} has been created for{" "}
+                  {orderDetails?.clientName}
                 </p>
               </div>
             </div>
@@ -436,10 +464,21 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                 <TableBody>
                   {orderDetails?.items.map((product, index) => (
                     <TableRow key={index}>
-                      <TableCell className="font-medium">{product.productName || product.name}</TableCell>
-                      <TableCell className="text-right">{formatCurrency(product.unitPrice || product.price)}</TableCell>
-                      <TableCell className="text-center">{product.quantity}</TableCell>
-                      <TableCell className="text-right">{formatCurrency((product.unitPrice || product.price) * product.quantity)}</TableCell>
+                      <TableCell className="font-medium">
+                        {product.productName || product.name}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(product.unitPrice || product.price)}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {product.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatCurrency(
+                          (product.unitPrice || product.price) *
+                            product.quantity
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
