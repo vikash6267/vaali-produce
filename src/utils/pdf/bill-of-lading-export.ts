@@ -2,6 +2,8 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Order } from "@/lib/data";
 
+
+
 export const exportBillOfLadingToPDF = (
   order: Order,
   data: {
@@ -31,7 +33,7 @@ export const exportBillOfLadingToPDF = (
 
   const PAGE_WIDTH = doc.internal.pageSize.width;
   const PAGE_HEIGHT = doc.internal.pageSize.height;
-  const MARGIN = 12;
+  const MARGIN = 8;
   const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
   let yPos = 15;
 
@@ -53,7 +55,7 @@ export const exportBillOfLadingToPDF = (
   });
   yPos += 1;
   
-  doc.setFontSize(8);
+  doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   doc.text(
     `B/L #: ${data.bolNumber} • Date: ${new Date(order.date).toLocaleDateString()}`,
@@ -72,13 +74,13 @@ export const exportBillOfLadingToPDF = (
   doc.setFillColor(245, 245, 245);
   doc.rect(MARGIN, yPos, columnWidth, 30, "F");
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(70, 70, 70);
+  doc.setTextColor(0, 0, 0);
   doc.text("SHIPPER", MARGIN + 4, yPos + 6);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
   doc.text(data.shipperName, MARGIN + 4, yPos + 12);
   doc.text(data.shipperAddress, MARGIN + 4, yPos + 18);
   doc.text(
@@ -91,13 +93,13 @@ export const exportBillOfLadingToPDF = (
   doc.setFillColor(245, 245, 245);
   doc.rect(MARGIN + columnWidth + 4, yPos, columnWidth, 30, "F");
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(70, 70, 70);
   doc.text("CONSIGNEE", MARGIN + columnWidth + 8, yPos + 6);
 
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(8);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
   doc.text(data.consigneeName, MARGIN + columnWidth + 8, yPos + 12);
   doc.text(data.consigneeAddress, MARGIN + columnWidth + 8, yPos + 18);
   doc.text(
@@ -113,7 +115,7 @@ export const exportBillOfLadingToPDF = (
   doc.setFillColor(230, 240, 255);
   doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, "F");
 
-  doc.setFontSize(9);
+  doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
   // doc.text('CARRIER INFORMATION', MARGIN + 4, yPos + 6);
 
@@ -150,30 +152,34 @@ export const exportBillOfLadingToPDF = (
     body: tableRows,
     foot: [
       [
-        `${data.totalQuantity}`, // Total Pieces
+        `${data.totalQuantity}`,
         "Total",
         "",
         "",
         "",
-        "", // Other columns left empty
+        "",
       ],
     ],
     margin: { left: MARGIN, right: MARGIN },
     headStyles: {
       fillColor: [240, 240, 240],
-      textColor: [70, 70, 70],
-      fontSize: 8,
+      textColor: [0, 0, 0],
+      fontSize: 9,
+      fontStyle: "bold",
       cellPadding: 2,
     },
     bodyStyles: {
-      fontSize: 8,
+      fontSize: 9,
+      fontStyle: "bold",
+      textColor: [0, 0, 0],
+      fillColor: false,  // removes the gray background
       cellPadding: 2,
     },
     footStyles: {
       fillColor: [245, 245, 245],
       textColor: [0, 0, 0],
       fontStyle: "bold",
-      fontSize: 8,
+      fontSize: 9,
       halign: "left",
       cellPadding: 2,
     },
@@ -186,17 +192,18 @@ export const exportBillOfLadingToPDF = (
       5: { cellWidth: 20, halign: "center" },
     },
   });
+  
 
   yPos = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 8 : yPos + 50;
   addPageIfNeeded(30);
 
   // Special Instructions
   if (data.specialInstructions) {
-    doc.setFontSize(8);
+    doc.setFontSize(9);
     doc.setFont("helvetica", "bold");
     doc.text("SPECIAL INSTRUCTIONS:", MARGIN, yPos);
 
-    doc.setFont("helvetica", "normal");
+    doc.setFont("helvetica", "bold");
     doc.setFillColor(245, 245, 245);
     doc.rect(MARGIN, yPos + 3, CONTENT_WIDTH, 12, "F");
     doc.text(data.specialInstructions, MARGIN + 3, yPos + 10);
@@ -206,16 +213,16 @@ export const exportBillOfLadingToPDF = (
   addPageIfNeeded(30);
 
   // Signature and Date
-  doc.setFontSize(8);
+  doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setFont("helvetica", "italic");
   doc.text(data.signatureShipper, MARGIN + 4, yPos + 10);
-  doc.setFont("helvetica", "normal");
+  doc.setFont("helvetica", "bold");
   doc.text(`Date: ${new Date().toLocaleDateString()}`, MARGIN + 100, yPos + 10);
 
   // Footer
   const footerY = doc.internal.pageSize.height - 10;
-  doc.setFontSize(7);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "italic");
   doc.setTextColor(150, 150, 150);
   doc.text(
@@ -229,7 +236,7 @@ export const exportBillOfLadingToPDF = (
   const totalPagesCount = doc.getNumberOfPages();
   for (let i = 1; i <= totalPagesCount; i++) {
     doc.setPage(i);
-    doc.setFontSize(7);
+    doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
     doc.text(`Page ${i} of ${totalPagesCount}`, PAGE_WIDTH - MARGIN, 10, {
       align: "right",

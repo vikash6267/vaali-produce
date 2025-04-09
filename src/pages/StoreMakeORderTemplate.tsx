@@ -45,6 +45,7 @@ import { OrderItem } from "@/types";
 import { useNavigate } from "react-router-dom";
 import StoreRegistration from "./StoreRegistration";
 import AddressForm from "@/components/AddressFields";
+import { getAllProductAPI } from "@/services2/operations/product"
 
 const CreateOrderModalStore = ({ }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
@@ -77,13 +78,14 @@ const CreateOrderModalStore = ({ }) => {
   const navigate = useNavigate();
 
 
+  const [products, setProducts] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [storeLoading, setStoreLoading] = useState(false);
   const [shippingAddress, setShippingAddress] = useState({
     name: "",
     email: "",
-    phone:"",
+    phone: "",
     address: "",
     city: "",
     postalCode: "",
@@ -93,7 +95,7 @@ const CreateOrderModalStore = ({ }) => {
     name: "",
     email: "",
     address: "",
-    phone:"",
+    phone: "",
 
     city: "",
     postalCode: "",
@@ -132,10 +134,29 @@ const CreateOrderModalStore = ({ }) => {
   //   fetchStoreDetails();
   // }, [selectedStore]);
 
+  const fetchProducts = async () => {
+    try {
+      const response = await getAllProductAPI();
+      console.log(response);
+      if (response) {
+        const updatedProducts = response.map((product) => ({
+          ...product,
+          id: product._id,
+          lastUpdated: product?.updatedAt
+        }));
+        setProducts(updatedProducts);
 
 
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error);
+    }
+  };
 
 
+  useEffect(() => {
+    fetchProducts()
+  }, [])
   console.log("Store ID:", storeId);
   console.log("Template ID:", templateId);
 
@@ -182,7 +203,7 @@ const CreateOrderModalStore = ({ }) => {
   const handleFindUser = async () => {
     setStoreLoading(true);
 
-    const response = await getUserAPI({email, setIsGroupOpen});
+    const response = await getUserAPI({ email, setIsGroupOpen });
     console.log(response);
 
     setBillingAddress({
@@ -206,6 +227,7 @@ const CreateOrderModalStore = ({ }) => {
 
   };
 
+  console.log(template?.products)
   const handleQuantityChange = (productId: string, value: string) => {
     const quantity = parseInt(value) || 0;
     setQuantities((prev) => ({
@@ -214,7 +236,7 @@ const CreateOrderModalStore = ({ }) => {
     }));
   };
 
-  const calculateTotal = () => {
+  const calculateSubtotal = () => {
     if (!template) return 0;
 
     return template.products.reduce((total, product) => {
@@ -223,22 +245,48 @@ const CreateOrderModalStore = ({ }) => {
     }, 0);
   };
 
+  const calculateShipping = () => {
+    if (!template) return 0;
+
+    let maxShipping = 0;
+
+    template.products.forEach((product) => {
+      const quantity = quantities[product.id] || 0;
+      if (quantity <= 0) return;
+
+      const matchedProduct = products.find((p) => p.id === product.id);
+      const shippingCost = matchedProduct?.shippinCost || 0;
+
+      if (shippingCost > maxShipping) {
+        maxShipping = shippingCost;
+      }
+    });
+
+    return maxShipping;
+  };
+
+
+
+  const calculateTotal = () => {
+    return calculateSubtotal() + calculateShipping();
+  };
+
   const handleCreateOrder = async () => {
     if (!template || !selectedStore) return;
     const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"];
     const checkEmptyFields = (address: any) =>
       requiredFields.some((field) => !address?.[field]);
-  
+
     const billingInvalid = checkEmptyFields(billingAddress);
     const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress);
-  
+
     if (billingInvalid || shippingInvalid) {
       toast({
         title: "Incomplete Address",
         description: "Please fill all required address fields.",
         variant: "destructive",
       });
-     
+
       return;
     }
 
@@ -289,6 +337,7 @@ const CreateOrderModalStore = ({ }) => {
       status: "pending" as const,
       paymentStatus: "pending" as const,
       subtotal: totalAmount,
+      shippinCost: calculateShipping(),
       store: selectedStore.value,
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
@@ -315,6 +364,7 @@ const CreateOrderModalStore = ({ }) => {
         })),
         total: order.total,
         date: order.date,
+        shippinCost: calculateShipping()
       };
 
       exportInvoiceToPDF({
@@ -327,6 +377,7 @@ const CreateOrderModalStore = ({ }) => {
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: order.subtotal,
+        shippinCost: calculateShipping()
       });
     } catch (error) {
       console.error("Error generating invoice PDF:", error);
@@ -392,10 +443,12 @@ const CreateOrderModalStore = ({ }) => {
         total: invoiceData.total,
         paymentStatus: "pending",
         subtotal: orderDetails.total,
+        shippinCost: calculateShipping()
+
       });
 
       toast({
-        title: "Order Confirmation Downloaded",
+        title: "Order Invoice Downloaded",
         description: "The order confirmation PDF has been generated",
       });
     } catch (error) {
@@ -417,7 +470,7 @@ const CreateOrderModalStore = ({ }) => {
           <DialogHeader>
             <DialogTitle>
               {orderConfirmed
-                ? "Order Confirmation"
+                ? "Order Invoice"
                 : "Create Order from Price List"}
             </DialogTitle>
             <DialogDescription>
@@ -475,7 +528,7 @@ const CreateOrderModalStore = ({ }) => {
                     setSameAsBilling={setSameAsBilling}
                   />
                 )}
-               
+
 
                 <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-4 mb-4">
@@ -553,16 +606,28 @@ const CreateOrderModalStore = ({ }) => {
                   </Table>
                 </div>
 
-                <div className="flex justify-end">
-                  <div className="bg-muted p-4 rounded-md">
-                    <div className="text-sm text-muted-foreground mb-1">
-                      Order Total
+                {/* Summary Row */}
+                <div className="flex justify-end px-6 py-4 bg-muted border-t">
+                  <div className="w-full max-w-xl">
+                    <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
+                      <div className="w-1/3 text-center">Subtotal</div>
+                      <div className="w-1/3 text-center">Shipping Cost</div>
+                      <div className="w-1/3 text-center">Total</div>
                     </div>
-                    <div className="text-2xl font-bold">
-                      {formatCurrency(calculateTotal())}
+                    <div className="flex justify-between font-bold text-lg">
+                      <div className="w-1/3 text-center">
+                        {formatCurrency(calculateSubtotal())}
+                      </div>
+                      <div className="w-1/3 text-center">
+                        {formatCurrency(calculateShipping())}
+                      </div>
+                      <div className="w-1/3 text-center text-green-600">
+                        {formatCurrency(calculateTotal())}
+                      </div>
                     </div>
                   </div>
                 </div>
+
               </div>
 
               <DialogFooter>
@@ -616,20 +681,42 @@ const CreateOrderModalStore = ({ }) => {
                         <TableCell className="text-right">
                           {formatCurrency(product.unitPrice || product.pricePerBox)}
                         </TableCell>
-                        <TableCell className="text-center">
-                          {product.quantity}
-                        </TableCell>
+                        <TableCell className="text-center">{product.quantity}</TableCell>
                         <TableCell className="text-right">
                           {formatCurrency(
-                            (product.unitPrice || product.pricePerBox) *
-                            product.quantity
+                            (product.unitPrice || product.pricePerBox) * product.quantity
                           )}
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
+
+                {/* Summary Row */}
+                <div className="flex justify-end px-6 py-4 bg-muted border-t">
+                  <div className="w-full max-w-xl">
+                    <div className="flex justify-between font-medium text-muted-foreground text-sm mb-1">
+                      <div className="w-1/3 text-center">Subtotal</div>
+                      <div className="w-1/3 text-center">Shipping Cost</div>
+                      <div className="w-1/3 text-center">Total</div>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg">
+                      <div className="w-1/3 text-center">
+                        {formatCurrency(calculateSubtotal())}
+                      </div>
+                      <div className="w-1/3 text-center">
+                        {formatCurrency(calculateShipping())}
+                      </div>
+                      <div className="w-1/3 text-center text-green-600">
+                        {formatCurrency(calculateTotal())}
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+
+
 
               <div className="flex justify-between items-center mt-6">
                 <Button variant="outline" onClick={handleClose}>
@@ -637,7 +724,7 @@ const CreateOrderModalStore = ({ }) => {
                 </Button>
                 <Button onClick={downloadConfirmation} variant="default">
                   <FileText className="mr-2 h-4 w-4" />
-                  Download Confirmation PDF
+                  Download Invoice PDF
                 </Button>
               </div>
             </>

@@ -124,7 +124,7 @@ const AddressForm = ({
             id="billing-country"
             required
 
-            placeholder="Country"
+            placeholder="State"
             value={billingAddress.country}
             onChange={(e) =>
               setBillingAddress({ ...billingAddress, country: e.target.value })
@@ -257,7 +257,7 @@ const AddressForm = ({
               </label>
               <Input
                 id="shipping-country"
-                placeholder="Country"
+                placeholder="State"
                 value={shippingAddress.country}
                 onChange={(e) =>
                   setShippingAddress({

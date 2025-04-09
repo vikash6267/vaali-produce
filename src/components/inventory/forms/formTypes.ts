@@ -42,6 +42,7 @@ export interface PriceListProduct {
   productName: string;
   name?: string;
   quantity?: number;
+  shippinCost?: number;
   category: string;
   unit: string;
   price: number;
@@ -116,7 +117,9 @@ export interface InvoiceData {
     total: number;
   }>;
   total: number;
+  shippinCost?: number;
   date: string;
+  
 }
 
 // Interface for PriceListTemplateForm props
