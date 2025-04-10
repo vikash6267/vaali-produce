@@ -109,11 +109,11 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
   const form = useForm<BolFormValues>({
     resolver: zodResolver(bolSchema),
     defaultValues: {
-      shipperName: "Fresh Produce Logistics",
-      shipperAddress: "123 Harvest Lane",
-      shipperCity: "Farmington",
-      shipperState: "CA",
-      shipperZip: "94123",
+      shipperName: "Vali Produce",
+      shipperAddress: "4300 Pleasantdale Rd",
+      shipperCity: "Atlanta",
+      shipperState: "GA",
+      shipperZip: "30340 , USA",
 
       consigneeName: order.shippingAddress.name,
       consigneeAddress: order.shippingAddress.address,

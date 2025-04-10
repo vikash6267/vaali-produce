@@ -306,10 +306,10 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
                       </h3>
                     </div>
                   )}
-                  <p className="text-sm text-gray-600">123 Harvest Lane</p>
-                  <p className="text-sm text-gray-600">Farmington, CA 94123</p>
+                  <p className="text-sm text-gray-600">4300 Pleasantdale Rd,</p>
+                  <p className="text-sm text-gray-600">Atlanta, GA 30340, USA,</p>
                   <p className="text-sm text-gray-600">
-                    contact@freshproduce.co
+                    order@valiproduce.shop
                   </p>
                 </div>
               )}
