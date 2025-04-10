@@ -15,6 +15,7 @@ import {
   ChevronLeft,
   Store,
   Settings,
+  User2Icon,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
@@ -50,6 +51,11 @@ const adminNavigation = [
     name: "CRM",
     path: "/admin/crm",
     icon: <Briefcase size={18} />,
+  },
+  {
+    name: "Vendors",
+    path: "/vendors",
+    icon: <User2Icon size={18} />,
   },
 ];
 

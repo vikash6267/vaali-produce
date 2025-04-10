@@ -25,17 +25,16 @@ interface Member {
 }
 
 const Member = () => {
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMemberOpen, setIsMemberOpen] = useState(false);
   const navigate = useNavigate();
 
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-
+  
   useEffect(() => {
     fetchMembers();
   }, []);
-
+  
   const fetchMembers = async () => {
     setLoading(true);
     try {
@@ -57,10 +56,12 @@ const Member = () => {
       setLoading(false);
     }
   };
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+  
   const handleNewOrder = () => {
     navigate("/orders/new");
   };

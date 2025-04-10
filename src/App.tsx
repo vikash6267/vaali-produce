@@ -38,6 +38,12 @@ import StoreRegistration from "./pages/StoreRegistration";
 import GroupPricing from "./pages/GroupPricing";
 import SettingsPage from "./components/settings/Settings";
 import { fetchMyProfile } from "@/services2/operations/auth";
+import Vendors from "./pages/Vendors";
+import NewVendor from "./pages/NewVendor";
+import NewPurchase from "./pages/NewPurchase";
+import VendorQualityControl from "./pages/VendorQualityControl";
+import VendorInvoiceUpload from "./pages/VendorInvoiceUpload";
+import VendorPayment from "./pages/VendorPayment";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -334,6 +340,69 @@ export default function App() {
             </PrivateRoute>
           }
         />
+
+
+
+
+
+
+
+
+        {/* Vendors */}
+        <Route
+  path="/vendors"
+  element={
+    <PrivateRoute>
+      <Vendors />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/vendors/new-vendor"
+  element={
+    <PrivateRoute>
+      <NewVendor />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/vendors/new-purchase"
+  element={
+    <PrivateRoute>
+      <NewPurchase />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/vendors/quality-control/:id"
+  element={
+    <PrivateRoute>
+      <VendorQualityControl />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/vendors/invoice/:id"
+  element={
+    <PrivateRoute>
+      <VendorInvoiceUpload />
+    </PrivateRoute>
+  }
+/>
+
+<Route
+  path="/vendors/payment/:id"
+  element={
+    <PrivateRoute>
+      <VendorPayment />
+    </PrivateRoute>
+  }
+/>
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
