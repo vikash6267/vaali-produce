@@ -138,5 +138,46 @@ const updateOrderCtrl = async (req, res) => {
     }
 };
 
+// POST /api/orders/:orderId/pallet
+const updatePalletInfo = async (req, res) => {
+    const { orderId } = req.params;
+    const { palletData } = req.body;
+  console.log(req.body)
+    try {
+      const updatedOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        { palletData },
+        { new: true }
+      );
+  
+      if (!updatedOrder) {
+        return res.status(404).json({
+          success: false,
+          message: 'Order not found',
+          data: null
+        });
+      }
 
-module.exports = { createOrderCtrl, getAllOrderCtrl, getOrderForStoreCtrl, updateOrderCtrl };
+      res.status(200).json({
+        success: true,
+        message: 'Pallet info saved successfully',
+        data: updatedOrder
+      });
+    } catch (err) {
+      console.error('Failed to save pallet info:', err);
+      res.status(500).json({
+        success: false,
+        message: 'Something went wrong while saving pallet info',
+        error: err.message
+      });
+    }
+  };
+
+  
+module.exports = { 
+    createOrderCtrl, 
+    getAllOrderCtrl, 
+    getOrderForStoreCtrl, 
+    updateOrderCtrl,
+    updatePalletInfo
+     };

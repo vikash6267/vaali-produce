@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { Order } from '@/types';
+import { PalletData } from '@/components/orders/PalletTrackingForm';
 
 export interface WorkOrderOptions {
   workOrderNumber: string;
@@ -13,6 +14,7 @@ export interface WorkOrderOptions {
   specialInstructions?: string;
   includeCompanyLogo?: boolean;
   itemInstructions?: Record<string, string>;
+  palletData?: PalletData | null;
 }
 
 export const exportWorkOrderToPDF = (
@@ -171,54 +173,107 @@ export const exportWorkOrderToPDF = (
     yPos += 24 + (options.equipmentNeeded.length > 2 ? 6 : 0);
   }
   
+    // Pallet information section
+    if (options.palletData) {
+      doc.setFillColor(245, 250, 245); // Light green background
+      doc.rect(MARGIN, yPos, CONTENT_WIDTH, 36, 'F');
+      
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text('Pallet Information:', MARGIN + 4, yPos + 6);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      
+      doc.text(`Total Pallets:     `, MARGIN + 4, yPos + 14);
+      doc.text(`Total Boxes:    `, MARGIN + 70, yPos + 14);
+      doc.text(`Charge Per Pallet:   `, MARGIN + 140, yPos + 14);
+      doc.text(`Total Pallet Charge:    `, MARGIN + 140, yPos + 22);
+      
+      // Box distribution details
+      const boxDistribution = Object.entries(options.palletData.boxesPerPallet)
+        .map(([productId, count]) => {
+          const product = order.items.find(item => item.productId === productId);
+          return `${product?.productName || productId}: ${count} boxes`;
+        })
+        .join(', ');
+      
+      doc.text(`Box Distribution:   `, MARGIN + 4, yPos + 22, {
+        maxWidth: 130
+      });
+      
+      yPos += 34;
+    }
+  
+    
+
   // Items table
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(10);
   doc.text('Order Items to Process:', MARGIN, yPos);
   
-  yPos += 6;
+  yPos += 2;
   
   // Modified table headers - includes instructions column
-  const tableHeaders = [
-    { header: 'Product Name', dataKey: 'description' },
-    { header: 'Qty', dataKey: 'quantity' },
-    { header: 'Instructions', dataKey: 'instructions' }
-  ];
-  
-  const tableRows = order.items.map(item => [
-    item.productName,
-    item.quantity.toString(),
-    options.itemInstructions?.[item.productId] || ''
-  ]);
-  
-  autoTable(doc, {
-    startY: yPos,
-    head: [tableHeaders.map(col => col.header)],
-    body: tableRows,
-    margin: { left: MARGIN, right: MARGIN },
-    headStyles: {
-      fillColor: [41, 98, 255],
-      textColor: [255, 255, 255],
-      fontStyle: 'bold',
-      lineWidth: 0.1,
-      fontSize: 8
-    },
-    bodyStyles: {
-      lineWidth: 0.1,
-      textColor: [0, 0, 0],
+  // const tableHeaders = [
+  //   { header: 'Product Name', dataKey: 'description' },
+  //   { header: 'Qty', dataKey: 'quantity' },
+  //   { header: 'Instructions', dataKey: 'instructions' }
+  // ];
 
-      fontSize: 8,
-      fontStyle: 'bold' // Make body text bold
-    },
-    columnStyles: {
-      0: { cellWidth: CONTENT_WIDTH * 0.4 }, // Product Name
-      1: { cellWidth: CONTENT_WIDTH * 0.15, halign: 'center' }, // Qty centered
-      2: { cellWidth: CONTENT_WIDTH * 0.45 } // Instructions
-    },
-    alternateRowStyles: {
-      fillColor: [250, 250, 250]
+  const tableHeaders = options.palletData 
+  ? ['Product Name',  'Qty', 'Boxes', 'Instructions']
+  : ['Item ID',  'Qty', 'Instructions'];
+  
+  const tableRows = order.items.map(item => {
+    const row = [
+      item.productName,
+      item.quantity.toString()
+    ];
+    
+    if (options.palletData) {
+      row.push(options.palletData.boxesPerPallet[item.productId]?.toString() || '0');
     }
+    
+    row.push(options.itemInstructions?.[item.productId] || '');
+    
+    return row;
   });
+  
+  
+  const pageWidth = doc.internal.pageSize.getWidth();
+const contentWidth = pageWidth - MARGIN * 2;
+const colCount = tableHeaders.length;
+const colWidth = contentWidth / colCount;
+
+const columnStyles = {};
+for (let i = 0; i < colCount; i++) {
+  columnStyles[i] = { cellWidth: colWidth };
+}
+
+autoTable(doc, {
+  startY: yPos,
+  head: [tableHeaders],
+  body: tableRows,
+  margin: { left: MARGIN, right: MARGIN },
+  headStyles: {
+    fillColor: [41, 98, 255],
+    textColor: [255, 255, 255],
+    fontStyle: 'bold',
+    lineWidth: 0.1,
+    fontSize: 8
+  },
+  bodyStyles: {
+    lineWidth: 0.1,
+    textColor: [0, 0, 0],
+    fontSize: 8,
+    fontStyle: 'bold'
+  },
+  columnStyles: columnStyles, // ← dynamically calculated
+  alternateRowStyles: {
+    fillColor: [250, 250, 250]
+  }
+});
   
   
   

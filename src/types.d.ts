@@ -40,6 +40,15 @@ export interface Store {
   phone: number;
   
 }
+ interface PalletData {
+  worker: string;
+  palletCount: number;
+  boxesPerPallet: Record<string, number>;
+  totalBoxes: number;
+  chargePerPallet: number;
+  totalPalletCharge: number;
+  selectedItems: string[];
+}
 
 export interface Order {
   id: string;
@@ -65,6 +74,7 @@ export interface Order {
   trackingNumber?: string;
   clientName?: string;
   clientId?: string;
+  palletData?:PalletData
 }
 
 // Updated OrderItem with all possible properties used across the app

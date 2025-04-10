@@ -10,6 +10,24 @@ const addressSchema = {
   country: { type: String, },
 };
 
+const palletDataSchema = new mongoose.Schema({
+  worker: String,
+  palletCount: Number,
+  boxesPerPallet: {
+    type: Map,
+    of: Number, // key: item ID, value: number of boxes
+  },
+  totalBoxes: Number,
+  chargePerPallet: Number,
+  totalPalletCharge: Number,
+  selectedItems: [String], // or [mongoose.Schema.Types.ObjectId] if referencing items
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+}, { _id: false });
+
+
 const orderSchema = new mongoose.Schema(
   {
     items: {
@@ -42,6 +60,8 @@ const orderSchema = new mongoose.Schema(
       type: addressSchema,
       required: true,
     },
+    palletData: palletDataSchema,
+
   },
   { timestamps: true }
 );

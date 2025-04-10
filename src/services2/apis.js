@@ -62,6 +62,7 @@ export const order = {
   GET_ORDER: BASE_URL + "/order/get",
   DELETE_ORDER: BASE_URL + "/order/delete",
   UPDATE_ORDER: BASE_URL + "/order/update",
+  UPDATE_PLATE_ORDER: BASE_URL + "/order/update-plate",
   GET_STORE_ORDERS: BASE_URL + "/order/store-orders",
 
 }

@@ -1,6 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Order } from "@/lib/data";
+import { PalletData } from '@/components/orders/PalletTrackingForm';
 
 
 
@@ -25,8 +26,12 @@ export const exportBillOfLadingToPDF = (
     specialInstructions?: string;
     hazardousMaterials: boolean;
     signatureShipper: string;
-    totalQuantity: string;
+    totalQuantity?: string;
     serviceLevel: "Standard" | "Expedited" | "Same Day";
+    palletData?: PalletData; // Added pallet data
+    palletCharges?: {
+      chargePerPallet: number;
+      totalCharge: number;}
   }
 ) => {
   const doc = new jsPDF();
@@ -127,6 +132,31 @@ export const exportBillOfLadingToPDF = (
 
   // yPos += 28;
 
+
+    // Add pallet information if available
+    if (data.palletData) {
+      doc.setFillColor(230, 255, 240);
+      doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, 'F');
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.text('PALLET INFORMATION', MARGIN + 4, yPos + 6);
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      
+      // Display pallet info 
+      doc.text(`Pallets: ${data.palletData.palletCount}`, MARGIN + 4, yPos + 14);
+      doc.text(`Total Boxes: ${data.palletData.totalBoxes}`, MARGIN + CONTENT_WIDTH/3, yPos + 14);
+      
+      if (data.palletCharges) {
+        doc.text(`Charge Per Pallet: $${data.palletCharges.chargePerPallet.toFixed(2)}`, MARGIN + (CONTENT_WIDTH/3)*1.5, yPos + 14);
+        doc.text(`Total Charges: $${data.palletCharges.totalCharge.toFixed(2)}`, MARGIN + (CONTENT_WIDTH/3)*2.3, yPos + 14);
+      }
+      
+      yPos += 28;
+    }
+    
   // Commodity Table
   const tableHeaders = [
     { header: "Quantity", dataKey: "pieces" },
@@ -137,14 +167,19 @@ export const exportBillOfLadingToPDF = (
     // { header: 'HM', dataKey: 'hazardous' }
   ];
 
-  const tableRows = order.items.map((item) => [
-    item.quantity.toString(),
-    item.productName,
-    `${Math.round(item.quantity * 2)} lbs`,
-    "157250",
-    "50",
-    data.hazardousMaterials ? "X" : "",
-  ]);
+  const tableRows = order.items.map(item => {
+    // Get box count from pallet data if available
+    const boxCount = data.palletData?.boxesPerPallet[item.productId] || item.quantity.toString();
+    
+    return [
+      boxCount.toString(),
+      item.productName,
+      `${Math.round(item.quantity * 2)} lbs`,
+      '157250',
+      '50',
+      data.hazardousMaterials ? 'X' : ''
+    ];
+  });
 
   autoTable(doc, {
     startY: yPos,

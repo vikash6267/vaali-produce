@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Order, formatDate } from '@/lib/data';
 import { Button } from '@/components/ui/button';
@@ -49,7 +48,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import BillOfLadingForm from './BillOfLadingForm';
-import { generateTransportationReceiptPDF } from '@/utils/exportDocuments';
 
 interface TransportationReceiptProps {
   order: Order;
@@ -96,7 +94,7 @@ const TransportationReceipt: React.FC<TransportationReceiptProps> = ({
       estimatedArrival: "",
       notes: "",
       signature: "",
-      transportCompany: "Vali Produce",
+      transportCompany: "Fresh Produce Logistics",
       deliveryLocation: "",
       routeNumber: `R-${Math.floor(1000 + Math.random() * 9000)}`,
       packagingType: "Standard",
@@ -124,23 +122,6 @@ const TransportationReceipt: React.FC<TransportationReceiptProps> = ({
   };
 
   const handleDownload = () => {
-
-    console.log(order)
-    
-    const data = {
-      driverName: form.getValues("driverName"), // Extracting driver name from the form
-      vehicleId: form.getValues("vehicleId"), // Extracting vehicle ID
-      departureDate: form.getValues("departureDate"), // Extracting departure date
-      estimatedArrival: form.getValues("estimatedArrival"), // Extracting estimated arrival date
-      notes: form.getValues("notes"), // Extracting optional notes
-      signature: form.getValues("signature"), // Extracting signature
-      transportCompany: form.getValues("transportCompany"), // Extracting transport company name
-      deliveryLocation: form.getValues("deliveryLocation"), // Extracting delivery location
-      routeNumber: form.getValues("routeNumber"), // Extracting route number
-      packagingType: form.getValues("packagingType"), // Extracting packaging type
-      temperatureRequirements: form.getValues("temperatureRequirements"), // Extracting temperature requirements
-    };
-    generateTransportationReceiptPDF(order,data)
     toast({
       title: "Download initiated",
       description: "The receipt is being downloaded as a PDF."
@@ -177,11 +158,6 @@ const TransportationReceipt: React.FC<TransportationReceiptProps> = ({
     setShowBolDialog(false);
   };
   
-  const transportationReciept = ()=>{
-console.log(form.getValues())
-
-
-  }
   return (
     <>
       <Dialog open={open} onOpenChange={onClose}>
@@ -479,7 +455,7 @@ console.log(form.getValues())
                           <ClipboardList className="mr-2 h-4 w-4" />
                           Switch to BOL
                         </Button>
-                        <Button type="submit" onClick={transportationReciept}>
+                        <Button type="submit">
                           <ArrowDown className="mr-2 h-4 w-4" />
                           Generate Receipt
                         </Button>
@@ -673,8 +649,9 @@ console.log(form.getValues())
       {showBolDialog && (
         <BillOfLadingForm 
           order={order}
-          open={showBolDialog}
           onClose={handleBolClose}
+          open={showBolDialog}
+          // Removed the open prop since it's not required
         />
       )}
     </>

@@ -6,6 +6,7 @@ import {
   exportBillOfLadingToPDF ,
   exportWorkOrderToPDF
 } from './pdf';
+import { PalletData } from '@/components/orders/PalletTrackingForm';
 
 export interface InvoiceOptions {
   includeHeader: boolean;
@@ -52,6 +53,11 @@ export interface BillOfLadingData {
   hazardousMaterials: boolean;
   signatureShipper: string;
   serviceLevel: "Standard" | "Expedited" | "Same Day";
+  palletData?: PalletData;
+  palletCharges?: {
+    chargePerPallet: number;
+    totalCharge: number;
+  };
 }
 
 export interface WorkOrderData {

@@ -7,7 +7,8 @@ const { CREATE_PRODUCT,
     CREATE_ORDER,
     GET_ALL_ORDER, 
     GET_ORDER,
-    UPDATE_ORDER
+    UPDATE_ORDER,
+    UPDATE_PLATE_ORDER
 } = order
 
 
@@ -88,6 +89,35 @@ export const updateOrderAPI = async (formData, token,id) => {
 
     try {
         const response = await apiConnector("PUT", `${UPDATE_ORDER}/${id}`, formData, {
+            Authorization: `Bearer ${token}`,
+        });
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+
+        toast.success(response?.data?.message);
+
+        return response;
+    } catch (error) {
+        console.error("updateOrderAPI  API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to updateOrderAPI!");
+        return null;
+    } finally {
+
+        toast.dismiss(toastId);
+    }
+};
+
+
+export const updateOrderPlateAPI = async (palletData, token,id) => {
+console.log(palletData)
+    const toastId = toast.loading("Loading...");
+
+
+    try {
+        const response = await apiConnector("PUT", `${UPDATE_PLATE_ORDER}/${id}`, {palletData:palletData}, {
             Authorization: `Bearer ${token}`,
         });
 
