@@ -36,6 +36,7 @@ interface Product {
   _id: string;
   name: string;
   price: number;
+  shippinCost?: number;
   pricePerBox?: number;
   category: string;
   description: string;
@@ -104,7 +105,8 @@ const StoreProductList: React.FC<StoreProductListProps> = ({ products }) => {
       quantity,
       image: product.image || `https://source.unsplash.com/400x300/?${product.category.toLowerCase()}`,
       category: product.category,
-      discountPercentage
+      discountPercentage,
+      shippinCost:product.shippinCost || 0
     });
     
     toast({

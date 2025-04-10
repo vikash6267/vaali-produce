@@ -19,6 +19,7 @@ export interface Product {
   organic?: boolean;
   storageInstructions?: string;
   boxSize?: number;
+  shippinCost?: number;
   pricePerBox?: number;
   featuredOffer?: boolean;
   popularityRank?: number;

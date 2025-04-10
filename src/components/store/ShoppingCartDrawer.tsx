@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetClose } from "@/components/ui/sheet"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -79,14 +79,31 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
     postalCode: "",
     country: "",
   })
-  const [sameAsBilling, setSameAsBilling] = useState(true)
+  const [sameAsBilling, setSameAsBilling] = useState(false)
+
+
+  useEffect(() => {
+    if (user) {
+      setBillingAddress({
+        name: user.ownerName || "",
+        email: user.email || "",
+        address: user.address || "",
+        phone: user.phone || "",
+        city: user.city || "",
+        postalCode: user.zipCode || "",
+        country: user.state || "", // assuming 'country' is used for state
+      });
+    }
+  }, [user]);
+
 
   const discountTier = getDiscountTier()
   const discountedTotal = applyBulkDiscount(subtotal)
   const originalTotal = calculateOriginalTotal()
   const volumeDiscountSavings = subtotal - discountedTotal
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
-
+  
+  console.log(user)
   // Calculate progress to next tier
   const getNextTierInfo = () => {
     if (discountTier.tier === 0) {
@@ -163,7 +180,7 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
       },
       clientName: user?.storeName,
       items: discountedItems,
-      total: discountedTotal,
+      total: calculateShipping() + discountedTotal,
       status: "pending" as const,
       paymentStatus: "pending" as const,
       subtotal: discountedTotal,
@@ -171,13 +188,14 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
       billingAddress,
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
       specialRequests,
+      shippinCost:calculateShipping()
     }
 
     console.log(order)
 
 
     await createOrderAPI(order, token)
-    return
+    
 
     clearCart()
     setIsCheckoutOpen(false)
@@ -188,6 +206,18 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
   const updateWithDiscount = (id: string, quantity: number) => {
     updateQuantity(id, quantity)
   }
+
+
+
+  const calculateShipping = () => {
+    const items = cart;
+    return items.reduce(
+      (total, item) => total + item.quantity * (item.shippinCost || 0),
+      0
+    );
+  };
+
+
   return (
     <>
       <Sheet open={open} onOpenChange={onClose}>
@@ -436,6 +466,21 @@ const ShoppingCartDrawer: React.FC<ShoppingCartDrawerProps> = ({ open, onClose, 
               <h4 className="font-medium">Order Summary</h4>
               <p className="text-sm text-muted-foreground">
                 {totalItems} {totalItems === 1 ? "item" : "items"} - {formatCurrency(discountedTotal)}
+
+                <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
+                  <div className="w-full sm:max-w-xl">
+                    <div className="grid grid-cols-3 gap-2 font-medium text-muted-foreground text-xs sm:text-sm mb-1">
+                      <div className="text-center">Subtotal</div>
+                      <div className="text-center">Shipping Cost</div>
+                      <div className="text-center">Total</div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2 font-bold text-sm sm:text-lg">
+                      <div className="text-center">{formatCurrency(discountedTotal)}</div>
+                      <div className="text-center">{formatCurrency(calculateShipping())}</div>
+                      <div className="text-center text-green-600">{formatCurrency( calculateShipping() + discountedTotal)}</div>
+                    </div>
+                  </div>
+                </div>
               </p>
 
               {totalSavings > 0 && (

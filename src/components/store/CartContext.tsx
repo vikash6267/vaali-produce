@@ -9,6 +9,7 @@ export interface CartItem {
   image?: string;
   category?: string;
   bulkDiscount?: any;
+  shippinCost?: number;
   discountPercentage?: number;
 }
 

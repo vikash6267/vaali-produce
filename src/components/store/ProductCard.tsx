@@ -136,7 +136,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
       image: `https://source.unsplash.com/400x300/?${product.category.toLowerCase()}`,
       category: product.category,
       // Apply the discount - bulk discount takes priority over item discount
-      discountPercentage: hasBulkDiscount ? bulkDiscount.percent : (hasDiscount ? discountPercentage : undefined)
+      discountPercentage: hasBulkDiscount ? bulkDiscount.percent : (hasDiscount ? discountPercentage : undefined),
+      shippinCost:product.shippinCost || 0
+
     });
     
     toast({
