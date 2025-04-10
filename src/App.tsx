@@ -28,7 +28,7 @@ import Member from "./components/admin/Member";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStorets from "./pages/AdminStorets";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "./redux/store";
 
 import PrivateRoute from "@/components/auth/PrivateRoute";
@@ -36,11 +36,14 @@ import OpenRoute from "@/components/auth/OpenRoute";
 import CreateOrderModalStore from "./pages/StoreMakeORderTemplate";
 import StoreRegistration from "./pages/StoreRegistration";
 import GroupPricing from "./pages/GroupPricing";
+import SettingsPage from "./components/settings/Settings";
+import { fetchMyProfile } from "@/services2/operations/auth";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
   const authData = useSelector((state: RootState) => state.auth);
   const isAuthenticated = authData?.token ? true : false;
+  const dispatch = useDispatch();
 
   useEffect(() => {
     const loadingTimeout = setTimeout(() => {
@@ -50,6 +53,13 @@ export default function App() {
     return () => clearTimeout(loadingTimeout);
   }, []);
 
+
+  useEffect(() => {
+    if(authData?.token){
+      dispatch(fetchMyProfile(authData?.token));
+    }
+   
+  }, []);
   const isAdmin = isAuthenticated && authData?.user?.role === "admin";
   const isMember = isAuthenticated && authData?.user?.role === "member";
   const isStore = isAuthenticated && authData?.user?.role === "store";
@@ -158,6 +168,14 @@ export default function App() {
           element={
             <PrivateRoute isMember={isStore}>
               <StoreFront />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/store/settings"
+          element={
+            <PrivateRoute isMember={isStore}>
+              <SettingsPage />
             </PrivateRoute>
           }
         />

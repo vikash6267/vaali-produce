@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ChevronLeft,
   Store,
+  Settings,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
@@ -75,6 +76,11 @@ const storeNavigation = [
     name: "My Orders",
     path: "/store/orders",
     icon: <ShoppingCart size={18} />,
+  },
+  {
+    name: "Settings",
+    path: "/store/settings",
+    icon: <Settings size={18} />,
   },
 ];
 
@@ -262,7 +268,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         )}
       </aside>
 
-      <div className={`  transition-all duration-300 ${ collapsed && !hovering ? "md:w-[60px]" : "w-[300px] "}`}>
+      <div className={`  transition-all duration-300 ${ collapsed && !hovering ? "md:w-[90px]" : "w-[300px] "}`}>
         {/* Main Content Goes Here */}
       </div>
     </>

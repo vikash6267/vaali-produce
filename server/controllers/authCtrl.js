@@ -276,8 +276,8 @@ const updateStoreCtrl = async (req, res) => {
     } = req.body;
 
     const { id } = req.params;
-    // console.log(id)
-    // console.log(req.body)
+    console.log(id)
+    console.log(req.body)
 
     if (!id) {
       return res.status(400).json({
@@ -321,6 +321,95 @@ const updateStoreCtrl = async (req, res) => {
 };
 
 
+const fetchMyProfile = async (req, res) => {
+  try {
+    // Get email and password from request body
+    const id = req.user.id
 
 
-module.exports = { registerCtrl, loginCtrl, getUserByEmailCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl };
+
+    // Find user with provided email
+    const user = await authModel.findById(id)
+
+    // If user not found with provided email
+    if (!user) {
+      // Return 401 Unauthorized status code with error message
+      return res.status(401).json({
+        success: false,
+        message: `User is not Registered with Us Please SignUp to Continue`,
+      })
+    }
+
+    return res.status(200).json({
+      user,
+      success: true,
+      message: `Fetch Data Successfully`,
+    })
+
+  } catch (error) {
+    console.error(error)
+    return res.status(500).json({
+      success: false,
+      message: `Error During fetch data`,
+    })
+  }
+}
+
+const changePasswordCtrl = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { currentPassword, newPassword } = req.body;
+console.log(req.body)
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Both current and new passwords are required",
+      });
+    }
+
+    const user = await authModel.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        success: false,
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedNewPassword;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Password changed successfully",
+    });
+  } catch (error) {
+    console.error("Error in change password:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error while changing password",
+    });
+  }
+};
+
+
+module.exports = {
+  registerCtrl,
+  loginCtrl,
+  getUserByEmailCtrl,
+  updatePermitionCtrl,
+  addMemberCtrl,
+  getAllMemberCtrl,
+  updateStoreCtrl,
+  getAllStoreCtrl,
+  fetchMyProfile,
+  changePasswordCtrl
+};

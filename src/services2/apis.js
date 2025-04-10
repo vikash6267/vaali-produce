@@ -1,7 +1,7 @@
 
-const BASE_URL = "http://localhost:8080/api/v1"
+// const BASE_URL = "http://localhost:8080/api/v1"
 // const BASE_URL = "https://api.valiproduce.shop/api/v1"
-
+const BASE_URL = import.meta.env.VITE_APP_BASE_URL;
 
 export const endpoints = {
   LOGIN_API: BASE_URL + "/auth/login",
@@ -12,6 +12,9 @@ export const endpoints = {
   GET_ALL_STORES_API: BASE_URL + "/auth/all-stores",
   UPDATE_MEMBER_PERMISSION_API: BASE_URL + "/auth/update",
   UPDATE_STORE: BASE_URL + "/auth/update-store",
+  FETCH_MY_PROFILE_API : BASE_URL + "/auth/fetchMy",
+  UPDATE_PASSWORD_API : BASE_URL + "/auth/update-password",
+
 
 }
 

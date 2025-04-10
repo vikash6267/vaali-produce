@@ -241,7 +241,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
         order={selectedOrder}
         open={isDetailsModalOpen}
         onClose={() => setIsDetailsModalOpen(false)}
-        userRole={"admin"}
+        userRole={user.role}
       />
 
       <div className="rounded-md border bg-white">
@@ -313,10 +313,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
                             View Client Profile
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem onClick={() => handleEdit(order)}>
+                    { user.role === "admin" &&     <DropdownMenuItem onClick={() => handleEdit(order)}>
                           <Edit size={14} className="mr-2" />
                           Edit
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>}
 
                         <DropdownMenuSeparator />
 
@@ -350,13 +350,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
 
                         <DropdownMenuSeparator />
 
-                        <DropdownMenuItem
+                   {   user.role === "admin" &&    <DropdownMenuItem
                           onClick={() => handleDelete(order.id)}
                           className="text-red-600 hover:text-red-700 focus:text-red-700"
                         >
                           <Trash size={14} className="mr-2" />
                           Delete
-                        </DropdownMenuItem>
+                        </DropdownMenuItem>}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

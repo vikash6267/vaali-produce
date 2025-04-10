@@ -11,7 +11,9 @@ const {
   UPDATE_MEMBER_PERMISSION_API,
   UPDATE_STORE,
   GET_ALL_STORES_API,
-  GET_USER_API
+  GET_USER_API,
+  FETCH_MY_PROFILE_API,
+  UPDATE_PASSWORD_API
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -297,11 +299,11 @@ export const updateStoreAPI = async (id, formData, token) => {
       Authorization: `Bearer ${token}`,
     });
 
-
+console.log(response)
     if (!response?.data?.success) {
       throw new Error(response?.data?.message || "Something went wrong!");
     }
-    toast.success(response?.data?.messag)
+    toast.success(response?.data?.message)
     return response?.data;
   } catch (error) {
     console.error("UPDATE store API ERROR:", error);
@@ -313,3 +315,61 @@ export const updateStoreAPI = async (id, formData, token) => {
   }
 
 };
+
+
+export const updatePasswordSetting = async (formData, token) => {
+
+  const toastId = toast.loading("Loading...");
+
+
+  try {
+    const response = await apiConnector("PUT", `${UPDATE_PASSWORD_API}`, formData, {
+      Authorization: `Bearer ${token}`,
+    });
+
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+    toast.success(response?.data?.messag)
+    return response?.data;
+  } catch (error) {
+    console.error("UPDATE_PASSWORD_API API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to Update Password!");
+    return [];
+  } finally {
+
+    toast.dismiss(toastId);
+  }
+
+};
+
+export function fetchMyProfile(token){
+ 
+  return async (dispatch) => {
+ 
+    try {
+      const response = await apiConnector("GET", FETCH_MY_PROFILE_API, null ,{
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      })
+
+      // console.log("LOGIN API RESPONSE............", response)
+
+      if (!response.data.success) {
+        throw new Error(response.data.message)
+      }
+    
+      dispatch(setUser(response.data.user))
+
+      localStorage.setItem("user", JSON.stringify(response.data.user))
+
+    } catch (error) {
+      // console.log("LOGIN API ERROR............", error)
+    }
+
+  } 
+}
+
+
+

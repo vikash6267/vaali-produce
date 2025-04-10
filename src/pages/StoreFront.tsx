@@ -30,7 +30,7 @@ const StoreFront = () => {
     const token = useSelector((state: RootState) => state.auth?.token ?? null);
     const user = useSelector((state: RootState) => state.auth?.user ?? null);
   
-
+    const BASE_URL = import.meta.env.VITE_APP_BASE_URL;
       
       const toggleSidebar = () => {
         setIsSidebarOpen(!isSidebarOpen);
@@ -69,7 +69,7 @@ useEffect(() => {
       const data = await getAllGroupPricingAPI();
       console.log('Group Pricing Data:', data);
 
-      const productsResponse = await fetch('http://localhost:8080/api/v1/product/getAll');
+      const productsResponse = await fetch(`${BASE_URL}/product/getAll`);
       const productsData = await productsResponse.json();
       console.log('Products Data:', productsData);
 

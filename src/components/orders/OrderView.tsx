@@ -98,7 +98,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
         <DialogHeader>
           <DialogTitle className="flex items-center justify-between">
             <span>Order #{order.id}</span>
-            <Badge 
+            <Badge
               className={cn(
                 "ml-2 flex items-center gap-1 px-2 py-1",
                 getStatusClass(order.status)
@@ -116,10 +116,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
           {/* Customer Information */}
           <div className="space-y-2">
-          <h3 className="font-medium text-sm text-muted-foreground">Customer Information</h3>
-<p className="font-medium">{(order.store as any).storeName || (order.store as any).ownerName || 'N/A'}</p>
-<p className="font-medium">{(order.store as any).phone || 'N/A'}</p>
-<p className="font-medium">{(order.store as any).email || 'N/A'}</p>
+            <h3 className="font-medium text-sm text-muted-foreground">Customer Information</h3>
+            <p className="font-medium">{(order.store as any).storeName || (order.store as any).ownerName || 'N/A'}</p>
+            <p className="font-medium">{(order.store as any).phone || 'N/A'}</p>
+            <p className="font-medium">{(order.store as any).email || 'N/A'}</p>
 
             {order.clientId && (
               <p className="text-sm text-muted-foreground">Customer ID: {order.clientId}</p>
@@ -217,7 +217,11 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
         <div className="mt-4 space-y-2">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal</span>
-            <span>{formatCurrency(order.subtotal || order.total)}</span>
+            <span>{formatCurrency((order.subtotal || order.total) - order.shippinCost)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">Shipping Cost</span>
+            <span>{formatCurrency( order.shippinCost)}</span>
           </div>
           {order.tax !== undefined && (
             <div className="flex justify-between">
@@ -256,8 +260,8 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
           <Button variant="outline" onClick={onClose}>Close</Button>
           {userRole === 'admin' && (
             <Button>
-                
-                <Link to={`/orders/edit/${order._id}`}>Edit Order</Link>
+
+              <Link to={`/orders/edit/${order._id}`}>Edit Order</Link>
             </Button>
           )}
         </DialogFooter>
