@@ -103,3 +103,21 @@ export const email = {
   PRICE_LIST: BASE_URL + "/email/price-list",
 
 }
+
+
+export const vendor = {
+  CREATE_VENDOR: BASE_URL + "/vendors/create",
+  GET_ALL_VENDORS: BASE_URL + "/vendors/getAll",
+  GET_VENDOR: BASE_URL + "/vendors/get", // append /:id when using
+  UPDATE_VENDOR: BASE_URL + "/vendors/update", // append /:id when using
+  DELETE_VENDOR: BASE_URL + "/vendors/delete", // append /:id when using
+};
+
+export const purchaseOrder = {
+  CREATE_PURCHASE_ORDER: BASE_URL + "/purchase-orders/create",
+  GET_ALL_PURCHASE_ORDERS: BASE_URL + "/purchase-orders/getAll",
+  GET_PURCHASE_ORDER: BASE_URL + "/purchase-orders/get", // append /:id when using
+  UPDATE_PURCHASE_ORDER: BASE_URL + "/purchase-orders/update", // append /:id when using
+  UPDATE_PURCHASE_QAULITY_ORDER: BASE_URL + "/purchase-orders/update-quality", // append /:id when using
+  DELETE_PURCHASE_ORDER: BASE_URL + "/purchase-orders/delete", // append /:id when using
+};

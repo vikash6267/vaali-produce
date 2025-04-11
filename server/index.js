@@ -45,6 +45,8 @@ app.use("/api/v1/crm-deal", require("./routes/dealCrmRoute"))
 app.use("/api/v1/task", require("./routes/taskRoute"))
 app.use("/api/v1/email", require("./routes/emailsRoute"))
 app.use("/api/v1/pricing", require("./routes/groupPricing"))
+app.use("/api/v1/vendors", require("./routes/vendorRoute"))
+app.use("/api/v1/purchase-orders", require("./routes/purchaseOrderRoute"))
 
 
 

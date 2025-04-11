@@ -4,6 +4,8 @@ import { Upload, X, Image, FileVideo } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
+import {imageUpload} from "@/services2/operations/image"
+
 
 interface MediaUploaderProps {
   onUpload: (files: string[]) => void;
@@ -35,23 +37,20 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       });
       return;
     }
-
+  
     setIsUploading(true);
-
+  
     try {
-      // Mock file upload - in a real app, this would send to a server
-      const newFiles = Array.from(e.target.files).map(file => {
-        const url = URL.createObjectURL(file);
-        return url;
-      });
-      
-      const updatedFiles = [...files, ...newFiles];
+      // ✅ Upload images to server (Cloudinary or wherever)
+      const uploadedUrls = await imageUpload(Array.from(e.target.files));
+  
+      const updatedFiles = [...files, ...uploadedUrls];
       setFiles(updatedFiles);
       onUpload(updatedFiles);
-      
+  
       toast({
         title: "Files uploaded",
-        description: `Successfully uploaded ${newFiles.length} files`,
+        description: `Successfully uploaded ${uploadedUrls.length} files`,
       });
     } catch (error) {
       console.error("Error uploading files:", error);
@@ -64,6 +63,7 @@ const MediaUploader: React.FC<MediaUploaderProps> = ({
       setIsUploading(false);
     }
   };
+  
 
   const removeFile = (indexToRemove: number) => {
     const updatedFiles = files.filter((_, index) => index !== indexToRemove);

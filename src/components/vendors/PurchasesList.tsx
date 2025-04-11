@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   Search, Filter, Eye, FileCheck, FileX, Calendar, ShoppingCart,
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { formatCurrency } from '@/utils/formatters';
 import { getReorders } from '@/data/reorderData';
+import {getAllPurchaseOrdersAPI} from "@/services2/operations/purchaseOrder"
 
 // Mock vendor data - would come from API in real implementation
 const mockVendors = [
@@ -67,88 +68,88 @@ const mockVendors = [
   }
 ];
 
-// Mock data - would come from API in real implementation
-const mockPurchases = [
-  {
-    id: 'p1',
-    vendorId: 'v1',
-    vendorName: 'Green Valley Farms',
-    date: '2025-04-01',
-    status: 'quality-check',
-    items: [
-      {
-        productId: 'prod1',
-        productName: 'Organic Apples',
-        quantity: 200,
-        unit: 'lb',
-        unitPrice: 1.25,
-        totalPrice: 250,
-        qualityStatus: 'pending'
-      },
-      {
-        productId: 'prod2',
-        productName: 'Pears',
-        quantity: 150,
-        unit: 'lb',
-        unitPrice: 1.50,
-        totalPrice: 225,
-        qualityStatus: 'pending'
-      }
-    ],
-    totalAmount: 475,
-    purchaseOrderNumber: 'PO-2025-001',
-    deliveryDate: '2025-04-03',
-    invoiceUploaded: false,
-    paymentStatus: 'pending'
-  },
-  {
-    id: 'p2',
-    vendorId: 'v2',
-    vendorName: 'Organic Supply Co.',
-    date: '2025-03-28',
-    status: 'approved',
-    items: [
-      {
-        productId: 'prod3',
-        productName: 'Organic Tomatoes',
-        quantity: 100,
-        unit: 'lb',
-        unitPrice: 2.00,
-        totalPrice: 200,
-        qualityStatus: 'approved'
-      }
-    ],
-    totalAmount: 200,
-    purchaseOrderNumber: 'PO-2025-002',
-    deliveryDate: '2025-03-30',
-    invoiceUploaded: true,
-    paymentStatus: 'pending'
-  },
-  {
-    id: 'p3',
-    vendorId: 'v3',
-    vendorName: 'Fresh Produce Distributors',
-    date: '2025-03-25',
-    status: 'rejected',
-    items: [
-      {
-        productId: 'prod4',
-        productName: 'Lettuce',
-        quantity: 50,
-        unit: 'boxes',
-        unitPrice: 5.00,
-        totalPrice: 250,
-        qualityStatus: 'rejected',
-        qualityNotes: 'Excessive wilting, poor quality'
-      }
-    ],
-    totalAmount: 250,
-    purchaseOrderNumber: 'PO-2025-003',
-    deliveryDate: '2025-03-27',
-    invoiceUploaded: false,
-    paymentStatus: 'not-required'
-  }
-];
+// // Mock data - would come from API in real implementation
+// const purchaseOrders = [
+//   {
+//     id: 'p1',
+//     vendorId: 'v1',
+//     vendorName: 'Green Valley Farms',
+//     date: '2025-04-01',
+//     status: 'quality-check',
+//     items: [
+//       {
+//         productId: 'prod1',
+//         productName: 'Organic Apples',
+//         quantity: 200,
+//         unit: 'lb',
+//         unitPrice: 1.25,
+//         totalPrice: 250,
+//         qualityStatus: 'pending'
+//       },
+//       {
+//         productId: 'prod2',
+//         productName: 'Pears',
+//         quantity: 150,
+//         unit: 'lb',
+//         unitPrice: 1.50,
+//         totalPrice: 225,
+//         qualityStatus: 'pending'
+//       }
+//     ],
+//     totalAmount: 475,
+//     purchaseOrderNumber: 'PO-2025-001',
+//     deliveryDate: '2025-04-03',
+//     invoiceUploaded: false,
+//     paymentStatus: 'pending'
+//   },
+//   {
+//     id: 'p2',
+//     vendorId: 'v2',
+//     vendorName: 'Organic Supply Co.',
+//     date: '2025-03-28',
+//     status: 'approved',
+//     items: [
+//       {
+//         productId: 'prod3',
+//         productName: 'Organic Tomatoes',
+//         quantity: 100,
+//         unit: 'lb',
+//         unitPrice: 2.00,
+//         totalPrice: 200,
+//         qualityStatus: 'approved'
+//       }
+//     ],
+//     totalAmount: 200,
+//     purchaseOrderNumber: 'PO-2025-002',
+//     deliveryDate: '2025-03-30',
+//     invoiceUploaded: true,
+//     paymentStatus: 'pending'
+//   },
+//   {
+//     id: 'p3',
+//     vendorId: 'v3',
+//     vendorName: 'Fresh Produce Distributors',
+//     date: '2025-03-25',
+//     status: 'rejected',
+//     items: [
+//       {
+//         productId: 'prod4',
+//         productName: 'Lettuce',
+//         quantity: 50,
+//         unit: 'boxes',
+//         unitPrice: 5.00,
+//         totalPrice: 250,
+//         qualityStatus: 'rejected',
+//         qualityNotes: 'Excessive wilting, poor quality'
+//       }
+//     ],
+//     totalAmount: 250,
+//     purchaseOrderNumber: 'PO-2025-003',
+//     deliveryDate: '2025-03-27',
+//     invoiceUploaded: false,
+//     paymentStatus: 'not-required'
+//   }
+// ];
 
 // Get reorder suggestions based on low inventory
 const getReorderSuggestions = () => {
@@ -164,11 +165,35 @@ const PurchasesList = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [showReorderSuggestions, setShowReorderSuggestions] = useState(false);
+  const [purchaseOrders, setPurchaseOrders] = useState([]);
+
+
+  const fetchPurchase = async () => {
   
+    try {
+      const res = await getAllPurchaseOrdersAPI();
+      if (res) {
+        const transformed = res.map((order) => ({
+          ...order,
+          id:order._id,
+          vendorName: order.vendorId?.name || "",
+          vendorId: order.vendorId?._id || "",
+        }));
+        setPurchaseOrders(transformed);
+      }
+    } catch (error) {
+      console.error("Error fetching purchase orders:", error);
+    } 
+  };
+  
+
+  useEffect(() => {
+    fetchPurchase();
+  }, []);
   const reorderSuggestions = getReorderSuggestions();
   
   // Filter purchases based on search term and status
-  const filteredPurchases = mockPurchases.filter(purchase => {
+  const filteredPurchases = purchaseOrders.filter(purchase => {
     const matchesSearch = purchase.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           purchase.purchaseOrderNumber?.toLowerCase().includes(searchTerm.toLowerCase());
     
@@ -190,9 +215,10 @@ const PurchasesList = () => {
     
     return (
       <Badge variant={variant} className="capitalize flex items-center">
-        {icon}
-        {status.replace('-', ' ')}
-      </Badge>
+      {icon}
+      {(status || "pending").replace("-", " ")}
+    </Badge>
+    
     );
   };
 
@@ -207,9 +233,9 @@ const PurchasesList = () => {
     
     return (
       <Badge variant={variant} className="capitalize flex items-center">
-        {icon}
-        {status.replace('-', ' ')}
-      </Badge>
+      {icon}
+      {(status || "pending").replace("-", " ")}
+    </Badge>
     );
   };
   
@@ -217,9 +243,9 @@ const PurchasesList = () => {
     // In a real app, this would open a file upload dialog
     console.log(`Upload invoice for purchase ${purchaseId}`);
     // Mock updating the invoice status
-    const purchaseIndex = mockPurchases.findIndex(p => p.id === purchaseId);
+    const purchaseIndex = purchaseOrders.findIndex(p => p.id === purchaseId);
     if (purchaseIndex !== -1) {
-      mockPurchases[purchaseIndex].invoiceUploaded = true;
+      purchaseOrders[purchaseIndex].invoiceUploaded = true;
       // Force a re-render
       setSearchTerm(searchTerm);
     }
@@ -436,7 +462,7 @@ const PurchasesList = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockPurchases
+              {purchaseOrders
                 .filter(p => p.invoiceUploaded && p.paymentStatus === 'pending')
                 .length === 0 ? (
                 <TableRow>
@@ -445,7 +471,7 @@ const PurchasesList = () => {
                   </TableCell>
                 </TableRow>
               ) : (
-                mockPurchases
+                purchaseOrders
                   .filter(p => p.invoiceUploaded && p.paymentStatus === 'pending')
                   .map((purchase) => {
                     // Mock invoice date (7 days after purchase date)

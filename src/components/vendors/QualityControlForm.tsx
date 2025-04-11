@@ -19,6 +19,9 @@ import { VendorPurchase, PurchaseItem } from '@/types/vendor';
 import { useToast } from '@/hooks/use-toast';
 import PageHeader from '@/components/shared/PageHeader';
 import MediaUploader from '@/components/shared/MediaUploader';
+import {getSinglePurchaseOrderAPI , updatePurchaseOrderQualityAPI} from "@/services2/operations/purchaseOrder"
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 
 interface QualityControlFormProps {
   purchaseId: string;
@@ -45,65 +48,49 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
   const [loading, setLoading] = useState(true);
   // State for vendor price data
   const [vendorPrices, setVendorPrices] = useState<Record<string, VendorPriceData[]>>({});
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   useEffect(() => {
-    // Simulating API fetch
-    setTimeout(() => {
-      // Mock purchase data
-      const mockPurchase: VendorPurchase = {
-        id: purchaseId,
-        vendorId: 'v123',
-        vendorName: 'Green Farm Organics',
-        date: new Date().toISOString(),
-        status: 'quality-check',
-        items: [
-          {
-            productId: 'p1',
-            productName: 'Organic Tomatoes',
-            quantity: 100,
-            unit: 'kg',
-            unitPrice: 2.5,
-            totalPrice: 250,
-            qualityStatus: 'pending',
-            batchNumber: 'TOM-2023-001'
-          },
-          {
-            productId: 'p2',
-            productName: 'Yellow Onions',
-            quantity: 50,
-            unit: 'kg',
-            unitPrice: 1.8,
-            totalPrice: 90,
-            qualityStatus: 'pending',
-            batchNumber: 'ONI-2023-005'
-          },
-          {
-            productId: 'p3',
-            productName: 'Bell Peppers',
-            quantity: 30,
-            unit: 'kg',
-            unitPrice: 3.2,
-            totalPrice: 96,
-            qualityStatus: 'pending',
-            batchNumber: 'PEP-2023-002'
-          }
-        ],
-        totalAmount: 436
-      };
-      
-      // Add empty mediaUrls arrays to each item
-      const itemsWithMedia = mockPurchase.items.map(item => ({
-        ...item,
-        mediaUrls: []
-      }));
-      
-      setPurchase(mockPurchase);
-      setItems(itemsWithMedia);
-      
-      // Fetch mock vendor price data
-      fetchVendorPriceData(mockPurchase.items.map(item => item.productId));
-    }, 1000);
+    const fetchPurchaseData = async () => {
+      try {
+        const res = await getSinglePurchaseOrderAPI(purchaseId, token);
+        const purchaseData = res;
+  
+        if (purchaseData) {
+          // Extract vendorName and flatten it
+          const vendorName = purchaseData?.vendorId?.name || "N/A";
+  
+          // Add empty mediaUrls arrays and restructure each item
+          const itemsWithMedia = purchaseData.items.map((item: any) => ({
+            ...item,
+            productName: item?.productId?.name,
+            unit: item?.productId?.unit,
+            mediaUrls: item.mediaUrls || []
+          }));
+  
+          // Format purchase data
+          const formattedPurchase = {
+            ...purchaseData,
+            vendorName,              // new field
+            vendorId: purchaseData.vendorId._id // keep original ID if needed
+          };
+  
+          setPurchase(formattedPurchase);
+          setItems(itemsWithMedia);
+  
+          // Fetch vendor price data based on product IDs
+          const productIds = purchaseData.items.map((item: any) => item.productId);
+          fetchVendorPriceData(productIds);
+        }
+      } catch (error) {
+        console.error("Error fetching purchase order:", error);
+      }
+    };
+  
+    fetchPurchaseData();
   }, [purchaseId]);
+  
+  
 
   // Function to fetch vendor price data
   const fetchVendorPriceData = (productIds: string[]) => {
@@ -272,14 +259,18 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
       return;
     }
 
+    await updatePurchaseOrderQualityAPI(purchaseId,items,token)
     // Filter approved items
     const approvedItems = items.filter(item => item.qualityStatus === 'approved');
     
     // If there are approved items, add them to inventory
     if (approvedItems.length > 0) {
-      setLoading(true);
+     
       const success = await addApprovedItemsToInventory(approvedItems);
-      setLoading(false);
+    
+      
+
+      console.log(approvedItems)
       
       if (!success) {
         // If inventory update failed, stop the submission process
@@ -344,16 +335,7 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
       <PageHeader
         title="Quality Control Assessment"
         description={`Purchase #${purchase.id} from ${purchase.vendorName}`}
-        actions={
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => navigate('/vendors')}
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Vendors
-          </Button>
-        }
+     
       />
 
       <Card>
@@ -364,7 +346,7 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
           </CardTitle>
           <div className="text-sm text-muted-foreground">
             <p>Vendor: {purchase.vendorName}</p>
-            <p>Date: {new Date(purchase.date).toLocaleDateString()}</p>
+            <p>Date: {new Date(purchase.createdAt).toLocaleDateString()}</p>
             <p>Total Amount: ${purchase.totalAmount.toFixed(2)}</p>
           </div>
         </CardHeader>

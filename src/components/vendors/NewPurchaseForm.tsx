@@ -1,37 +1,28 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { 
+import {
   ArrowLeft, Save, Plus, Trash, Package, DollarSign, Calendar
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle 
+import {
+  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
 } from '@/components/ui/card';
-import { 
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue 
+import {
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { formatCurrency } from '@/utils/formatters';
 import PageHeader from '@/components/shared/PageHeader';
+import { getAllProductAPI } from "@/services2/operations/product"
+import { getAllVendorsAPI } from "@/services2/operations/vendor"
+import {createPurchaseOrderAPI} from "@/services2/operations/purchaseOrder"
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
 
-// Mock data for the form
-const mockVendors = [
-  { id: 'v1', name: 'Green Valley Farms' },
-  { id: 'v2', name: 'Organic Supply Co.' },
-  { id: 'v3', name: 'Fresh Produce Distributors' }
-];
-
-const mockProducts = [
-  { id: 'prod1', name: 'Organic Apples', price: 1.25, unit: 'lb' },
-  { id: 'prod2', name: 'Pears', price: 1.50, unit: 'lb' },
-  { id: 'prod3', name: 'Organic Tomatoes', price: 2.00, unit: 'lb' },
-  { id: 'prod4', name: 'Lettuce', price: 2.50, unit: 'head' },
-  { id: 'prod5', name: 'Bell Peppers', price: 1.00, unit: 'each' }
-];
 
 // Mock vendor pricing data
 const mockVendorPricing = [
@@ -53,12 +44,12 @@ const NewPurchaseForm = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  
+
   // Parse URL query parameters
   const queryParams = new URLSearchParams(location.search);
   const suggestedProductId = queryParams.get('productId');
   const isSuggested = queryParams.get('suggested') === 'true';
-  
+
   // Form state
   const [vendorId, setVendorId] = useState('');
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
@@ -68,33 +59,83 @@ const NewPurchaseForm = () => {
   const [items, setItems] = useState<PurchaseItemForm[]>([
     { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0 }
   ]);
-  
+
   const [totalAmount, setTotalAmount] = useState(0);
   const [suggestedVendors, setSuggestedVendors] = useState<string[]>([]);
-  
+  const [products, setProducts] = useState([])
+  const [vendors, setVendors] = useState([]);
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
+
+
+
+
+
+
+  const fetchProducts = async () => {
+    try {
+      const response = await getAllProductAPI()
+      console.log(response)
+      // { id: 'prod1', name: 'Organic Apples', price: 1.25, unit: 'lb' },
+
+      if (response) {
+        const updatedProducts = response.map((product) => ({
+          ...product,
+          id: product._id,
+          price: product.pricePerBox,
+          lastUpdated: product?.updatedAt,
+
+        }))
+        setProducts(updatedProducts)
+      }
+    } catch (error) {
+      console.error("Error fetching products:", error)
+    }
+  }
+
+
+  const fetchVendors = async () => {
+    const data = await getAllVendorsAPI();
+    console.log(data);
+
+    const formattedData = data.map((vendor) => ({
+      ...vendor,
+      id: vendor._id, // replace _id with id
+    }));
+
+    setVendors(formattedData);
+  };
+
+
+
+
+  useEffect(() => {
+    fetchVendors();
+    fetchProducts()
+  }, [])
+
   // Generate PO number when the component mounts
   useEffect(() => {
     const currentYear = new Date().getFullYear();
     const randomNum = Math.floor(1000 + Math.random() * 9000);
     setPurchaseOrderNumber(`PO-${currentYear}-${randomNum}`);
-    
+
     // If there's a suggested product, set it up
     if (isSuggested && suggestedProductId) {
       // Find product
-      const product = mockProducts.find(p => p.id === suggestedProductId);
+      const product = products.find(p => p.id === suggestedProductId);
       if (product) {
         // Find suggested vendors for this product
         const vendorsForProduct = mockVendorPricing
           .filter(vp => vp.productId === suggestedProductId)
           .map(vp => vp.vendorId);
-          
+
         setSuggestedVendors(vendorsForProduct);
-        
+
         // If there's only one suggested vendor, select it automatically
         if (vendorsForProduct.length === 1) {
           setVendorId(vendorsForProduct[0]);
         }
-        
+
         // Set the product in the first item
         const updatedItems = [...items];
         updatedItems[0] = {
@@ -104,22 +145,22 @@ const NewPurchaseForm = () => {
           quantity: 100, // Default reorder quantity
           totalPrice: 100 * product.price
         };
-        
+
         setItems(updatedItems);
       }
     }
   }, [isSuggested, suggestedProductId]);
-  
+
   // Calculate total amount whenever items change
   useEffect(() => {
     const total = items.reduce((sum, item) => sum + item.totalPrice, 0);
     setTotalAmount(total);
   }, [items]);
-  
+
   const handleProductChange = (index: number, productId: string) => {
-    const product = mockProducts.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     if (!product) return;
-    
+
     // If a vendor is selected, check if there's vendor-specific pricing
     let price = product.price;
     if (vendorId) {
@@ -130,7 +171,7 @@ const NewPurchaseForm = () => {
         price = vendorPricing.price;
       }
     }
-    
+
     const updatedItems = [...items];
     updatedItems[index] = {
       ...updatedItems[index],
@@ -138,22 +179,22 @@ const NewPurchaseForm = () => {
       unitPrice: price,
       totalPrice: updatedItems[index].quantity * price
     };
-    
+
     setItems(updatedItems);
   };
-  
+
   const handleVendorChange = (vendorId: string) => {
     setVendorId(vendorId);
-    
+
     // Update prices based on vendor-specific pricing
     const updatedItems = items.map(item => {
       if (!item.productId) return item;
-      
+
       // Check if there's vendor-specific pricing
       const vendorPricing = mockVendorPricing.find(
         vp => vp.vendorId === vendorId && vp.productId === item.productId
       );
-      
+
       if (vendorPricing) {
         return {
           ...item,
@@ -161,13 +202,13 @@ const NewPurchaseForm = () => {
           totalPrice: item.quantity * vendorPricing.price
         };
       }
-      
+
       return item;
     });
-    
+
     setItems(updatedItems);
   };
-  
+
   const handleQuantityChange = (index: number, quantity: string) => {
     const qty = parseFloat(quantity) || 0;
     const updatedItems = [...items];
@@ -176,10 +217,10 @@ const NewPurchaseForm = () => {
       quantity: qty,
       totalPrice: qty * updatedItems[index].unitPrice
     };
-    
+
     setItems(updatedItems);
   };
-  
+
   const handleUnitPriceChange = (index: number, price: string) => {
     const unitPrice = parseFloat(price) || 0;
     const updatedItems = [...items];
@@ -188,14 +229,14 @@ const NewPurchaseForm = () => {
       unitPrice,
       totalPrice: updatedItems[index].quantity * unitPrice
     };
-    
+
     setItems(updatedItems);
   };
-  
+
   const addItemRow = () => {
     setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0 }]);
   };
-  
+
   const removeItemRow = (index: number) => {
     if (items.length === 1) {
       toast({
@@ -205,15 +246,15 @@ const NewPurchaseForm = () => {
       });
       return;
     }
-    
+
     const updatedItems = [...items];
     updatedItems.splice(index, 1);
     setItems(updatedItems);
   };
-  
-  const handleSubmit = (e: React.FormEvent) => {
+
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validate form
     if (!vendorId) {
       toast({
@@ -223,7 +264,7 @@ const NewPurchaseForm = () => {
       });
       return;
     }
-    
+
     const invalidItems = items.filter(item => !item.productId || item.quantity <= 0);
     if (invalidItems.length > 0) {
       toast({
@@ -233,19 +274,28 @@ const NewPurchaseForm = () => {
       });
       return;
     }
-    
+
+    const payload = {
+      vendorId,
+      purchaseOrderNumber,
+      purchaseDate,
+      deliveryDate,
+      notes,
+      items,
+      totalAmount,
+      
+    };
+    await createPurchaseOrderAPI(payload,token)
+ 
     // In a real app, this would call an API to create the purchase
-    toast({
-      title: "Purchase order created",
-      description: `Purchase order ${purchaseOrderNumber} has been created.`,
-    });
-    
+  
+
     // Navigate back to purchases list
     navigate('/vendors');
   };
-  
+
   const getProductUnitType = (productId: string) => {
-    const product = mockProducts.find(p => p.id === productId);
+    const product = products.find(p => p.id === productId);
     return product ? product.unit : '';
   };
 
@@ -253,20 +303,20 @@ const NewPurchaseForm = () => {
   const isRecommendedVendor = (vendorId: string) => {
     return suggestedVendors.includes(vendorId);
   };
-  
+
   return (
     <div className="container mx-auto py-6 space-y-6">
       <Button variant="ghost" onClick={() => navigate('/vendors')}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Purchases
       </Button>
-      
+
       <PageHeader
         title="New Purchase Order"
         description="Create a new purchase order for products from vendors or farmers"
         icon={<Package className="h-5 w-5 text-primary" />}
       />
-      
+
       <form onSubmit={handleSubmit}>
         <Card>
           <CardContent className="space-y-6 pt-6">
@@ -279,20 +329,20 @@ const NewPurchaseForm = () => {
                       <SelectValue placeholder="Select a vendor" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockVendors.map((vendor) => (
-                        <SelectItem 
-                          key={vendor.id} 
+                      {vendors.map((vendor) => (
+                        <SelectItem
+                          key={vendor.id}
                           value={vendor.id}
                           className={isRecommendedVendor(vendor.id) ? "text-green-600 font-medium" : ""}
                         >
-                          {vendor.name} 
+                          {vendor.name}
                           {isRecommendedVendor(vendor.id) && " (Recommended)"}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="poNumber">Purchase Order Number</Label>
                   <Input
@@ -303,7 +353,7 @@ const NewPurchaseForm = () => {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="purchaseDate">Purchase Date</Label>
@@ -319,7 +369,7 @@ const NewPurchaseForm = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="deliveryDate">Expected Delivery Date</Label>
                   <div className="relative">
@@ -335,7 +385,7 @@ const NewPurchaseForm = () => {
                 </div>
               </div>
             </div>
-            
+
             <div>
               <Label htmlFor="notes">Notes</Label>
               <Textarea
@@ -346,7 +396,7 @@ const NewPurchaseForm = () => {
                 className="h-[100px]"
               />
             </div>
-            
+
             <div>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-sm font-medium">Order Items</h3>
@@ -355,21 +405,21 @@ const NewPurchaseForm = () => {
                   Add Item
                 </Button>
               </div>
-              
+
               <div className="space-y-4">
                 {items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-5">
                       <Label htmlFor={`product-${index}`}>Product</Label>
-                      <Select 
-                        value={item.productId} 
+                      <Select
+                        value={item.productId}
                         onValueChange={(value) => handleProductChange(index, value)}
                       >
                         <SelectTrigger id={`product-${index}`}>
                           <SelectValue placeholder="Select a product" />
                         </SelectTrigger>
                         <SelectContent>
-                          {mockProducts.map((product) => (
+                          {products.map((product) => (
                             <SelectItem key={product.id} value={product.id}>
                               {product.name}
                             </SelectItem>
@@ -377,25 +427,25 @@ const NewPurchaseForm = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div className="col-span-2">
                       <Label htmlFor={`quantity-${index}`}>Quantity</Label>
                       <Input
                         id={`quantity-${index}`}
                         type="number"
                         min="0"
-                        step="0.1"
+                        step="1"
                         value={item.quantity || ''}
                         onChange={(e) => handleQuantityChange(index, e.target.value)}
                       />
                     </div>
-                    
+
                     <div className="col-span-1 text-center mt-1">
                       <span className="text-sm text-muted-foreground">
                         {getProductUnitType(item.productId)}
                       </span>
                     </div>
-                    
+
                     <div className="col-span-2">
                       <Label htmlFor={`unitPrice-${index}`}>Box Price</Label>
                       <div className="relative">
@@ -411,17 +461,17 @@ const NewPurchaseForm = () => {
                         />
                       </div>
                     </div>
-                    
+
                     <div className="col-span-1">
                       <div className="text-right">
                         <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
                       </div>
                     </div>
-                    
+
                     <div className="col-span-1">
-                      <Button 
-                        type="button" 
-                        variant="ghost" 
+                      <Button
+                        type="button"
+                        variant="ghost"
                         size="icon"
                         className="text-destructive"
                         onClick={() => removeItemRow(index)}
@@ -432,7 +482,7 @@ const NewPurchaseForm = () => {
                   </div>
                 ))}
               </div>
-              
+
               <div className="mt-6 flex justify-end">
                 <div className="text-right">
                   <div className="text-sm text-muted-foreground">Total Amount</div>

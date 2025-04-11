@@ -61,10 +61,10 @@ export default function App() {
 
 
   useEffect(() => {
-    if(authData?.token){
+    if (authData?.token) {
       dispatch(fetchMyProfile(authData?.token));
     }
-   
+
   }, []);
   const isAdmin = isAuthenticated && authData?.user?.role === "admin";
   const isMember = isAuthenticated && authData?.user?.role === "member";
@@ -76,7 +76,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-  
+
       <Routes>
         {/* Open Routes */}
         <Route
@@ -137,7 +137,7 @@ export default function App() {
             </PrivateRoute>
           }
         />
-           <Route
+        <Route
           path="/store/orders"
           element={
             <PrivateRoute>
@@ -350,58 +350,66 @@ export default function App() {
 
         {/* Vendors */}
         <Route
-  path="/vendors"
-  element={
-    <PrivateRoute>
-      <Vendors />
-    </PrivateRoute>
-  }
-/>
+          path="/vendors"
+          element={
+            <PrivateRoute>
+              <Vendors />
+            </PrivateRoute>
+          }
+        />
 
-<Route
-  path="/vendors/new-vendor"
-  element={
-    <PrivateRoute>
-      <NewVendor />
-    </PrivateRoute>
-  }
-/>
+        <Route
+          path="/vendors/new-vendor"
+          element={
+            <PrivateRoute>
+              <NewVendor />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vendors/edit/:id"
+          element={
+            <PrivateRoute>
+              <NewVendor />
+            </PrivateRoute>
+          }
+        />
 
-<Route
-  path="/vendors/new-purchase"
-  element={
-    <PrivateRoute>
-      <NewPurchase />
-    </PrivateRoute>
-  }
-/>
+        <Route
+          path="/vendors/new-purchase"
+          element={
+            <PrivateRoute>
+              <NewPurchase />
+            </PrivateRoute>
+          }
+        />
 
-<Route
-  path="/vendors/quality-control/:id"
-  element={
-    <PrivateRoute>
-      <VendorQualityControl />
-    </PrivateRoute>
-  }
-/>
+        <Route
+          path="/vendors/quality-control/:id"
+          element={
+            <PrivateRoute>
+              <VendorQualityControl />
+            </PrivateRoute>
+          }
+        />
 
-<Route
-  path="/vendors/invoice/:id"
-  element={
-    <PrivateRoute>
-      <VendorInvoiceUpload />
-    </PrivateRoute>
-  }
-/>
+        <Route
+          path="/vendors/invoice/:id"
+          element={
+            <PrivateRoute>
+              <VendorInvoiceUpload />
+            </PrivateRoute>
+          }
+        />
 
-<Route
-  path="/vendors/payment/:id"
-  element={
-    <PrivateRoute>
-      <VendorPayment />
-    </PrivateRoute>
-  }
-/>
+        <Route
+          path="/vendors/payment/:id"
+          element={
+            <PrivateRoute>
+              <VendorPayment />
+            </PrivateRoute>
+          }
+        />
 
         <Route path="*" element={<NotFound />} />
       </Routes>

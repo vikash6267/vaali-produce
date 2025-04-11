@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import { 
   ArrowLeft, Save, User, Mail, Phone, MapPin, Star
 } from 'lucide-react';
@@ -16,6 +16,10 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { VendorType } from '@/types/vendor';
+import {createVendorAPI,getSingleVendorAPI,updateVendorAPI} from "@/services2/operations/vendor"
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
+
 
 const NewVendorForm = () => {
   const navigate = useNavigate();
@@ -30,8 +34,35 @@ const NewVendorForm = () => {
   const [address, setAddress] = useState('');
   const [notes, setNotes] = useState('');
   const [productsSupplied, setProductsSupplied] = useState('');
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const { id } = useParams(); // yeh id URL se milegi
+
+
+  const fetchVendor = async () => {
+    if (!id) return;
   
-  const handleSubmit = (e: React.FormEvent) => {
+    try {
+      const res = await getSingleVendorAPI(id, token);
+      console.log(res);
+  
+      setName(res.name || '');
+      setType(res.type || 'supplier');
+      setContactName(res.contactName || '');
+      setEmail(res.email || '');
+      setPhone(res.phone || '');
+      setAddress(res.address || '');
+      setNotes(res.notes || '');
+      setProductsSupplied(res.productsSupplied || '');
+    } catch (error) {
+      console.error("Error fetching vendor:", error);
+    }
+  };
+
+
+  useEffect(()=>{
+    fetchVendor()
+  },[id])
+  const handleSubmit = async(e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate form
@@ -43,12 +74,26 @@ const NewVendorForm = () => {
       });
       return;
     }
-    
-    // In a real app, this would call an API to create the vendor
-    toast({
-      title: "Vendor created",
-      description: `Vendor ${name} has been created.`,
-    });
+    const formData = {
+      name,
+      type,
+      contactName,
+      email,
+      phone,
+      address,
+      notes,
+      productsSupplied,
+    };
+
+    if(!id){
+      const res = await createVendorAPI(formData, token);
+      
+    }else{
+      const res = await updateVendorAPI(id,formData, token);
+      
+    }
+      
+
     
     // Navigate back to vendors list
     navigate('/vendors');
@@ -66,10 +111,10 @@ const NewVendorForm = () => {
           <CardHeader>
             <CardTitle className="text-xl flex items-center">
               <User className="mr-2 h-5 w-5 text-primary" />
-              New Vendor
+              {id ? "Edit Vendor" : "New Vendor" }
             </CardTitle>
             <CardDescription>
-              Add a new vendor, farmer, or supplier to your database
+        {   !id &&   "Add a new vendor, farmer, or supplier to your database"}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -186,7 +231,8 @@ const NewVendorForm = () => {
             </Button>
             <Button type="submit">
               <Save className="mr-2 h-4 w-4" />
-              Create Vendor
+              {id ? "Edit Vendor" : "Add Vendor" }
+
             </Button>
           </CardFooter>
         </Card>
