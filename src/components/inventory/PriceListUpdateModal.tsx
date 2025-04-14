@@ -87,7 +87,7 @@ const PriceListUpdateModal: React.FC<PriceListUpdateModalProps> = ({
     const newPrices: Record<string, number> = {};
     
     filteredProducts.forEach(product => {
-      const newPrice = Math.round(calculateNewPrice(product.price) * 100) / 100;
+      const newPrice = Math.round(calculateNewPrice(product.pricePerBox) * 100) / 100;
       newPrices[product.id] = newPrice;
     });
     
@@ -268,7 +268,7 @@ const PriceListUpdateModal: React.FC<PriceListUpdateModalProps> = ({
                   </TableRow>
                 ) : (
                   filteredProducts.map((product) => {
-                    const currentPrice = product.price;
+                    const currentPrice = product.pricePerBox;
                     const newPrice = editedPrices[product.id] !== undefined 
                       ? editedPrices[product.id] 
                       : currentPrice;

@@ -229,7 +229,7 @@ const updateProductPrice = async (req, res) => {
        
 
         const updatePromises = Object.entries(priceUpdates).map(([id, price]) =>
-            productModel.findByIdAndUpdate(id, { price }, { new: true })
+            productModel.findByIdAndUpdate(id, { pricePerBox:price }, { new: true })
         );
 
         // Wait for all updates to complete
