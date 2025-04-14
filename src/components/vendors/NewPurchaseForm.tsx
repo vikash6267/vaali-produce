@@ -22,6 +22,7 @@ import { getAllVendorsAPI } from "@/services2/operations/vendor"
 import {createPurchaseOrderAPI} from "@/services2/operations/purchaseOrder"
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
+import ReactSelect from 'react-select';
 
 
 // Mock vendor pricing data
@@ -409,6 +410,8 @@ const NewPurchaseForm = () => {
               <div className="space-y-4">
                 {items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-3 items-end">
+                 
+                 
                     <div className="col-span-5">
                       <Label htmlFor={`product-${index}`}>Product</Label>
                       <Select
@@ -427,6 +430,26 @@ const NewPurchaseForm = () => {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {/* {
+                          <div className="col-span-5">
+                          <Label htmlFor={`product-${index}`}>Product</Label>
+                          <ReactSelect
+                            id={`product-${index}`}
+                            options={products.map(product => ({
+                              value: product.id,
+                              label: product.name
+                            }))}
+                            value={products.find(p => p.id === item.productId) && {
+                              value: item.productId,
+                              label: products.find(p => p.id === item.productId)?.name,
+                            }}
+                            onChange={(selected) => handleProductChange(index, selected?.value)}
+                            placeholder="Select a product"
+                            isSearchable
+                          />
+                        </div>
+                    } */}
 
                     <div className="col-span-2">
                       <Label htmlFor={`quantity-${index}`}>Quantity</Label>

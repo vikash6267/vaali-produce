@@ -32,12 +32,17 @@ exports.createPurchaseOrder = async (req, res) => {
 
 exports.getAllPurchaseOrders = async (req, res) => {
     try {
-        const orders = await PurchaseOrder.find().populate('vendorId').populate('items.productId');
+        const orders = await PurchaseOrder.find()
+            .populate('vendorId')
+            .populate('items.productId')
+            .sort({ createdAt: -1 }); // 👈 Sorting by most recent
+
         res.status(200).json({ success: true, data: orders });
     } catch (error) {
         res.status(500).json({ success: false, message: 'Internal server error', error });
     }
 };
+
 
 exports.getSinglePurchaseOrder = async (req, res) => {
     try {
