@@ -15,9 +15,9 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
   const doc = new jsPDF()
 
   const MARGIN = 15
-  const TABLE_FONT_SIZE = 6.9
-  const HEADER_FONT_SIZE = 7.9
-  const TITLE_FONT_SIZE = 7
+  const TABLE_FONT_SIZE = 6.8
+  const HEADER_FONT_SIZE = 7.8
+
 
   const today = new Date()
   const logoUrl = "/logg.png"
@@ -195,10 +195,11 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
         },
       ],
       ...category.products.map((product) => [
-        product.name.toUpperCase(),
-        `${formatCurrencyValue(product.pricePerBox)}`,
-        "",
+        { content: product.name.toUpperCase(), styles: { fontStyle: "bold" } },
+        { content: `${formatCurrencyValue(product.pricePerBox)}`, styles: { fontStyle: "bold", halign: "center" } },
+        { content: "", styles: { fontStyle: "bold", halign: "center" } },
       ]),
+      
     ]
 
     autoTable(doc, {
