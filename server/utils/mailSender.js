@@ -5,7 +5,7 @@ const mailSender = async (email, subject, message, file, cc, bcc) => {
   try {
     let transporter = nodemailer.createTransport({
       host: process.env.MAIL_HOST,
-      auth: {
+          auth: {
         user: process.env.MAIL_USER,
         pass: process.env.MAIL_PASS,
       },
@@ -25,7 +25,7 @@ const mailSender = async (email, subject, message, file, cc, bcc) => {
 
     
       let mailOptions = {
-        from: "vikasmaheshwari6267@gmail.com",
+        from: "order@valiproduce.shop",
         to: email,
         cc: cc || "", // Optional
         bcc: bcc || "", // Optional
