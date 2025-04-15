@@ -31,7 +31,7 @@ import StoreRegistration from "./StoreRegistration"
 import AddressForm from "@/components/AddressFields"
 import { getAllProductAPI } from "@/services2/operations/product"
 
-const CreateOrderModalStore = ({}) => {
+const CreateOrderModalStore = ({ }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null)
   const [selectedStore, setSelectedStore] = useState<{
     label: string
@@ -44,6 +44,8 @@ const CreateOrderModalStore = ({}) => {
   const [isGroupOpen, setIsGroupOpen] = useState(false)
 
   const [quantities, setQuantities] = useState<Record<string, number>>({})
+  const [priceType, setPriceType] = useState({}); // 'unit' or 'box'
+
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
   const [orderDetails, setOrderDetails] = useState<any>(null)
@@ -158,22 +160,32 @@ const CreateOrderModalStore = ({}) => {
     setStoreLoading(false)
   }
 
-  const handleQuantityChange = (productId: string, value: string) => {
-    const quantity = Number.parseInt(value) || 0
+  const handleQuantityChange = (productId, value) => {
     setQuantities((prev) => ({
       ...prev,
-      [productId]: quantity,
-    }))
-  }
+      [productId]: parseInt(value) || 0,
+    }));
+  };
+
+  const handlePriceTypeChange = (productId, value) => {
+    setPriceType((prev) => ({
+      ...prev,
+      [productId]: value,
+    }));
+  };
 
   const calculateSubtotal = () => {
-    if (!template) return 0
+    if (!template) return 0;
 
     return template.products.reduce((total, product) => {
-      const quantity = quantities[product.id] || 0
-      return total + product.pricePerBox * quantity
-    }, 0)
-  }
+      const quantity = quantities[product.id] || 0;
+      const type = priceType[product.id] || "box"; // Default to 'box'
+      const price = type === "unit" ? product.price : product.pricePerBox;
+
+      return total + price * quantity;
+    }, 0);
+  };
+
 
   const calculateShipping = () => {
     if (!template) return 0
@@ -220,18 +232,24 @@ const CreateOrderModalStore = ({}) => {
     const orderedProducts = template.products
       .filter((product) => (quantities[product.id] || 0) > 0)
       .map((product) => {
-        const quantity = quantities[product.id] || 0
+        const quantity = quantities[product.id] || 0;
+        const pricingType = priceType[product.id] || "box"; // default to 'box'
+
+        const unitPrice = pricingType === "unit" ? product.price : product.pricePerBox;
+
         return {
           product: product.id,
           name: product.name,
-          price: product.pricePerBox,
+          price: unitPrice,
           quantity: quantity,
+          pricingType: pricingType,
           productId: product.id,
           productName: product.name,
-          unitPrice: product.pricePerBox,
-          total: product.pricePerBox * quantity,
-        }
-      })
+          unitPrice: unitPrice,
+          total: unitPrice * quantity,
+        };
+      });
+
 
     if (orderedProducts.length === 0) {
       toast({
@@ -275,9 +293,9 @@ const CreateOrderModalStore = ({}) => {
         customerName: selectedStore.label,
         items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.pricePerBox,
+          price: item.unitPrice,
           quantity: item.quantity,
-          total: (item.unitPrice || item.pricePerBox) * item.quantity,
+          total: (item.unitPrice) * item.quantity,
         })),
         total: order.total,
         date: order.date,
@@ -307,6 +325,9 @@ const CreateOrderModalStore = ({}) => {
 
     setIsSubmitting(false)
   }
+
+
+
 
   const filteredProducts = template?.products?.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -494,8 +515,10 @@ const CreateOrderModalStore = ({}) => {
                       </TableHeader>
                       <TableBody>
                         {filteredProducts.map((product) => {
-                          const quantity = quantities[product.id] || 0
-                          const total = product.pricePerBox * quantity
+                          const quantity = quantities[product.id] || 0;
+                          const selectedType = priceType[product.id] || "box"; // default to box
+                          const price = selectedType === "unit" ? product.price : product.pricePerBox;
+                          const total = price * quantity;
 
                           return (
                             <TableRow key={product.id}>
@@ -510,10 +533,23 @@ const CreateOrderModalStore = ({}) => {
                                   <span className="text-xs sm:text-sm">{product.name}</span>
                                 </div>
                               </TableCell>
+
                               <TableCell className="hidden sm:table-cell">{product.category}</TableCell>
+
                               <TableCell className="text-right text-xs sm:text-sm">
-                                {formatCurrency(product.pricePerBox)}
+                                <div className="flex flex-col items-end gap-1">
+                                  <select
+                                    value={selectedType}
+                                    onChange={(e) => handlePriceTypeChange(product.id, e.target.value)}
+                                    className="text-xs border rounded px-2 py-1"
+                                  >
+                                    <option value="unit">Per Unit</option>
+                                    <option value="box">Per Box</option>
+                                  </select>
+                                  <span>{formatCurrency(price)}</span>
+                                </div>
                               </TableCell>
+
                               <TableCell>
                                 <Input
                                   type="number"
@@ -523,13 +559,15 @@ const CreateOrderModalStore = ({}) => {
                                   className="w-16 sm:w-20 mx-auto text-center"
                                 />
                               </TableCell>
+
                               <TableCell className="text-right font-medium text-xs sm:text-sm">
                                 {formatCurrency(total)}
                               </TableCell>
                             </TableRow>
-                          )
+                          );
                         })}
                       </TableBody>
+
                     </Table>
                   </div>
                 </div>
@@ -599,7 +637,16 @@ const CreateOrderModalStore = ({}) => {
                           <TableCell className="text-right text-xs sm:text-sm">
                             {formatCurrency(product.unitPrice || product.pricePerBox)}
                           </TableCell>
-                          <TableCell className="text-center text-xs sm:text-sm">{product.quantity}</TableCell>
+                          <TableCell className="text-center text-xs sm:text-sm">
+  {product.quantity}{" "}
+  {product.pricingType === "unit"
+    ? "LB"
+    : product.pricingType !== "box"
+    ? product.pricingType
+    : ""}
+</TableCell>
+
+
                           <TableCell className="text-right text-xs sm:text-sm">
                             {formatCurrency((product.unitPrice || product.pricePerBox) * product.quantity)}
                           </TableCell>

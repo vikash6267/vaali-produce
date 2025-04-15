@@ -228,7 +228,8 @@ export const exportWorkOrderToPDF = (
   const tableRows = order.items.map(item => {
     const row = [
       item.productName,
-      item.quantity.toString()
+`${item.quantity}${item.pricingType && item.pricingType !== "box" ? " " + (item.pricingType === "unit" ? "LB" : item.pricingType) : ""}`
+
     ];
     
     if (options.palletData) {

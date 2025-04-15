@@ -155,7 +155,7 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
 
   const tableRows = order.items.map(item => [
     item.name || item.productName,
-    `${item.quantity}${item.pricingType && item.pricingType !== "box" ? " " + item.pricingType : ""}`,
+   `${item.quantity}${item.pricingType && item.pricingType !== "box" ? " " + (item.pricingType === "unit" ? "LB" : item.pricingType) : ""}`,
     formatCurrency(item.unitPrice || item.price),
     formatCurrency(item.quantity * (item.unitPrice || item.price))
   ]);

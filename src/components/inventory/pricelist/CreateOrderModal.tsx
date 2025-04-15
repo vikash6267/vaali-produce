@@ -64,6 +64,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   } | null>(null);
 
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+  const [priceType, setPriceType] = useState({}); // 'unit' or 'box'
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderConfirmed, setOrderConfirmed] = useState(false);
   const [orderDetails, setOrderDetails] = useState<any>(null);
@@ -166,22 +168,33 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     fetchStores();
   }, []);
 
-  const handleQuantityChange = (productId: string, value: string) => {
-    const quantity = parseInt(value) || 0;
+
+
+  const handleQuantityChange = (productId, value) => {
     setQuantities((prev) => ({
       ...prev,
-      [productId]: quantity,
+      [productId]: parseInt(value) || 0,
+    }));
+  };
+  
+  const handlePriceTypeChange = (productId, value) => {
+    setPriceType((prev) => ({
+      ...prev,
+      [productId]: value,
     }));
   };
 
   const calculateSubtotal = () => {
-    if (!template) return 0
-
+    if (!template) return 0;
+  
     return template.products.reduce((total, product) => {
-      const quantity = quantities[product.id] || 0
-      return total + product.pricePerBox * quantity
-    }, 0)
-  }
+      const quantity = quantities[product.id] || 0;
+      const type = priceType[product.id] || "box"; // Default to 'box'
+      const price = type === "unit" ? product.price : product.pricePerBox;
+  
+      return total + price * quantity;
+    }, 0);
+  };
 
   const calculateShipping = () => {
     if (!template) return 0
@@ -225,21 +238,27 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       return
     }
 
+   
     const orderedProducts = template.products
-      .filter((product) => (quantities[product.id] || 0) > 0)
-      .map((product) => {
-        const quantity = quantities[product.id] || 0
-        return {
-          product: product.id,
-          name: product.name,
-          price: product.pricePerBox,
-          quantity: quantity,
-          productId: product.id,
-          productName: product.name,
-          unitPrice: product.pricePerBox,
-          total: product.pricePerBox * quantity,
-        }
-      })
+    .filter((product) => (quantities[product.id] || 0) > 0)
+    .map((product) => {
+      const quantity = quantities[product.id] || 0;
+      const pricingType = priceType[product.id] || "box"; // default to 'box'
+  
+      const unitPrice = pricingType === "unit" ? product.price : product.pricePerBox;
+  
+      return {
+        product: product.id,
+        name: product.name,
+        price: unitPrice,
+        quantity: quantity,
+        pricingType: pricingType,
+        productId: product.id,
+        productName: product.name,
+        unitPrice: unitPrice,
+        total: unitPrice * quantity,
+      };
+    });
 
     if (orderedProducts.length === 0) {
       toast({
@@ -283,9 +302,9 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         customerName: selectedStore.label,
         items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.pricePerBox,
+          price: item.unitPrice ,
           quantity: item.quantity,
-          total: (item.unitPrice || item.pricePerBox) * item.quantity,
+          total: (item.unitPrice ) * item.quantity,
         })),
         total: order.total,
         date: order.date,
@@ -434,37 +453,59 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {template.products.map((product) => {
-                      const quantity = quantities[product.id] || 0;
-                      const total = product.pricePerBox * quantity;
+                        {template?.products.map((product) => {
+                          const quantity = quantities[product.id] || 0;
+                          const selectedType = priceType[product.id] || "box"; // default to box
+                          const price = selectedType === "unit" ? product.price : product.pricePerBox;
+                          const total = price * quantity;
 
-                      return (
-                        <TableRow key={product.id}>
-                          <TableCell className="font-medium">
-                            {product.name}
-                          </TableCell>
-                          <TableCell>{product.category}</TableCell>
-                          <TableCell className="text-right">
-                            {formatCurrency(product.pricePerBox)}
-                          </TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              min="0"
-                              value={quantity || ""}
-                              onChange={(e) =>
-                                handleQuantityChange(product.id, e.target.value)
-                              }
-                              className="w-20 mx-auto"
-                            />
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            {formatCurrency(total)}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
+                          return (
+                            <TableRow key={product.id}>
+                              <TableCell className="font-medium">
+                                <div className="flex items-center gap-2 sm:gap-4">
+                                  <img
+                                    src={product.image || "/placeholder.svg"}
+                                    alt=""
+                                    className="h-10 sm:h-14 w-auto object-contain"
+                                    loading="lazy"
+                                  />
+                                  <span className="text-xs sm:text-sm">{product.name}</span>
+                                </div>
+                              </TableCell>
+
+                              <TableCell className="hidden sm:table-cell">{product.category}</TableCell>
+
+                              <TableCell className="text-right text-xs sm:text-sm">
+                                <div className="flex flex-col items-end gap-1">
+                                  <select
+                                    value={selectedType}
+                                    onChange={(e) => handlePriceTypeChange(product.id, e.target.value)}
+                                    className="text-xs border rounded px-2 py-1"
+                                  >
+                                    <option value="unit">Per Unit</option>
+                                    <option value="box">Per Box</option>
+                                  </select>
+                                  <span>{formatCurrency(price)}</span>
+                                </div>
+                              </TableCell>
+
+                              <TableCell>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  value={quantity || ""}
+                                  onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                                  className="w-16 sm:w-20 mx-auto text-center"
+                                />
+                              </TableCell>
+
+                              <TableCell className="text-right font-medium text-xs sm:text-sm">
+                                {formatCurrency(total)}
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
                 </Table>
               </div>
 
@@ -535,9 +576,10 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                       <TableCell className="text-right">
                         {formatCurrency(product.unitPrice || product.pricePerBox)}
                       </TableCell>
-                      <TableCell className="text-center">
-                        {product.quantity}
-                      </TableCell>
+                      <TableCell className="text-center text-xs sm:text-sm">
+  {product.quantity} {product.pricingType === "unit" ? "LB" : product.pricingType !== "box" ? product.pricingType : ""}
+</TableCell>
+
                       <TableCell className="text-right">
                         {formatCurrency(
                           (product.unitPrice || product.pricePerBox) *

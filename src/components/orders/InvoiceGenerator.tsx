@@ -393,8 +393,9 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
                     {" "}
                     {item.quantity}
                     {item.pricingType && item.pricingType !== "box"
-                      ? " " + item.pricingType
-                      : ""}
+  ? " " + (item.pricingType === "unit" ? "LB" : item.pricingType)
+  : ""}
+
                   </td>
                   <td className="text-right py-3">
                     {formatCurrency(item.unitPrice || item.price)}
