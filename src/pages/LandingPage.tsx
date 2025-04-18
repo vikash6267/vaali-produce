@@ -22,7 +22,6 @@ const LandingPage = () => {
     <div className="min-h-screen flex flex-col fl">
       {/* Hero Section */}
 
-
       <header className="bg-white shadow-md px-6 py-">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center">
           {/* Logo Section */}
@@ -53,40 +52,46 @@ const LandingPage = () => {
             <div className="flex items-center space-x-2">
               <span className="text-blue-500 text-xl">📞</span>
               <a
-                href="tel:+15016680123"
+                href="tel:+15015590123"
                 className="text-blue-700 text-lg font-medium hover:underline"
               >
-                Call: +1 501 668 0123
+                Call: +1 501 559 0123
               </a>
             </div>
           </div>
         </div>
       </header>
 
-
-
-
-
       <section className="bg-green-700 relative">
         {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-green-900 to-green-600 opacity-80" aria-hidden="true" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-green-900 to-green-600 opacity-80"
+          aria-hidden="true"
+        />
 
         <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-10 lg:px-16 py-20 md:py-28 grid grid-cols-1 md:grid-cols-2 gap-10 items-center">
-
           {/* Left Content */}
           <div className="text-white text-center md:text-left">
             <h1 className="text-4xl md:text-5xl font-extrabold leading-tight mb-6">
-              Fresh Produce, <span className="text-yellow-300">Direct to You</span>
+              Fresh Produce,{" "}
+              <span className="text-yellow-300">Direct to You</span>
             </h1>
             <p className="text-lg md:text-xl text-white/90 mb-8">
-              Vali Produce delivers the freshest fruits and vegetables from farm to your shop, ensuring quality and sustainability at every step.
+              Vali Produce delivers the freshest fruits and vegetables from farm
+              to your shop, ensuring quality and sustainability at every step.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-              <a href="/shop" className="px-6 py-3 text-lg font-medium bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-md">
+              <a
+                href="/shop"
+                className="px-6 py-3 text-lg font-medium bg-yellow-500 hover:bg-yellow-600 text-black rounded-lg shadow-md"
+              >
                 Shop Now
               </a>
-              <a href="/auth" className="px-6 py-3 text-lg font-medium border border-white text-white hover:bg-white/10 rounded-lg shadow-md">
+              <a
+                href="/auth"
+                className="px-6 py-3 text-lg font-medium border border-white text-white hover:bg-white/10 rounded-lg shadow-md"
+              >
                 Create Account
               </a>
             </div>
@@ -102,7 +107,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section>
-
 
       {/* Features Section */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
@@ -198,7 +202,6 @@ const LandingPage = () => {
               </div>
             </div>
 
-
             <div className="bg-white p-6 rounded-lg shadow-lg ">
               <div
                 className="aspect-w-16 aspect-h-9 lg:h-[60vh] h-[40vh] rounded-lg overflow-hidden bg-cover bg-center flex items-center justify-center"
@@ -208,16 +211,16 @@ const LandingPage = () => {
               >
                 <div className="bg-green-600/85 p-8 rounded-lg shadow-md text-center">
                   <Leaf className="h-20 w-20 text-white mx-auto mb-4" />
-                  <h3 className="text-2xl font-bold text-white">Vali Produce</h3>
+                  <h3 className="text-2xl font-bold text-white">
+                    Vali Produce
+                  </h3>
                   <p className="text-white">Farm Fresh, Business Ready</p>
                 </div>
               </div>
             </div>
-
           </div>
         </div>
       </section>
-
 
       {/* Raju Namkeen */}
       {/* <section className="py-14 md:py-12 px-4 sm:px-6 lg:px-8 bg-green-50">
@@ -281,18 +284,6 @@ const LandingPage = () => {
           </div>
         </div>
       </section> */}
-
-
-
-
-
-
-
-
-
-
-
-
 
       {/* How It Works Section */}
       <section className="py-16 md:py-24 px-4 sm:px-6 lg:px-8 bg-white">
@@ -540,8 +531,8 @@ const LandingPage = () => {
               <h3 className="text-xl font-bold mb-4">Contact Us</h3>
               <p className="mb-2">4300 Pleasantdale Rd, </p>
               <p className="mb-2">Atlanta, GA 30340,USA</p>
-              <p className="mb-2">contact@valiproduce.shop</p>
-              <p>+1 501 668 0123</p>
+              <p className="mb-2">order@valiproduce.shop</p>
+              <p>+1 501 559 0123</p>
             </div>
           </div>
           <div className="border-t border-green-800 mt-8 pt-8 text-center">
