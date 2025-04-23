@@ -156,7 +156,7 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
     const formData = form.getValues();
 
     const bolData: BillOfLadingData = {
-      bolNumber: `BOL - ${order.orderNumber}`,
+      bolNumber: ` ${order.orderNumber}`,
 
       shipperName: formData.shipperName,
       shipperAddress: formData.shipperAddress,

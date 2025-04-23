@@ -100,7 +100,7 @@ export const exportBillOfLadingToPDF = (
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "bold");
-  doc.setTextColor(70, 70, 70);
+  doc.setTextColor(0, 0, 0);
   doc.text("CONSIGNEE", MARGIN + columnWidth + 8, yPos + 6);
 
   doc.setFont("helvetica", "bold");
@@ -185,6 +185,12 @@ export const exportBillOfLadingToPDF = (
     startY: yPos,
     head: [tableHeaders.map((col) => col.header)],
     body: tableRows,
+    styles: {
+      lineColor: [0, 0, 0], // RGB for black color
+
+  
+      lineWidth: 0.1,
+    },
     foot: [
       [
         `${data.totalQuantity}`,
@@ -208,7 +214,7 @@ export const exportBillOfLadingToPDF = (
       fontStyle: "bold",
       textColor: [0, 0, 0],
       fillColor: false,  // removes the gray background
-      cellPadding: 2,
+      cellPadding: 1,
     },
     footStyles: {
       fillColor: [245, 245, 245],
