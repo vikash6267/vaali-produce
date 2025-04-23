@@ -1,9 +1,7 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Order } from "@/lib/data";
-import { PalletData } from '@/components/orders/PalletTrackingForm';
-
-
+import { PalletData } from "@/components/orders/PalletTrackingForm";
 
 export const exportBillOfLadingToPDF = (
   order: Order,
@@ -31,7 +29,8 @@ export const exportBillOfLadingToPDF = (
     palletData?: PalletData; // Added pallet data
     palletCharges?: {
       chargePerPallet: number;
-      totalCharge: number;}
+      totalCharge: number;
+    };
   }
 ) => {
   const doc = new jsPDF();
@@ -59,17 +58,18 @@ export const exportBillOfLadingToPDF = (
     align: "right",
   });
   yPos += 1;
-  
+
   doc.setFontSize(10);
   doc.setTextColor(100, 100, 100);
   doc.text(
-    `B/L #: ${data.bolNumber} • Date: ${new Date(order.date).toLocaleDateString()}`,
+    `B/L #: ${data.bolNumber} • Date: ${new Date(
+      order.date
+    ).toLocaleDateString()}`,
     MARGIN + CONTENT_WIDTH - 10,
     yPos + 4,
     { align: "right" }
   );
   yPos += 12;
-  
 
   const columnWidth = CONTENT_WIDTH / 2 - 2;
 
@@ -132,31 +132,42 @@ export const exportBillOfLadingToPDF = (
 
   // yPos += 28;
 
+  // Add pallet information if available
+  if (data.palletData) {
+    doc.setFillColor(230, 255, 240);
+    doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, "F");
 
-    // Add pallet information if available
-    if (data.palletData) {
-      doc.setFillColor(230, 255, 240);
-      doc.rect(MARGIN, yPos, CONTENT_WIDTH, 22, 'F');
-      
-      doc.setFontSize(9);
-      doc.setFont('helvetica', 'bold');
-      doc.text('PALLET INFORMATION', MARGIN + 4, yPos + 6);
-      
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(8);
-      
-      // Display pallet info 
-      doc.text(`Pallets: ${data.palletData.palletCount}`, MARGIN + 4, yPos + 14);
-      doc.text(`Total Boxes: ${data.palletData.totalBoxes}`, MARGIN + CONTENT_WIDTH/3, yPos + 14);
-      
-      if (data.palletCharges) {
-        doc.text(`Charge Per Pallet: $${data.palletCharges.chargePerPallet.toFixed(2)}`, MARGIN + (CONTENT_WIDTH/3)*1.5, yPos + 14);
-        doc.text(`Total Charges: $${data.palletCharges.totalCharge.toFixed(2)}`, MARGIN + (CONTENT_WIDTH/3)*2.3, yPos + 14);
-      }
-      
-      yPos += 28;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.text("PALLET INFORMATION", MARGIN + 4, yPos + 6);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+
+    // Display pallet info
+    doc.text(`Pallets: ${data.palletData.palletCount}`, MARGIN + 4, yPos + 14);
+    doc.text(
+      `Total Boxes: ${data.palletData.totalBoxes}`,
+      MARGIN + CONTENT_WIDTH / 3,
+      yPos + 14
+    );
+
+    if (data.palletCharges) {
+      doc.text(
+        `Charge Per Pallet: $${data.palletCharges.chargePerPallet.toFixed(2)}`,
+        MARGIN + (CONTENT_WIDTH / 3) * 1.5,
+        yPos + 14
+      );
+      doc.text(
+        `Total Charges: $${data.palletCharges.totalCharge.toFixed(2)}`,
+        MARGIN + (CONTENT_WIDTH / 3) * 2.3,
+        yPos + 14
+      );
     }
-    
+
+    yPos += 28;
+  }
+
   // Commodity Table
   const tableHeaders = [
     { header: "Quantity", dataKey: "pieces" },
@@ -167,17 +178,19 @@ export const exportBillOfLadingToPDF = (
     // { header: 'HM', dataKey: 'hazardous' }
   ];
 
-  const tableRows = order.items.map(item => {
+  const tableRows = order.items.map((item) => {
     // Get box count from pallet data if available
-    const boxCount = data.palletData?.boxesPerPallet[item.productId] || item.quantity.toString();
-    
+    const boxCount =
+      data.palletData?.boxesPerPallet[item.productId] ||
+      item.quantity.toString();
+
     return [
       boxCount.toString(),
       item.productName,
       `${Math.round(item.quantity * 2)} lbs`,
-      '157250',
-      '50',
-      data.hazardousMaterials ? 'X' : ''
+      "157250",
+      "50",
+      data.hazardousMaterials ? "X" : "",
     ];
   });
 
@@ -188,19 +201,9 @@ export const exportBillOfLadingToPDF = (
     styles: {
       lineColor: [0, 0, 0], // RGB for black color
 
-  
       lineWidth: 0.1,
     },
-    foot: [
-      [
-        `${data.totalQuantity}`,
-        "Total",
-        "",
-        "",
-        "",
-        "",
-      ],
-    ],
+    foot: [[`${data.totalQuantity}`, "Total", "", "", "", ""]],
     margin: { left: MARGIN, right: MARGIN },
     headStyles: {
       fillColor: [240, 240, 240],
@@ -213,7 +216,7 @@ export const exportBillOfLadingToPDF = (
       fontSize: 9,
       fontStyle: "bold",
       textColor: [0, 0, 0],
-      fillColor: false,  // removes the gray background
+      fillColor: false, // removes the gray background
       cellPadding: 1,
     },
     footStyles: {
@@ -233,7 +236,6 @@ export const exportBillOfLadingToPDF = (
       5: { cellWidth: 20, halign: "center" },
     },
   });
-  
 
   yPos = doc.lastAutoTable?.finalY ? doc.lastAutoTable.finalY + 8 : yPos + 50;
   addPageIfNeeded(30);
@@ -257,9 +259,9 @@ export const exportBillOfLadingToPDF = (
   doc.setFontSize(9);
   doc.setFont("helvetica", "bold");
   doc.setFont("helvetica", "italic");
-  doc.text(data.signatureShipper, MARGIN + 4, yPos + 10);
-  doc.setFont("helvetica", "bold");
-  doc.text(`Date: ${new Date().toLocaleDateString()}`, MARGIN + 100, yPos + 10);
+  // doc.text(data.signatureShipper, MARGIN + 4, yPos + 10);
+  // doc.setFont("helvetica", "bold");
+  // doc.text(`Date: ${new Date().toLocaleDateString()}`, MARGIN + 100, yPos + 10);
 
   // Footer
   const footerY = doc.internal.pageSize.height - 10;
