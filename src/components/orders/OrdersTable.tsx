@@ -58,17 +58,17 @@ import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import WorkOrderForm from './WorkOrder';
 import { PaymentStatusPopup } from './PaymentUpdateModel';
-import {deleteOrderAPI} from "@/services2/operations/order"
+import { deleteOrderAPI } from "@/services2/operations/order"
 import Swal from 'sweetalert2';
 
 interface OrdersTableProps {
   orders: Order[];
   fetchOrders: () => void;
-  onDelete: (id:string) => void
-  onPayment: (id:string) => void
+  onDelete: (id: string) => void
+  onPayment: (id: string,paymentMethod:any) => void
 }
 
-const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,onPayment }) => {
+const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete, onPayment }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -85,6 +85,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,
   // PAYMENT MODEL
   const [open, setOpen] = useState(false)
   const [orderId, setOrderId] = useState("")
+  const [paymentOrder, setpaymentOrder] = useState<Order | null>(null);
   const [orderIdDB, setOrderIdDB] = useState("")
   const [totalAmount, setTotalAmount] = useState(0)
 
@@ -96,39 +97,39 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,
     }
   }, [open]);
 
-  
+
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`);
   };
 
- const handleDelete = async (id: string,orderNumber:string) => {
+  const handleDelete = async (id: string, orderNumber: string) => {
     const result = await Swal.fire({
-        title: 'Are you sure?',
-        text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Yes, delete it!',
+      title: 'Are you sure?',
+      text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#d33',
+      cancelButtonColor: '#3085d6',
+      confirmButtonText: 'Yes, delete it!',
     });
 
     if (result.isConfirmed) {
-        const deletedOrder = await deleteOrderAPI(id, token);
+      const deletedOrder = await deleteOrderAPI(id, token);
 
-        if (deletedOrder) {
-            // Swal.fire({
-            //     title: 'Deleted!',
-            //     text: `Order ${id} has been deleted.`,
-            //     icon: 'success',
-            //     timer: 1500,
-            //     showConfirmButton: false,
-            // });
+      if (deletedOrder) {
+        // Swal.fire({
+        //     title: 'Deleted!',
+        //     text: `Order ${id} has been deleted.`,
+        //     icon: 'success',
+        //     timer: 1500,
+        //     showConfirmButton: false,
+        // });
 
 
-            onDelete(id)
-        }
+        onDelete(id)
+      }
     }
-};
+  };
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -355,12 +356,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,
                         <span className="capitalize">{order.paymentStatus}</span>
                       </div>
 
-                      {order.paymentStatus === "pending" && (
+                      {(
                         <button
-                          onClick={() => { setOrderId(order.orderNumber); setOpen(true) ; setTotalAmount(order.total);setOrderIdDB(order?._id || order?.id) }} // define this handler function
+                          onClick={() => { setOrderId(order.orderNumber); setOpen(true); setTotalAmount(order.total); setOrderIdDB(order?._id || order?.id) ;setpaymentOrder(order) }} // define this handler function
                           className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
                         >
-                          Pay Now
+                          {
+                            order.paymentStatus === "pending" ? "Pay Now" : "Edit"
+                          }
                         </button>
                       )}
                     </div>
@@ -424,7 +427,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,
                         <DropdownMenuSeparator />
 
                         {user.role === "admin" && <DropdownMenuItem
-                          onClick={() => handleDelete(order?._id,order?.id)}
+                          onClick={() => handleDelete(order?._id, order?.id)}
                           className="text-red-600 hover:text-red-700 focus:text-red-700"
                         >
                           <Trash size={14} className="mr-2" />
@@ -474,9 +477,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,
         onOpenChange={setOpen}
         orderId={orderId}
         totalAmount={totalAmount}
-id={orderIdDB}
-fetchOrders={fetchOrders}
-onPayment={onPayment}
+        id={orderIdDB}
+        fetchOrders={fetchOrders}
+        onPayment={onPayment}
+        paymentOrder={paymentOrder}
       />
     </div>
   );

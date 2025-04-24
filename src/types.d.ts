@@ -70,7 +70,7 @@ export interface Order {
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   shippingAddress?: Address;
   billingAddress?: Address;
-  paymentMethod?: string;
+  paymentMethod?:  string;
   paymentStatus: 'paid' | 'pending' | 'failed';
   subtotal: number;
   tax?: number;

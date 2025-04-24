@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Check, X } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -20,13 +20,14 @@ import { toast } from "@/components/ui/use-toast"
 import { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import{updateOrderPaymentAPI} from "@/services2/operations/order"
+import { Order } from '@/lib/data';
 
 interface PaymentStatusPopupProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   fetchOrders: () => void
-  onPayment: (id:string) => void
-
+  onPayment: (id:string,paymentMethod:any) => void
+  paymentOrder:Order
   orderId: string
   id:string
   totalAmount: number
@@ -40,13 +41,27 @@ interface PaymentData {
   notes?: string
 }
 
-export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,id,fetchOrders,onPayment}: PaymentStatusPopupProps) {
+export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,id,fetchOrders,onPayment,paymentOrder}: PaymentStatusPopupProps) {
   const [paymentMethod, setPaymentMethod] = useState<"cash" | "creditcard" | "cheque">("cash")
   const [transactionId, setTransactionId] = useState("")
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
+
+  console.log(paymentOrder)
+
+  useEffect(()=>{
+    setPaymentMethod("cash")
+    setTransactionId("")
+    setNotes("")
+    if(paymentOrder?.paymentStatus === "paid" ){
+      setPaymentMethod(paymentOrder.paymentDetails.method as any)
+      setTransactionId(paymentOrder?.paymentDetails?.transactionId || "")
+      setNotes(paymentOrder?.paymentDetails?.notes || "")
+    }
+
+  },[paymentOrder])
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true)
@@ -89,8 +104,9 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
       })
 
       // Reset form
-      onPayment(id)
+      onPayment(id,paymentData)
       // await fetchOrders()
+    
       setTransactionId("")
       setNotes("")
       onOpenChange(false)

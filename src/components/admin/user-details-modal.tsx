@@ -405,6 +405,8 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
           </TabsContent>
         </Tabs>
       </DialogContent>
+
+      
     </Dialog>
   )
 }

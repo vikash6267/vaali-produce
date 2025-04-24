@@ -66,14 +66,15 @@ const Orders = () => {
   };
 
 
-  const updateOrderPaymentStatus = async (orderId: string) => {
+  const updateOrderPaymentStatus = async (orderId: string,paymentMethod:any) => {
     try {
       // Backend API call to update paymentStatus
  
+      console.log(paymentMethod)
       // Frontend state mein bhi update karo
       setOrders(prevOrders =>
         prevOrders.map(order =>
-          order._id === orderId ? { ...order, paymentStatus: "paid" } : order
+          order._id === orderId ? { ...order, paymentStatus: "paid",paymentDetails:paymentMethod } : order
         )
       );
   
