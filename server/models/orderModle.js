@@ -28,6 +28,28 @@ const palletDataSchema = new mongoose.Schema({
 }, { _id: false });
 
 
+
+
+const paymentDetailsSchema = new mongoose.Schema({
+  method: {
+    type: String,
+    enum: ["cash", "creditcard"],
+    required: true,
+  },
+  transactionId: {
+    type: String,
+    required: function () {
+      return this.method === "creditcard";
+    }
+  },
+  notes: {
+    type: String,
+    required: function () {
+      return this.method === "cash";
+    }
+  }
+}, { _id: false });
+
 const orderSchema = new mongoose.Schema(
   {
     items: {
@@ -48,6 +70,14 @@ const orderSchema = new mongoose.Schema(
     status: {
       type: String,
       default: "Processing",
+    },
+    paymentStatus:{
+      type: String,
+      default: "pending",
+    },
+    paymentDetails: {
+      type: paymentDetailsSchema,
+    
     },
     total: {
       type: Number,

@@ -202,6 +202,36 @@ const updatePalletInfo = async (req, res) => {
                                 in: "$$order.total"
                             }
                         }
+                    },
+                    totalPay: {
+                        $sum: {
+                            $map: {
+                                input: "$orders",
+                                as: "order",
+                                in: {
+                                    $cond: [
+                                        { $eq: ["$$order.paymentStatus", "paid"] },
+                                        "$$order.total",
+                                        0
+                                    ]
+                                }
+                            }
+                        }
+                    },
+                    balanceDue: {
+                        $sum: {
+                            $map: {
+                                input: "$orders",
+                                as: "order",
+                                in: {
+                                    $cond: [
+                                        { $ne: ["$$order.paymentStatus", "paid"] },
+                                        "$$order.total",
+                                        0
+                                    ]
+                                }
+                            }
+                        }
                     }
                 }
             },
@@ -210,6 +240,9 @@ const updatePalletInfo = async (req, res) => {
                     _id: 1,
                     totalOrders: 1,
                     totalSpent: 1,
+                    totalPay: 1,
+                    balanceDue: 1,
+                    orders: 1,
                     user: {
                         _id: "$_id",
                         email: "$email",
@@ -222,7 +255,12 @@ const updatePalletInfo = async (req, res) => {
                         zipCode: "$zipCode",
                         businessDescription: "$businessDescription",
                         role: "$role",
-                        createdAt: { $dateToString: { format: "%Y-%m-%dT%H:%M:%S.%LZ", date: "$createdAt" } }
+                        createdAt: {
+                            $dateToString: {
+                                format: "%Y-%m-%dT%H:%M:%S.%LZ",
+                                date: "$createdAt"
+                            }
+                        }
                     }
                 }
             }
@@ -253,6 +291,70 @@ const updatePalletInfo = async (req, res) => {
 
 
 
+const updatePaymentDetails = async (req, res) => {
+    const { orderId } = req.params;
+    const { method, transactionId, notes } = req.body;
+  
+    try {
+      // Check for valid method
+      if (!["cash", "creditcard"].includes(method)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment method. Allowed: 'cash' or 'creditcard'"
+        });
+      }
+  
+      // Validate based on method
+      if (method === "creditcard" && !transactionId) {
+        return res.status(400).json({
+          success: false,
+          message: "Transaction ID is required for credit card payments"
+        });
+      }
+  
+      if (method === "cash" && !notes) {
+        return res.status(400).json({
+          success: false,
+          message: "Notes are required for cash payments"
+        });
+      }
+  
+      // Prepare paymentDetails object
+      const paymentDetails = {
+        method,
+        ...(method === "creditcard" ? { transactionId } : {}),
+        ...(method === "cash" ? { notes } : {})
+      };
+  
+      const updatedOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        { paymentDetails, paymentStatus: "paid" },
+        { new: true }
+      );
+  
+      if (!updatedOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found"
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        message: "Payment details updated successfully",
+        data: updatedOrder
+      });
+  
+    } catch (error) {
+      console.error("Error updating payment details:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message
+      });
+    }
+  };
+
 
 
 module.exports = { 
@@ -261,7 +363,8 @@ module.exports = {
     getOrderForStoreCtrl, 
     updateOrderCtrl,
     updatePalletInfo,
-    userDetailsWithOrder
+    userDetailsWithOrder,
+    updatePaymentDetails
      };
 
 

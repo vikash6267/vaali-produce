@@ -50,6 +50,13 @@ export interface Store {
   selectedItems: string[];
 }
 
+
+export interface PaymentDetails {
+  method?: 'cash' | 'creditcard';
+  transactionId?: string;  // Only required if payment method is 'creditcard'
+  notes?: string;  // Only required if payment method is 'cash'
+}
+
 export interface Order {
   id: string;
   _id?: string;
@@ -58,6 +65,7 @@ export interface Order {
   store?: string;
   customer?: string;
   date: string;
+  createdAt?: string;
   items: OrderItem[];
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   shippingAddress?: Address;
@@ -74,7 +82,9 @@ export interface Order {
   trackingNumber?: string;
   clientName?: string;
   clientId?: string;
-  palletData?:PalletData
+  palletData?:PalletData;
+  paymentDetails?: PaymentDetails;  // Added paymentDetails field here
+
 }
 
 // Updated OrderItem with all possible properties used across the app

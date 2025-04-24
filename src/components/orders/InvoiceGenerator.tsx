@@ -19,6 +19,8 @@ import {
   BadgeCheck,
   Settings2,
   ChevronDown,
+  CreditCard,
+  DollarSign,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -37,6 +39,8 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { exportInvoiceToPDF } from "@/utils/pdf";
+import { Badge } from "../ui/badge";
+// import { CreditCard, Cash } from 'lucide-react';  // Import icons from lucide-react
 
 interface InvoiceGeneratorProps {
   order: Order;
@@ -64,7 +68,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
     invoiceTemplate: "standard",
   });
   const [showOptions, setShowOptions] = useState(false);
-
+console.log(order)
   const handlePrint = () => {
     window.print();
     toast({
@@ -86,9 +90,10 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       status: order.status,
       items: order.items,
       total: order.total,
-      paymentStatus: "pending",
+      paymentStatus: order.paymentStatus || "pending",
       subtotal: order.total,
       store: order.store,
+      paymentDetails:order.paymentDetails || {}
     });
 
     toast({
@@ -131,6 +136,35 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
       ...invoiceOptions,
       [key]: value,
     });
+  };
+
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'processing':
+        return 'bg-blue-100 text-blue-800';
+      case 'shipped':
+        return 'bg-purple-100 text-purple-800';
+      case 'delivered':
+        return 'bg-green-100 text-green-800';
+      case 'cancelled':
+        return 'bg-red-100 text-red-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getPaymentIcon = (paymentStatus: string) => {
+    switch (paymentStatus) {
+      case 'paid':
+        return <CreditCard size={16} className="text-green-500" />;
+      case 'pending':
+        return <DollarSign size={16} className="text-yellow-500" />;
+      default:
+        return <CreditCard size={16} className="text-gray-500" />;
+    }
   };
 
   const getTotalWithTax = () => {
@@ -428,6 +462,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
                 <span className="font-medium">Shipping Cost:</span>
                 <span>{formatCurrency(order.shippinCost || 0)}</span>
               </div>
+             
+
+    
+
+    
+
               {/* {invoiceOptions.includePaymentTerms && (
                 <div className="flex justify-between py-2">
                   <span className="font-medium">Tax (8.5%):</span>
@@ -440,9 +480,35 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
                   {formatCurrency(getTotalWithTax())}
                 </span>
               </div>
+           
+           
+              {/* <div className="flex items-center gap-3 mt-2 sm:mt-0">
+  <Badge className={getStatusColor(order.status)}>
+    <div className="flex items-center">
+      {getPaymentIcon(order.paymentStatus || "pending")}
+      <span className="capitalize">{order.paymentStatus || "pending"}</span>
+    </div>
+  </Badge>
+
+  {order.paymentStatus === "paid" && (
+    <div className="flex items-center">
+      <span className="font-semibold ml-2">Payment Method: </span>
+      <span className="capitalize">{order.paymentDetails?.method}</span>
+
+      {order.paymentDetails?.method === "cash" && order.paymentDetails?.notes && (
+        <span className="text-sm text-gray-600 ml-2">Notes: {order.paymentDetails.notes}</span>
+      )}
+      {order.paymentDetails?.method === "creditcard" && order.paymentDetails?.transactionId && (
+        <span className="text-sm text-gray-600 ml-2">Transaction ID: {order.paymentDetails.transactionId}</span>
+      )}
+    </div>
+  )}
+</div> */}
             </div>
           </div>
 
+
+      
           {invoiceOptions.includePaymentTerms && (
             <div className="mt-8 pt-8 border-t border-gray-300 text-center text-gray-600 text-sm">
               <p className="mb-2">Thank you for your business!</p>

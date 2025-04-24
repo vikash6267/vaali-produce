@@ -37,6 +37,7 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
   const fetchUserDetailsOrder = async (id: any) => {
     try {
       const res = await userWithOrderDetails(id)
+      console.log(res)
       setSelectedUserData(res)
       setUserDetailsOpen(true)
     } catch (error) {
@@ -71,10 +72,10 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
         </div>
       ) : (
-        <div className="w-full overflow-hidden rounded-lg shadow-md">
+        <div className="w-full overflow-hidden rounded-lg shadow-md overflow-x-scroll">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="bg-primary/10 text-primary-foreground uppercase text-xs font-medium tracking-wider">
+              <tr className="bg-primary/10 text-gray-900 uppercase text-xs font-medium tracking-wider">
                 <th className="px-6 py-4">Email</th>
                 <th className="px-6 py-4">Phone</th>
                 <th className="px-6 py-4">Store Name</th>

@@ -239,11 +239,61 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
   //   yPos += 5;
   // }
 
-  doc.setLineWidth(0.5);
-  doc.line(PAGE_WIDTH - MARGIN - 60, yPos - 2, PAGE_WIDTH - MARGIN, yPos - 2);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Total:', PAGE_WIDTH - MARGIN - 60, yPos + 4);
-  doc.text(formatCurrency(allTotal), PAGE_WIDTH - MARGIN, yPos + 4, { align: 'right' });
+// Draw total line and amount first
+doc.setLineWidth(0.5);
+doc.line(PAGE_WIDTH - MARGIN - 60, yPos - 2, PAGE_WIDTH - MARGIN, yPos - 2);
+
+doc.setFont('helvetica', 'bold');
+doc.text('Total:', PAGE_WIDTH - MARGIN - 60, yPos + 4);
+doc.text(formatCurrency(allTotal), PAGE_WIDTH - MARGIN, yPos + 4, { align: 'right' });
+
+// // Show payment status on the right side (same line as Total)
+// const paymentStatusText = order.paymentStatus === 'paid' ? 'Paid' : 'Pending';
+
+// // Set text color based on status
+// if (order.paymentStatus === 'paid') {
+//   doc.setTextColor(0, 128, 0); // Green
+// } else {
+//   doc.setTextColor(255, 0, 0); // Red
+// }
+
+// doc.setFont('helvetica', 'bold');
+// doc.text(`Payment Status: ${paymentStatusText}`, PAGE_WIDTH - MARGIN, yPos + 4 + 6, { align: 'right' });
+
+// yPos += 12;
+
+// // Reset text color for other content
+// doc.setTextColor(0, 0, 0); 
+
+// // Now display payment details
+// if (order.paymentStatus === 'paid' && order.paymentDetails) {
+//   doc.setFont('helvetica', 'bold');
+//   doc.setTextColor(40, 40, 120); // Navy Blue for section title
+//   doc.text('Payment Details:', PAGE_WIDTH - MARGIN - 60, yPos + 4);
+//   yPos += 6;
+
+//   doc.setFont('helvetica', 'normal');
+//   doc.setTextColor(0, 0, 0); // Back to black
+
+//   // Method
+//   doc.text(`Method: ${order.paymentDetails.method}`, PAGE_WIDTH - MARGIN - 60, yPos + 4);
+//   yPos += 6;
+
+//   // If cash, show notes
+//   if (order.paymentDetails.method === 'cash' && order.paymentDetails.notes) {
+//     doc.setTextColor(80, 80, 80); // Dark gray for notes
+//     doc.text(`Notes: ${order.paymentDetails.notes}`, PAGE_WIDTH - MARGIN - 60, yPos + 4);
+//     yPos += 6;
+//   }
+
+//   // If creditcard, show transaction ID
+//   if (order.paymentDetails.method === 'creditcard' && order.paymentDetails.transactionId) {
+//     doc.setTextColor(0, 0, 0); // Reset for transaction ID
+//     doc.text(`Transaction ID: ${order.paymentDetails.transactionId}`, PAGE_WIDTH - MARGIN - 60, yPos + 4);
+//     yPos += 6;
+//   }
+// }
+
 
   // if (includePaymentTerms) {
   //   yPos += 15;

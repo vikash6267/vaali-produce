@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Table,
@@ -57,13 +57,14 @@ import OrderDetailsModal from './OrderView';
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import WorkOrderForm from './WorkOrder';
+import { PaymentStatusPopup } from './PaymentUpdateModel';
 
 interface OrdersTableProps {
   orders: Order[];
-  fetchOrders:()=>void
+  fetchOrders: () => void
 }
 
-const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
+const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -75,6 +76,22 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
   const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null);
 
+
+  // PAYMENT MODEL
+  const [open, setOpen] = useState(false)
+  const [orderId, setOrderId] = useState("")
+  const [orderIdDB, setOrderIdDB] = useState("")
+  const [totalAmount, setTotalAmount] = useState(0)
+
+
+  useEffect(() => {
+    if (!open) {
+      setOrderId("");
+      setTotalAmount(0);
+    }
+  }, [open]);
+
+  
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`);
   };
@@ -91,7 +108,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
     setSelectedOrder(order)
     setIsDetailsModalOpen(true)
 
-  
+
   };
 
   const handleViewClientProfile = (clientId: string) => {
@@ -154,10 +171,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
         return <CheckCircle2 size={14} />;
       case 'cancelled':
         return <XCircle size={14} />;
+      case 'paid':
+        return <CheckCircle2 size={14} />; // You can change icon if needed
       default:
         return null;
     }
   };
+
 
   const getStatusClass = (status: string) => {
     switch (status) {
@@ -171,10 +191,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
         return "bg-green-100 text-green-700";
       case 'cancelled':
         return "bg-red-100 text-red-700";
+      case 'paid':
+        return "bg-emerald-100 text-emerald-700";
       default:
         return "bg-gray-100 text-gray-700";
     }
   };
+
 
   const filteredOrders = orders.filter(order =>
     order.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -228,10 +251,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
 
         <div className="flex gap-2">
           <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders}>
-            <RefreshCw size={16} className="mr-2"  />
+            <RefreshCw size={16} className="mr-2" />
             Refresh
           </Button>
-         {user.role === "admin" &&   <Button size="sm" className="h-10" onClick={handleNewOrder}>
+          {user.role === "admin" && <Button size="sm" className="h-10" onClick={handleNewOrder}>
             <Plus size={16} className="mr-2" />
             New Order
           </Button>}
@@ -257,6 +280,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
               <TableHead>Client</TableHead>
               <TableHead>Date</TableHead>
               <TableHead>Status</TableHead>
+              <TableHead>Payment Status</TableHead>
               <TableHead>Items</TableHead>
               <TableHead>Total</TableHead>
               <TableHead className="text-right">Actions</TableHead>
@@ -293,6 +317,29 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
                       <span className="capitalize">{order.status}</span>
                     </div>
                   </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col items-start gap-1">
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
+                          getStatusClass(order.paymentStatus)
+                        )}
+                      >
+                        {getStatusIcon(order.paymentStatus)}
+                        <span className="capitalize">{order.paymentStatus}</span>
+                      </div>
+
+                      {order.paymentStatus === "pending" && (
+                        <button
+                          onClick={() => { setOrderId(order.orderNumber); setOpen(true) ; setTotalAmount(order.total);setOrderIdDB(order?._id || order?.id) }} // define this handler function
+                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                        >
+                          Pay Now
+                        </button>
+                      )}
+                    </div>
+                  </TableCell>
+
                   <TableCell>{order.items.length} items</TableCell>
                   <TableCell className="font-medium">{formatCurrency(order.total)}</TableCell>
                   <TableCell className="text-right">
@@ -313,7 +360,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
                             View Client Profile
                           </DropdownMenuItem>
                         )}
-                    { user.role === "admin" &&     <DropdownMenuItem onClick={() => handleEdit(order)}>
+                        {user.role === "admin" && <DropdownMenuItem onClick={() => handleEdit(order)}>
                           <Edit size={14} className="mr-2" />
                           Edit
                         </DropdownMenuItem>}
@@ -343,14 +390,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
                               Custom Document
                             </DropdownMenuItem>
                             <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
-                        <Wrench className="mr-2 h-4 w-4" /> Create Work Order
-                      </DropdownMenuItem>
+                              <Wrench className="mr-2 h-4 w-4" /> Create Work Order
+                            </DropdownMenuItem>
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
 
                         <DropdownMenuSeparator />
 
-                   {   user.role === "admin" &&    <DropdownMenuItem
+                        {user.role === "admin" && <DropdownMenuItem
                           onClick={() => handleDelete(order.id)}
                           className="text-red-600 hover:text-red-700 focus:text-red-700"
                         >
@@ -384,16 +431,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders,fetchOrders }) => {
       )}
 
 
-         <Dialog open={!!workOrderDialogOrder} onOpenChange={(open) => !open && setWorkOrderDialogOrder(null)}>
-              <DialogContent className="max-w-4xl p-0">
-                {workOrderDialogOrder && (
-                  <WorkOrderForm 
-                    order={workOrderDialogOrder}
-                    onClose={() => setWorkOrderDialogOrder(null)} 
-                  />
-                )}
-              </DialogContent>
-            </Dialog>
+      <Dialog open={!!workOrderDialogOrder} onOpenChange={(open) => !open && setWorkOrderDialogOrder(null)}>
+        <DialogContent className="max-w-4xl p-0">
+          {workOrderDialogOrder && (
+            <WorkOrderForm
+              order={workOrderDialogOrder}
+              onClose={() => setWorkOrderDialogOrder(null)}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+
+      <PaymentStatusPopup
+        open={open}
+        onOpenChange={setOpen}
+        orderId={orderId}
+        totalAmount={totalAmount}
+id={orderIdDB}
+fetchOrders={fetchOrders}
+      />
     </div>
   );
 };

@@ -8,7 +8,8 @@ const { CREATE_PRODUCT,
     GET_ALL_ORDER, 
     GET_ORDER,
     UPDATE_ORDER,
-    UPDATE_PLATE_ORDER
+    UPDATE_PLATE_ORDER,
+    UPDATE_PAYMENT_ORDER
 } = order
 
 
@@ -109,6 +110,38 @@ export const updateOrderAPI = async (formData, token,id) => {
         toast.dismiss(toastId);
     }
 };
+
+
+export const updateOrderPaymentAPI = async (formData, token, id) => {
+    const toastId = toast.loading("Updating payment...");
+  
+    try {
+      const response = await apiConnector(
+        "PUT",
+        `${UPDATE_PAYMENT_ORDER}/${id}`,
+        formData, // ✅ Send formData directly, not wrapped inside an object
+        {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // 👈 Only if formData is a plain JS object
+        }
+      );
+  
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Something went wrong!");
+      }
+  
+      toast.success(response?.data?.message || "Payment updated successfully");
+      return response;
+    } catch (error) {
+      console.error("updateOrderPaymentAPI ERROR:", error);
+      toast.error(error?.response?.data?.message || "Payment update failed!");
+      return null;
+    } finally {
+      toast.dismiss(toastId);
+    }
+  };
+  
+
 
 
 export const updateOrderPlateAPI = async (palletData, token,id) => {
