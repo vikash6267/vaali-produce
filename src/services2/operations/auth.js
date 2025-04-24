@@ -13,7 +13,8 @@ const {
   GET_ALL_STORES_API,
   GET_USER_API,
   FETCH_MY_PROFILE_API,
-  UPDATE_PASSWORD_API
+  UPDATE_PASSWORD_API,
+  USER_WITH_ORDER
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -170,6 +171,25 @@ export const getAllMembersAPI = async () => {
   } catch (error) {
     console.error("GET Product API ERROR:", error);
     toast.error(error?.response?.data?.message || "Failed to get product!");
+    return [];
+  }
+
+};
+
+export const userWithOrderDetails = async (id) => {
+
+  try {
+    const response = await apiConnector("GET", `${USER_WITH_ORDER}/${id}`,)
+
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    return response?.data?.data || {};
+  } catch (error) {
+    console.error("GET User with order API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed User with order product!");
     return [];
   }
 

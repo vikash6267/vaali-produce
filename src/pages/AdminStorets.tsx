@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "../components/ui/dialog";
 import StoreRegistration from "./StoreRegistration";
-import { getAllMembersAPI } from "@/services2/operations/auth";
+import { getAllMembersAPI,userWithOrderDetails } from "@/services2/operations/auth";
 import StoreTable from "@/components/admin/StoreTable";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
@@ -52,6 +52,8 @@ const AdminStorets = () => {
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
   };
+
+
 
   return (
     <div>

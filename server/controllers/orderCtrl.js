@@ -1,4 +1,6 @@
 const orderModel = require("../models/orderModle");
+const mongoose = require("mongoose");
+const authModel = require("../models/authModel");  // Ensure the correct path for your Auth model
 
 const createOrderCtrl = async (req, res) => {
     try {
@@ -173,13 +175,93 @@ const updatePalletInfo = async (req, res) => {
     }
   };
 
-  
+  const userDetailsWithOrder = async (req, res) => {
+    const { userId } = req.params;
+
+    try {
+        const result = await authModel.aggregate([
+            {
+                $match: { _id: new mongoose.Types.ObjectId(userId) }
+            },
+            {
+                $lookup: {
+                    from: "orders",
+                    localField: "_id",
+                    foreignField: "store",
+                    as: "orders"
+                }
+            },
+            {
+                $addFields: {
+                    totalOrders: { $size: "$orders" },
+                    totalSpent: {
+                        $sum: {
+                            $map: {
+                                input: "$orders",
+                                as: "order",
+                                in: "$$order.total"
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                $project: {
+                    _id: 1,
+                    totalOrders: 1,
+                    totalSpent: 1,
+                    user: {
+                        _id: "$_id",
+                        email: "$email",
+                        phone: "$phone",
+                        storeName: "$storeName",
+                        ownerName: "$ownerName",
+                        address: "$address",
+                        city: "$city",
+                        state: "$state",
+                        zipCode: "$zipCode",
+                        businessDescription: "$businessDescription",
+                        role: "$role",
+                        createdAt: { $dateToString: { format: "%Y-%m-%dT%H:%M:%S.%LZ", date: "$createdAt" } }
+                    }
+                }
+            }
+        ]);
+
+        if (result.length > 0) {
+            return res.status(200).json({
+                success: true,
+                message: "User details with order summary fetched successfully",
+                data: result[0]
+            });
+        } else {
+            return res.status(404).json({
+                success: false,
+                message: "User not found"
+            });
+        }
+    } catch (error) {
+        console.error("Error fetching user order details:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Error fetching order details",
+            error: error.message
+        });
+    }
+};
+
+
+
+
+
+
 module.exports = { 
     createOrderCtrl, 
     getAllOrderCtrl, 
     getOrderForStoreCtrl, 
     updateOrderCtrl,
-    updatePalletInfo
+    updatePalletInfo,
+    userDetailsWithOrder
      };
 
 
@@ -294,167 +376,167 @@ module.exports = {
   //             },
   //           });
         
-            const customers = response.data?.QueryResponse?.Customer || [];
+  //           const customers = response.data?.QueryResponse?.Customer || [];
         
-            // Find matching by phone or email
-            const matchingCustomer = customers.find((customer) => {
-              const phoneMatch =
-                customer?.PrimaryPhone?.FreeformNumber?.replace(/\D/g, "") ===
-                user?.phone?.replace(/\D/g, "");
-              const emailMatch =
-                customer?.PrimaryEmailAddr?.Address?.toLowerCase() ===
-                user?.email?.toLowerCase();
+  //           // Find matching by phone or email
+  //           const matchingCustomer = customers.find((customer) => {
+  //             const phoneMatch =
+  //               customer?.PrimaryPhone?.FreeformNumber?.replace(/\D/g, "") ===
+  //               user?.phone?.replace(/\D/g, "");
+  //             const emailMatch =
+  //               customer?.PrimaryEmailAddr?.Address?.toLowerCase() ===
+  //               user?.email?.toLowerCase();
         
-              return phoneMatch || emailMatch;
-            });
+  //             return phoneMatch || emailMatch;
+  //           });
         
-            if (matchingCustomer) {
-              return {
-                value: matchingCustomer.Id,
-                name: matchingCustomer.DisplayName,
-              };
-            }
+  //           if (matchingCustomer) {
+  //             return {
+  //               value: matchingCustomer.Id,
+  //               name: matchingCustomer.DisplayName,
+  //             };
+  //           }
         
-            return null;
-          } catch (error) {
-            console.error("QuickBooks customer search error:", error.response?.data || error.message);
-            throw new Error("Error checking customer existence in QuickBooks");
-          }
-        };
+  //           return null;
+  //         } catch (error) {
+  //           console.error("QuickBooks customer search error:", error.response?.data || error.message);
+  //           throw new Error("Error checking customer existence in QuickBooks");
+  //         }
+  //       };
         
         
         
-        const getCustomerRef = async (user) => {
-          try {
-            const customerRef = await checkCustomerExistence(user);
-            console.log(customerRef);
-          } catch (error) {
-            console.error(error.message);
-          }
-        };
+  //       const getCustomerRef = async (user) => {
+  //         try {
+  //           const customerRef = await checkCustomerExistence(user);
+  //           console.log(customerRef);
+  //         } catch (error) {
+  //           console.error(error.message);
+  //         }
+  //       };
         
        
-  console.log(getCustomerRef(user))
+  // console.log(getCustomerRef(user))
     
   
      
         
   
   
-        try {
-          // 1. Create Customer in QuickBooks
-          const customerData = {
-            DisplayName: user?.storeName || user?.name,
-            PrimaryEmailAddr: { Address: user?.email },
-            PrimaryPhone: { FreeFormNumber: user?.phone },
-            BillAddr: {
-              Line1: billingAddress?.address,
-              City: billingAddress?.city,
-              CountrySubDivisionCode: billingAddress?.state || "GJ",
-              PostalCode: billingAddress?.postalCode,
-              Country: billingAddress?.country || "India",
-            },
-          };
+  //       try {
+  //         // 1. Create Customer in QuickBooks
+  //         const customerData = {
+  //           DisplayName: user?.storeName || user?.name,
+  //           PrimaryEmailAddr: { Address: user?.email },
+  //           PrimaryPhone: { FreeFormNumber: user?.phone },
+  //           BillAddr: {
+  //             Line1: billingAddress?.address,
+  //             City: billingAddress?.city,
+  //             CountrySubDivisionCode: billingAddress?.state || "GJ",
+  //             PostalCode: billingAddress?.postalCode,
+  //             Country: billingAddress?.country || "India",
+  //           },
+  //         };
     
   
-          const customerRef = await checkCustomerExistence(user);
-          let finalCustomerRef = customerRef;
+  //         const customerRef = await checkCustomerExistence(user);
+  //         let finalCustomerRef = customerRef;
          
-          if (!finalCustomerRef) {
-            const customerRes = await axios.post(customerEndpoint, customerData, {
-              headers: {
-                Authorization: `Bearer ${accessToken}`,
-                Accept: "application/json",
-                "Content-Type": "application/json",
-              },
-            });
+  //         if (!finalCustomerRef) {
+  //           const customerRes = await axios.post(customerEndpoint, customerData, {
+  //             headers: {
+  //               Authorization: `Bearer ${accessToken}`,
+  //               Accept: "application/json",
+  //               "Content-Type": "application/json",
+  //             },
+  //           });
           
-            finalCustomerRef = {
-              value: customerRes.data.Customer.Id,
-              name: customerRes.data.Customer.DisplayName,
-            };
-          }
+  //           finalCustomerRef = {
+  //             value: customerRes.data.Customer.Id,
+  //             name: customerRes.data.Customer.DisplayName,
+  //           };
+  //         }
           
     
   
     
-          // 2. Format Line Items
-          const lineItems = items.map((item) => ({
-            DetailType: "SalesItemLineDetail",
-            Amount: item.unitPrice * item.quantity,
-            Description: item.productName, // Show real product name here
+  //         // 2. Format Line Items
+  //         const lineItems = items.map((item) => ({
+  //           DetailType: "SalesItemLineDetail",
+  //           Amount: item.unitPrice * item.quantity,
+  //           Description: item.productName, // Show real product name here
   
-            SalesItemLineDetail: {
-              ItemRef: {
-                value: "1", // Replace with real item ID
-                name: item.productName || "Product",
-              },
-              Qty: item.quantity,
-            },
-          }));
+  //           SalesItemLineDetail: {
+  //             ItemRef: {
+  //               value: "1", // Replace with real item ID
+  //               name: item.productName || "Product",
+  //             },
+  //             Qty: item.quantity,
+  //           },
+  //         }));
     
-          // Add shipping as line item if applicable
-          if (shippinCost > 0) {
-            lineItems.push({
-              DetailType: "SalesItemLineDetail",
-              Amount: shippinCost,
-            Description: "Shipping Charges", // Show real product name here
+  //         // Add shipping as line item if applicable
+  //         if (shippinCost > 0) {
+  //           lineItems.push({
+  //             DetailType: "SalesItemLineDetail",
+  //             Amount: shippinCost,
+  //           Description: "Shipping Charges", // Show real product name here
   
-              SalesItemLineDetail: {
-                ItemRef: {
-                  value: "2", // Replace with real "Shipping" item ID
-                  name: "Shipping Charges",
-                },
-                Qty: 1,
-              },
-            });
-          }
+  //             SalesItemLineDetail: {
+  //               ItemRef: {
+  //                 value: "2", // Replace with real "Shipping" item ID
+  //                 name: "Shipping Charges",
+  //               },
+  //               Qty: 1,
+  //             },
+  //           });
+  //         }
     
-          // 3. Create Invoice
-          const invoiceData = {
-            CustomerRef: finalCustomerRef,
-            Line: lineItems,
-            BillAddr: {
-              Line1: billingAddress.address,
-              City: billingAddress.city,
-              Country: billingAddress.country,
-              PostalCode: billingAddress.postalCode,
-            },
-            ShipAddr: {
-              Line1: shippingAddress.address,
-              City: shippingAddress.city,
-              Country: shippingAddress.country,
-              PostalCode: shippingAddress.postalCode,
-            },
-          };
+  //         // 3. Create Invoice
+  //         const invoiceData = {
+  //           CustomerRef: finalCustomerRef,
+  //           Line: lineItems,
+  //           BillAddr: {
+  //             Line1: billingAddress.address,
+  //             City: billingAddress.city,
+  //             Country: billingAddress.country,
+  //             PostalCode: billingAddress.postalCode,
+  //           },
+  //           ShipAddr: {
+  //             Line1: shippingAddress.address,
+  //             City: shippingAddress.city,
+  //             Country: shippingAddress.country,
+  //             PostalCode: shippingAddress.postalCode,
+  //           },
+  //         };
     
-          const invoiceRes = await axios.post(invoiceEndpoint, invoiceData, {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: "application/json",
-              "Content-Type": "application/json",
-            },
-          });
+  //         const invoiceRes = await axios.post(invoiceEndpoint, invoiceData, {
+  //           headers: {
+  //             Authorization: `Bearer ${accessToken}`,
+  //             Accept: "application/json",
+  //             "Content-Type": "application/json",
+  //           },
+  //         });
     
-          console.log("Invoice created:", invoiceRes.data.Invoice);
+  //         console.log("Invoice created:", invoiceRes.data.Invoice);
     
-          return res.status(200).json({
-            success: true,
-            message: "Order and Invoice created successfully",
-            order: newOrder,
-            invoice: invoiceRes.data.Invoice,
-          });
-        } catch (qbError) {
-          console.error("QuickBooks Error:", qbError?.response?.data || qbError.message);
-          return res.status(500).json({
-            success: false,
-            message: "Order created but failed to create invoice in QuickBooks",
-            order: newOrder,
-            error: qbError?.response?.data || qbError.message,
-          });
-        }
-      } catch (err) {
-        console.error("General Error:", err.message);
-        return res.status(500).json({ success: false, message: "Something went wrong", error: err.message });
-      }
-    };
+  //         return res.status(200).json({
+  //           success: true,
+  //           message: "Order and Invoice created successfully",
+  //           order: newOrder,
+  //           invoice: invoiceRes.data.Invoice,
+  //         });
+  //       } catch (qbError) {
+  //         console.error("QuickBooks Error:", qbError?.response?.data || qbError.message);
+  //         return res.status(500).json({
+  //           success: false,
+  //           message: "Order created but failed to create invoice in QuickBooks",
+  //           order: newOrder,
+  //           error: qbError?.response?.data || qbError.message,
+  //         });
+  //       }
+  //     } catch (err) {
+  //       console.error("General Error:", err.message);
+  //       return res.status(500).json({ success: false, message: "Something went wrong", error: err.message });
+  //     }
+  //   };

@@ -14,6 +14,7 @@ export const endpoints = {
   UPDATE_STORE: BASE_URL + "/auth/update-store",
   FETCH_MY_PROFILE_API : BASE_URL + "/auth/fetchMy",
   UPDATE_PASSWORD_API : BASE_URL + "/auth/update-password",
+  USER_WITH_ORDER :BASE_URL + "/order/user"
 
 
 }
