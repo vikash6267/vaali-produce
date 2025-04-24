@@ -297,7 +297,7 @@ const updatePaymentDetails = async (req, res) => {
   
     try {
       // Check for valid method
-      if (!["cash", "creditcard"].includes(method)) {
+      if (!["cash", "creditcard",'cheque'].includes(method)) {
         return res.status(400).json({
           success: false,
           message: "Invalid payment method. Allowed: 'cash' or 'creditcard'"
@@ -323,7 +323,8 @@ const updatePaymentDetails = async (req, res) => {
       const paymentDetails = {
         method,
         ...(method === "creditcard" ? { transactionId } : {}),
-        ...(method === "cash" ? { notes } : {})
+        ...(method === "cash" ? { notes } : {}),
+        ...(method === "cheque" ? { notes } : {})
       };
   
       const updatedOrder = await orderModel.findByIdAndUpdate(
@@ -355,6 +356,30 @@ const updatePaymentDetails = async (req, res) => {
     }
   };
 
+  const deleteOrderCtrl = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        if (!mongoose.Types.ObjectId.isValid(id)) {
+            return res.status(400).json({ success: false, message: "Invalid order ID" });
+        }
+
+        const deletedOrder = await orderModel.findByIdAndDelete(id);
+
+        if (!deletedOrder) {
+            return res.status(404).json({ success: false, message: "Order not found" });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Order deleted successfully",
+            deletedOrder,
+        });
+    } catch (error) {
+        console.error("Error deleting order:", error);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+};
 
 
 module.exports = { 
@@ -364,7 +389,8 @@ module.exports = {
     updateOrderCtrl,
     updatePalletInfo,
     userDetailsWithOrder,
-    updatePaymentDetails
+    updatePaymentDetails,
+    deleteOrderCtrl
      };
 
 

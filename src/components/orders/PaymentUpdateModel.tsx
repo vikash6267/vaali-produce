@@ -25,6 +25,8 @@ interface PaymentStatusPopupProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   fetchOrders: () => void
+  onPayment: (id:string) => void
+
   orderId: string
   id:string
   totalAmount: number
@@ -33,13 +35,13 @@ interface PaymentStatusPopupProps {
 interface PaymentData {
   orderId: string
   id: string
-  method: "cash" | "creditcard"
+  method: "cash" | "creditcard" |"cheque"
   transactionId?: string
   notes?: string
 }
 
-export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,id,fetchOrders}: PaymentStatusPopupProps) {
-  const [paymentMethod, setPaymentMethod] = useState<"cash" | "creditcard">("cash")
+export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,id,fetchOrders,onPayment}: PaymentStatusPopupProps) {
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "creditcard" | "cheque">("cash")
   const [transactionId, setTransactionId] = useState("")
   const [notes, setNotes] = useState("")
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -74,6 +76,7 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
         method: paymentMethod,
         ...(paymentMethod === "creditcard" && { transactionId }),
         ...(paymentMethod === "cash" && { notes }),
+        ...(paymentMethod === "cheque" && { notes }),
       }
 
       console.log(paymentData)
@@ -86,7 +89,8 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
       })
 
       // Reset form
-      await fetchOrders()
+      onPayment(id)
+      // await fetchOrders()
       setTransactionId("")
       setNotes("")
       onOpenChange(false)
@@ -119,7 +123,7 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
             <Label htmlFor="amount" className="text-right">
               Amount
             </Label>
-            <Input id="amount" value={`₹${totalAmount.toFixed(2)}`} className="col-span-3" readOnly />
+          <Input id="amount" value={`$${totalAmount.toFixed(2)}`} className="col-span-3" readOnly />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label className="text-right">Payment Method</Label>
@@ -135,6 +139,10 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
               <div className="flex items-center space-x-2">
                 <RadioGroupItem value="creditcard" id="creditcard" />
                 <Label htmlFor="creditcard">Credit Card</Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="cheque" id="cheque" />
+                <Label htmlFor="cheque">Cheque</Label>
               </div>
             </RadioGroup>
           </div>
@@ -154,7 +162,7 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
             </div>
           )}
 
-          {paymentMethod === "cash" && (
+          {(paymentMethod === "cash" || paymentMethod === "cheque")  && (
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="notes" className="text-right">
                 Notes

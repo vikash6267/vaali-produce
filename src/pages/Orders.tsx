@@ -51,6 +51,40 @@ const Orders = () => {
     fetchOrders(); // Call the function
   }, [token]);
   
+
+  const deleteOrderById = async (idToDelete: string) => {
+    try {
+      // Backend API call to delete order
+    
+      // Frontend state se bhi order hata do
+      setOrders(prevOrders => prevOrders.filter(order => order._id !== idToDelete));
+  
+      console.log("Order deleted successfully");
+    } catch (error) {
+      console.error("Error deleting order:", error);
+    }
+  };
+
+
+  const updateOrderPaymentStatus = async (orderId: string) => {
+    try {
+      // Backend API call to update paymentStatus
+ 
+      // Frontend state mein bhi update karo
+      setOrders(prevOrders =>
+        prevOrders.map(order =>
+          order._id === orderId ? { ...order, paymentStatus: "paid" } : order
+        )
+      );
+  
+      console.log("Payment status updated to paid");
+    } catch (error) {
+      console.error("Error updating payment status:", error);
+    }
+  };
+  
+  
+  
   const handleNewOrder = () => {
     navigate('/orders/new');
   };
@@ -105,7 +139,7 @@ const Orders = () => {
                       </div>
                     ) : (
                      
-                <OrdersTable orders={orders} fetchOrders={fetchOrders} />
+                <OrdersTable orders={orders} fetchOrders={fetchOrders} onDelete={deleteOrderById} onPayment={updateOrderPaymentStatus} />
                     )}
                   </div>
                 }

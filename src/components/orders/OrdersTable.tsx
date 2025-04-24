@@ -58,13 +58,17 @@ import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import WorkOrderForm from './WorkOrder';
 import { PaymentStatusPopup } from './PaymentUpdateModel';
+import {deleteOrderAPI} from "@/services2/operations/order"
+import Swal from 'sweetalert2';
 
 interface OrdersTableProps {
   orders: Order[];
-  fetchOrders: () => void
+  fetchOrders: () => void;
+  onDelete: (id:string) => void
+  onPayment: (id:string) => void
 }
 
-const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
+const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders,onDelete,onPayment }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { toast } = useToast();
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
@@ -75,6 +79,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
   const navigate = useNavigate();
   const user = useSelector((state: RootState) => state.auth?.user ?? null);
   const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null);
+  const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
 
   // PAYMENT MODEL
@@ -96,13 +101,34 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
     navigate(`/orders/edit/${order._id}`);
   };
 
-  const handleDelete = (id: string) => {
-    toast({
-      title: "Delete Order",
-      description: `Deleting order ${id}`,
-      variant: "destructive",
+ const handleDelete = async (id: string,orderNumber:string) => {
+    const result = await Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
     });
-  };
+
+    if (result.isConfirmed) {
+        const deletedOrder = await deleteOrderAPI(id, token);
+
+        if (deletedOrder) {
+            // Swal.fire({
+            //     title: 'Deleted!',
+            //     text: `Order ${id} has been deleted.`,
+            //     icon: 'success',
+            //     timer: 1500,
+            //     showConfirmButton: false,
+            // });
+
+
+            onDelete(id)
+        }
+    }
+};
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -398,7 +424,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
                         <DropdownMenuSeparator />
 
                         {user.role === "admin" && <DropdownMenuItem
-                          onClick={() => handleDelete(order.id)}
+                          onClick={() => handleDelete(order?._id,order?.id)}
                           className="text-red-600 hover:text-red-700 focus:text-red-700"
                         >
                           <Trash size={14} className="mr-2" />
@@ -450,6 +476,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders }) => {
         totalAmount={totalAmount}
 id={orderIdDB}
 fetchOrders={fetchOrders}
+onPayment={onPayment}
       />
     </div>
   );

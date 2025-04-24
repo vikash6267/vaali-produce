@@ -52,7 +52,7 @@ export interface Store {
 
 
 export interface PaymentDetails {
-  method?: 'cash' | 'creditcard';
+  method?: 'cash' | 'creditcard' | 'cheque';
   transactionId?: string;  // Only required if payment method is 'creditcard'
   notes?: string;  // Only required if payment method is 'cash'
 }

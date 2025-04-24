@@ -9,7 +9,8 @@ const { CREATE_PRODUCT,
     GET_ORDER,
     UPDATE_ORDER,
     UPDATE_PLATE_ORDER,
-    UPDATE_PAYMENT_ORDER
+    UPDATE_PAYMENT_ORDER,
+    DELETE_ORDER
 } = order
 
 
@@ -169,5 +170,26 @@ console.log(palletData)
     } finally {
 
         toast.dismiss(toastId);
+    }
+};
+
+
+
+export const deleteOrderAPI = async (id, token) => {
+    try {
+        const response = await apiConnector("DELETE", `${DELETE_ORDER}/${id}`, {}, {
+            Authorization: `Bearer ${token}`,
+        });
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        toast.success("Order deleted successfully!");
+        return response?.data?.deletedOrder || null;
+    } catch (error) {
+        console.error("DELETE ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to delete order!");
+        return null;
     }
 };
