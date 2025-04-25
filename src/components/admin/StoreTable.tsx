@@ -141,6 +141,7 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
         isOpen={userDetailsOpen}
         onClose={() => setUserDetailsOpen(false)}
         userData={selectedUserData}
+        fetchUserDetailsOrder={fetchUserDetailsOrder}
       />
     </div>
   )

@@ -49,19 +49,20 @@ export function PaymentStatusPopup({ open, onOpenChange, orderId, totalAmount ,i
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
 
-  console.log(paymentOrder)
 
   useEffect(()=>{
     setPaymentMethod("cash")
     setTransactionId("")
     setNotes("")
+    console.log(paymentOrder)
     if(paymentOrder?.paymentStatus === "paid" ){
       setPaymentMethod(paymentOrder.paymentDetails.method as any)
       setTransactionId(paymentOrder?.paymentDetails?.transactionId || "")
       setNotes(paymentOrder?.paymentDetails?.notes || "")
     }
 
-  },[paymentOrder])
+  },[paymentOrder,open])
+
   const handleSubmit = async () => {
     try {
       setIsSubmitting(true)

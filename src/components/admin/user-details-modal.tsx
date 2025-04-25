@@ -24,6 +24,9 @@ import {
   BadgeDollarSign,
   CircleDollarSign
 } from "lucide-react";
+import { PaymentStatusPopup } from "../orders/PaymentUpdateModel"
+import { Order } from '@/lib/data';
+import { Button } from "../ui/button"
 
 
 interface OrderItem {
@@ -39,21 +42,26 @@ interface OrderItem {
 
 }
 
-interface Order {
-  _id: string
-  orderNumber: string
-  status: string
-  paymentStatus: string
-  total: number
-  createdAt: string
-  updatedAt: string
-  items: OrderItem[]
-  shippinCost?: number
-}
+// interface Order {
+//   _id: string
+//   id: string
+//   orderNumber: string
+//   status: string
+//   paymentStatus: string
+//   total: number
+//   createdAt: string
+//   date: string
+//   updatedAt: string
+//   items: OrderItem[]
+//   shippinCost?: number,
+
+  
+// }
 
 interface UserDetailsProps {
   isOpen: boolean
   onClose: () => void
+  fetchUserDetailsOrder: (id:string) => void
   userData: {
     _id: string
     totalOrders: number
@@ -78,11 +86,17 @@ interface UserDetailsProps {
   } | null
 }
 
-const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
+const UserDetailsModal = ({ isOpen, onClose, userData,fetchUserDetailsOrder }: UserDetailsProps) => {
   if (!userData) return null
+  const [open, setOpen] = useState(false)
+  const [orderId, setOrderId] = useState("")
+  const [paymentOrder, setpaymentOrder] = useState<Order | null>(null);
+  const [orderIdDB, setOrderIdDB] = useState("")
+  const [totalAmount, setTotalAmount] = useState(0)
 
-  const { totalOrders, totalSpent, user, orders,totalPay,balanceDue } = userData
+  const { totalOrders, totalSpent, user, orders, totalPay, balanceDue } = userData
   const formattedDate = user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : "N/A"
+
 
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
@@ -148,6 +162,9 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
           <DialogTitle className="text-2xl font-bold">Store Details</DialogTitle>
         </DialogHeader>
 
+<Button variant="link" onClick={()=>fetchUserDetailsOrder(userData._id)}>
+  Refresh
+</Button>
         <Tabs defaultValue="info" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="info">Store Information</TabsTrigger>
@@ -232,45 +249,45 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
                 </Card>
 
                 <Card>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <ShoppingBag className="h-5 w-5 text-primary" />
-          <span>Order Statistics</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Total Orders</p>
-            <p className="text-2xl font-bold">{totalOrders}</p>
-          </div>
-          <div className="space-y-1">
-            <p className="text-sm text-muted-foreground">Total Spent</p>
-            <p className="text-2xl font-bold text-green-600">
-              {formatCurrency(totalSpent)}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <CheckCircle2 className="h-4 w-4 text-green-500" />
-              <span>Total Paid</span>
-            </div>
-            <p className="text-2xl font-bold text-green-700">
-              {formatCurrency(totalPay)}
-            </p>
-          </div>
-          <div className="space-y-1">
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <AlertCircle className="h-4 w-4 text-red-500" />
-              <span>Balance Due</span>
-            </div>
-            <p className="text-2xl font-bold text-red-600">
-              {formatCurrency(balanceDue)}
-            </p>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="flex items-center gap-2">
+                      <ShoppingBag className="h-5 w-5 text-primary" />
+                      <span>Order Statistics</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Orders</p>
+                        <p className="text-2xl font-bold">{totalOrders}</p>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm text-muted-foreground">Total Spent</p>
+                        <p className="text-2xl font-bold text-green-600">
+                          {formatCurrency(totalSpent)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <CheckCircle2 className="h-4 w-4 text-green-500" />
+                          <span>Total Paid</span>
+                        </div>
+                        <p className="text-2xl font-bold text-green-700">
+                          {formatCurrency(totalPay)}
+                        </p>
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <AlertCircle className="h-4 w-4 text-red-500" />
+                          <span>Balance Due</span>
+                        </div>
+                        <p className="text-2xl font-bold text-red-600">
+                          {formatCurrency(balanceDue)}
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
                 {user?.businessDescription && (
                   <Card>
@@ -332,7 +349,9 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
 
 
                               {/* Total Amount */}
-                              <span className="font-semibold">{formatCurrency(order.total)}</span>
+                              <span className="font-semibold">{formatCurrency(order.total)} </span>
+
+
                             </div>
 
                           </div>
@@ -387,12 +406,23 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
                                     <TableCell colSpan={3} className="text-right font-bold">
                                       Total
                                     </TableCell>
+
                                     <TableCell className="text-right font-bold">
                                       {formatCurrency(order.total)}
                                     </TableCell>
                                   </TableRow>
                                 </TableBody>
                               </Table>
+                              {(
+                        <button
+                          onClick={() => { setOrderId(order.orderNumber); setOpen(true); setTotalAmount(order.total); setOrderIdDB(order?._id || order?.id) ;setpaymentOrder(order) }} // define this handler function
+                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                        >
+                          {
+                            order.paymentStatus === "pending" ? "Pay Now" : "Edit"
+                          }
+                        </button>
+                      )}
                             </div>
                           </div>
                         </AccordionContent>
@@ -406,7 +436,17 @@ const UserDetailsModal = ({ isOpen, onClose, userData }: UserDetailsProps) => {
         </Tabs>
       </DialogContent>
 
-      
+      <PaymentStatusPopup
+        open={open}
+        onOpenChange={setOpen}
+        orderId={orderId}
+        totalAmount={totalAmount}
+        id={orderIdDB}
+        fetchOrders={()=>fetchUserDetailsOrder(orderId)}
+        onPayment={()=>console.log("hello")}
+        paymentOrder={paymentOrder}
+      />
+
     </Dialog>
   )
 }
