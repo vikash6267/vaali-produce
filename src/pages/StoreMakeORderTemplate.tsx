@@ -56,6 +56,7 @@ const CreateOrderModalStore = ({ }) => {
   const urlParams = new URLSearchParams(window.location.search)
   const storeId = urlParams.get("storeId")
   const templateId = urlParams.get("templateId")
+  const priceCategory = urlParams.get("cat") || "price"
   const navigate = useNavigate()
 
   const [products, setProducts] = useState([])
@@ -82,6 +83,7 @@ const CreateOrderModalStore = ({ }) => {
   })
   const [sameAsBilling, setSameAsBilling] = useState(false)
   const [templateLoading, setTemplateLoading] = useState(true)
+  // const [priceCategory, setPriceCate] = useState("aPrice")
 
   const fetchProducts = async () => {
     try {
@@ -123,6 +125,7 @@ const CreateOrderModalStore = ({ }) => {
     const fetchTmplate = async () => {
       try {
         const tempLate = await getSinglePriceAPI(templateId)
+        console.log(tempLate)
         setTemlate(tempLate)
       } catch (error) {
         console.error("Error fetching stores:", error)
@@ -180,7 +183,7 @@ const CreateOrderModalStore = ({ }) => {
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
       const type = priceType[product.id] || "box"; // Default to 'box'
-      const price = type === "unit" ? product.price : product.pricePerBox;
+      const price = type === "unit" ? product.aPrice : product[priceCategory]   ||product.pricePerBox;
 
       return total + price * quantity;
     }, 0);
@@ -235,8 +238,8 @@ const CreateOrderModalStore = ({ }) => {
         const quantity = quantities[product.id] || 0;
         const pricingType = priceType[product.id] || "box"; // default to 'box'
 
-        const unitPrice = pricingType === "unit" ? product.price : product.pricePerBox;
-
+        const unitPrice = pricingType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
+ 
         return {
           product: product.id,
           name: product.name,
@@ -355,9 +358,9 @@ const CreateOrderModalStore = ({ }) => {
         customerName: orderDetails.clientName,
         items: orderDetails.items.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.pricePerBox,
+          price: item[priceCategory] || item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.pricePerBox) * item.quantity,
+          total: (item[priceCategory] || item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: orderDetails.total,
         date: orderDetails.date,
@@ -517,7 +520,7 @@ const CreateOrderModalStore = ({ }) => {
                         {filteredProducts.map((product) => {
                           const quantity = quantities[product.id] || 0;
                           const selectedType = priceType[product.id] || "box"; // default to box
-                          const price = selectedType === "unit" ? product.price : product.pricePerBox;
+                          const price = selectedType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
                           const total = price * quantity;
 
                           return (
@@ -635,7 +638,7 @@ const CreateOrderModalStore = ({ }) => {
                             {product.productName || product.name}
                           </TableCell>
                           <TableCell className="text-right text-xs sm:text-sm">
-                            {formatCurrency(product.unitPrice || product.pricePerBox)}
+                            {formatCurrency(product[priceCategory] || product.unitPrice || product.pricePerBox)}
                           </TableCell>
                           <TableCell className="text-center text-xs sm:text-sm">
   {product.quantity}{" "}

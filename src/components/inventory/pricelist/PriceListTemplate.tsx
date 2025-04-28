@@ -42,7 +42,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
   const { toast } = useToast();
 
-  const [selectedPricing, setSelectedPricing] = useState<string | null>(null);
+  const [selectedPricing, setSelectedPricing] = useState<string>("pricePerBox");
 
   
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -164,15 +164,17 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
 
   {/* 🚀 Copy URL Button */}
   <button
-    onClick={() => {
-      const url = `http://valiproduce.shop/store/template?templateId=${template.id}`;
-      navigator.clipboard.writeText(url);
-      alert("URL copied to clipboard!");
-    }}
-    className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-  >
-    Copy URL
-  </button>
+  onClick={() => {
+    const catValue = selectedPricing === "pricePerBox" ? "price" : selectedPricing;
+    const url = `http://valiproduce.shop/store/template?templateId=${template.id}&cat=${catValue}`;
+    navigator.clipboard.writeText(url);
+    alert("URL copied to clipboard!");
+  }}
+  className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+>
+  Copy URL
+</button>
+
 </div>
 
         <DropdownMenu>
@@ -334,7 +336,8 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
             onClose={() => setIsEmailDialogOpen(false)}
             onSubmit={handleSendEmail}
             defaultSubject={`Price List: ${template.name}`}
-            defaultMessage={`${template.id}`}
+            defaultMessage={`${template.id}&cat=${selectedPricing === "pricePerBox" ? "price" : selectedPricing}`}
+
             templates={true}
             attachmentsEnabled={true}
             webhookUrl="/api/email" // Replace with your actual webhook URL
