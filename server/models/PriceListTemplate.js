@@ -9,7 +9,7 @@ const priceListTemplateSchema = new mongoose.Schema(
 
     products: [
       {
-        type: mongoose.Schema.Types.Mixed, // Poora product object store karega
+        type: mongoose.Schema.Types.Mixed, 
         required: true
       }
     ],

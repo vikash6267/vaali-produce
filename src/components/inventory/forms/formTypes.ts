@@ -45,7 +45,12 @@ export interface PriceListProduct {
   shippinCost?: number;
   category: string;
   unit: string;
-  price: number;
+  price: string;
+  aPrice?: string;        
+  bPrice?: string;        
+  cPrice?: string;        
+  restaurantPrice?: string;        
+
   bulkDiscounts?: BulkDiscount[];
   image?: string;
   boxSize?: number;

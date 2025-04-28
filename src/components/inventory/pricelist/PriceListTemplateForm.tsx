@@ -53,7 +53,73 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   const [availableProducts,setAvailableProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [editingPriceField, setEditingPriceField] = useState(null);
+  const [editPriceValue, setEditPriceValue] = useState('');
+  
+  // Start editing any price
+  const startEditingPrice = (productId, field, value) => {
+    setEditingProductId(productId);
+    setEditingPriceField(field);
+    setEditPriceValue(value ?? ''); // agar undefined hai to empty
+  };
+  
+  // Save edited price
+  const savePrice = () => {
+    if (editingProductId && editingPriceField) {
+      setSelectedProducts(prevProducts =>
+        prevProducts.map(product =>
+          product.id === editingProductId
+            ? { ...product, [editingPriceField]: parseFloat(editPriceValue) || 0 }
+            : product
+        )
+      );
+    }
+    setEditingProductId(null);
+    setEditingPriceField(null);
+    setEditPriceValue('');
+  };
+  
+  // Handle price input change
+  const handlePriceChange = (e) => {
+    setEditPriceValue(e.target.value);
+  };
+  
+  // Handle Enter key to save
 
+  
+  // Render price input or text
+  const renderEditablePrice = (productId, price, field) => {
+    if (editingProductId === productId && editingPriceField === field) {
+      return (
+        <Input
+          type="number"
+          value={editPriceValue}
+          onChange={handlePriceChange}
+          onKeyDown={handleKeyDown}
+          onBlur={savePrice}
+          autoFocus
+          step="0.01"
+          min="0"
+          className="w-24 text-right"
+        />
+      );
+    }
+    return (
+      <div className="flex items-center justify-end gap-2">
+        {formatCurrency(price)}
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => startEditingPrice(productId, field, price)}
+          type="button"
+          className="h-7 w-7"
+        >
+          <Edit className="h-3.5 w-3.5 text-blue-500" />
+        </Button>
+      </div>
+    );
+  };
+  
   const fetchProducts = async () => {
     try {
       const response = await getAllProductAPI();
@@ -126,31 +192,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   };
   
   
-  const startEditingPrice = (productId: string, currentPrice: number) => {
-    setEditingProductId(productId);
-    setEditPrice(currentPrice.toString());
-  };
-  
-  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setEditPrice(e.target.value);
-  };
-  
-  const savePrice = () => {
-    if (!editingProductId) return;
-    
-    const price = parseFloat(editPrice);
-    if (isNaN(price) || price < 0) return;
-    
-    setSelectedProducts(prev => 
-      prev.map(product => 
-        product.id === editingProductId 
-          ? { ...product, price } 
-          : product
-      )
-    );
-    
-    setEditingProductId(null);
-  };
+
   
   const cancelEditPrice = () => {
     setEditingProductId(null);
@@ -184,23 +226,6 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   
 
 
-
-  // const availableProducts = products.map(p => {
-  //   const formattedDiscounts = p.bulkDiscounts ? 
-  //     convertBulkDiscountToFormFormat(p.bulkDiscounts) : 
-  //     undefined;
-    
-  //   return {
-  //     id: p.id,
-  //     productId: p.id,
-  //     productName: p.name,
-  //     category: p.category,
-  //     unit: p.unit,
-  //     price: p.price,
-  //     bulkDiscounts: formattedDiscounts,
-  //     image: p.image
-  //   };
-  // }).filter(p => !selectedProducts.some(sp => sp.id === p.id));
 
 
   const categories = ['All', ...new Set(availableProducts.map(p => p.category))];
@@ -273,106 +298,101 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
         />
         
         <div>
-          <h3 className="text-lg font-medium mb-2">Selected Products</h3>
-          {selectedProducts.length === 0 ? (
-            <div className="text-center py-6 bg-muted/30 rounded-md border">
-              <p className="text-muted-foreground">No products selected</p>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>Name</TableHead>
-                  
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-center">Quantity</TableHead>
-                    <TableHead></TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {selectedProducts.map((product) => (
-                    <TableRow key={product.id}>
-                      <TableCell className="font-medium">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="h-10 w-10 rounded-md">
-                            <AvatarImage 
-                              src={product.image} 
-                              alt={product.name}
-                              className="object-cover"
-                            />
-                            <AvatarFallback className="rounded-md bg-muted">
-                              <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                            </AvatarFallback>
-                          </Avatar>
-                          <span>{product.productName}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>{product.name}</TableCell>
-                   
-                      <TableCell className="text-right">
-                        {editingProductId === product.id ? (
-                          <div className="flex items-center justify-end gap-2">
-                            <Input
-                              type="number"
-                              value={editPrice}
-                              onChange={handlePriceChange}
-                              onKeyDown={handleKeyDown}
-                              onBlur={savePrice}
-                              autoFocus
-                              step="0.01"
-                              min="0"
-                              className="w-24 text-right"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center justify-end gap-2">
-                            {formatCurrency(product.pricePerBox)}
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => startEditingPrice(product.id, product.price)}
-                              type="button"
-                              className="h-7 w-7"
-                            >
-                              <Edit className="h-3.5 w-3.5 text-blue-500" />
-                            </Button>
-                          </div>
-                        )}
-                        {product.bulkDiscounts && product.bulkDiscounts.length > 0 && (
-                          <div className="text-xs text-green-600 font-medium">
-                            Volume discounts available
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Input
-                          type="number" 
-                          min="0"
-                          value={product.quantity || ''}
-                          onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                          className="w-20 mx-auto text-center"
-                          placeholder="0"
-                        />
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button 
-                          variant="ghost" 
-                          size="icon"
-                          onClick={() => handleToggleProduct(product)}
-                          type="button"
-                        >
-                          <Trash2 className="h-4 w-4 text-red-500" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </div>
+  <h3 className="text-lg font-medium mb-2">Selected Products</h3>
+  {selectedProducts.length === 0 ? (
+    <div className="text-center py-6 bg-muted/30 rounded-md border">
+      <p className="text-muted-foreground">No products selected</p>
+    </div>
+  ) : (
+    <div className="rounded-md border overflow-x-auto">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Product</TableHead>
+            <TableHead>Name</TableHead>
+            <TableHead className="text-right">Price</TableHead>
+            <TableHead className="text-right">A Price</TableHead>
+            <TableHead className="text-right">B Price</TableHead>
+            <TableHead className="text-right">C Price</TableHead>
+            <TableHead className="text-right">Restaurant Price</TableHead>
+            <TableHead className="text-center">Quantity</TableHead>
+            <TableHead>Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {selectedProducts.map((product) => (
+            <TableRow key={product.id}>
+              <TableCell className="font-medium">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10 rounded-md">
+                    <AvatarImage src={product.image} alt={product.name} className="object-cover" />
+                    <AvatarFallback className="rounded-md bg-muted">
+                      <ImageIcon className="h-5 w-5 text-muted-foreground" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <span>{product.productName}</span>
+                </div>
+              </TableCell>
+
+              <TableCell>{product.name}</TableCell>
+
+              {/* Main Price */}
+              <TableCell className="text-right">
+                {renderEditablePrice(product.id, product.price, 'price')}
+              </TableCell>
+
+              {/* A Price */}
+              <TableCell className="text-right">
+                {renderEditablePrice(product.id, product.aPrice || 0, 'aPrice')}
+              </TableCell>
+
+              {/* B Price */}
+              <TableCell className="text-right">
+                {renderEditablePrice(product.id, product.bPrice || 0, 'bPrice')}
+              </TableCell>
+
+              {/* C Price */}
+              <TableCell className="text-right">
+                {renderEditablePrice(product.id, product.cPrice || 0, 'cPrice')}
+              </TableCell>
+
+              {/* Restaurant Price */}
+              <TableCell className="text-right">
+                {renderEditablePrice(product.id, product.restaurantPrice || 0, 'restaurantPrice')}
+              </TableCell>
+
+              {/* Quantity */}
+              <TableCell className="text-center">
+                <Input
+                  type="number"
+                  min="0"
+                  value={product.quantity || ''}
+                  onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                  className="w-20 mx-auto text-center"
+                  placeholder="0"
+                />
+              </TableCell>
+
+              {/* Remove Product */}
+              <TableCell className="text-right">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => handleToggleProduct(product)}
+                  type="button"
+                >
+                  <Trash2 className="h-4 w-4 text-red-500" />
+                </Button>
+              </TableCell>
+
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </div>
+  )}
+</div>
+
         
         <div>
           <h3 className="text-lg font-medium mb-2">Available Products</h3>

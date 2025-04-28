@@ -11,7 +11,7 @@ declare module "jspdf" {
   }
 }
 
-export const exportPriceListToPDF = (template: PriceListTemplate) => {
+export const exportPriceListToPDF = (template: PriceListTemplate, price:string) => {
   const doc = new jsPDF()
 
   const MARGIN = 15
@@ -58,7 +58,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
     )
   }
 
-  const formatCurrencyValue = (val: number) => `$${val.toFixed(2)}`
+  const formatCurrencyValue = (val: number) => `$${val?.toFixed(2)}`
 
   // Group products by category
   const productsByCategory: Record<string, PriceListProduct[]> = {}
@@ -97,7 +97,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
           },
         },
       ],
-      ...products.map((product) => [product.name.toUpperCase(), `${formatCurrencyValue(product.pricePerBox)}`, ""]),
+      ...products.map((product) => [product.name.toUpperCase(), `${formatCurrencyValue(product[price] || product.pricePerBox)}`, ""]),
     ]
 
     autoTable(tempDoc, {
@@ -196,7 +196,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate) => {
       ],
       ...category.products.map((product) => [
         { content: product.name.toUpperCase(), styles: { fontStyle: "bold" } },
-        { content: `${formatCurrencyValue(product.pricePerBox)}`, styles: { fontStyle: "bold", halign: "center" } },
+        { content: `${formatCurrencyValue(product[price] || product.pricePerBox)}`, styles: { fontStyle: "bold", halign: "center" } },
         { content: "", styles: { fontStyle: "bold", halign: "center" } },
       ]),
       

@@ -13,11 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter, DialogClose, DialogTrigger } from '@/components/ui/dialog';
 import EmailForm from '@/components/shared/EmailForm';
 import { useToast } from '@/hooks/use-toast';
 import { sendPriceListTemplateEmail } from '@/utils/email/inventoryEmailUtils';
 import { exportPriceListToPDF } from '@/utils/pdf';
+import { Input } from '@/components/ui/input';
+import { CardTitle } from '@/components/ui/card';
 
 interface PriceListTemplateProps {
   template: PriceListTemplateType;
@@ -39,7 +41,31 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
   const { toast } = useToast();
+
+  const [selectedPricing, setSelectedPricing] = useState<string | null>(null);
+
   
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [prices, setPrices] = useState({
+    price: '',
+    aPrice: '',
+    bPrice: '',
+    cPrice: '',
+    restaurantPrice: ''
+  });
+
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setPrices(prev => ({
+      ...prev,
+      [e.target.name]: e.target.value
+    }));
+  };
+
+ 
+
   const handleSendEmail = async (emailData) => {
     setIsSendingEmail(true);
     try {
@@ -94,8 +120,10 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
 
   const handleDownloadPDF = () => {
     try {
-      console.log(template)
-      exportPriceListToPDF(template);
+      console.log("template",template)
+      console.log("prices",selectedPricing)
+      exportPriceListToPDF(template,selectedPricing);
+      return
       toast({
         title: "PDF Downloaded",
         description: "Price list PDF has been generated and downloaded",
@@ -164,10 +192,10 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
               <FileText className="h-4 w-4 mr-2" />
               Create Order
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={handleDownloadPDF}>
+            {/* <DropdownMenuItem onClick={handleDownloadPDF}>
               <Download className="h-4 w-4 mr-2" />
               Download PDF
-            </DropdownMenuItem>
+            </DropdownMenuItem> */}
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => onEdit(template.id)}>
               <Edit className="h-4 w-4 mr-2" />
@@ -182,16 +210,90 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
       </div>
       
       <div className="flex flex-wrap gap-2 mt-4">
+
+      <Dialog>
+      <DialogTrigger asChild>
         <Button 
           size="sm" 
-          variant="outline"
-          onClick={handleDownloadPDF}
+          variant="outline" 
           className="text-blue-600 border-blue-200 hover:bg-blue-50"
         >
           <Download className="h-4 w-4 mr-1" />
           Download PDF
         </Button>
-        
+      </DialogTrigger>
+
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Enter Prices for Download</DialogTitle>
+        </DialogHeader>
+
+        <div className="flex items-center space-x-2">
+        <input
+          type="radio"
+          name="pricing"
+          value="pricePerBox"
+          checked={selectedPricing === "pricePerBox"}
+          onChange={() => setSelectedPricing("pricePerBox")}
+        />
+        <label>Price</label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="radio"
+          name="pricing"
+          value="aPrice"
+          checked={selectedPricing === "aPrice"}
+          onChange={() => setSelectedPricing("aPrice")}
+        />
+        <label>A Price</label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="radio"
+          name="pricing"
+          value="bPrice"
+          checked={selectedPricing === "bPrice"}
+          onChange={() => setSelectedPricing("bPrice")}
+        />
+        <label>B Price</label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="radio"
+          name="pricing"
+          value="cPrice"
+          checked={selectedPricing === "cPrice"}
+          onChange={() => setSelectedPricing("cPrice")}
+        />
+        <label>C Price</label>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <input
+          type="radio"
+          name="pricing"
+          value="restaurantPrice"
+          checked={selectedPricing === "restaurantPrice"}
+          onChange={() => setSelectedPricing("restaurantPrice")}
+        />
+        <label>Restaurant Price</label>
+      </div>
+
+
+        <DialogFooter className="mt-6">
+          <DialogClose asChild>
+            <Button type="button" variant="outline">
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button onClick={handleDownloadPDF}>Download PDF</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
         <Button 
           size="sm" 
           variant="outline"
