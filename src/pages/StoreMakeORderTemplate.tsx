@@ -56,7 +56,10 @@ const CreateOrderModalStore = ({ }) => {
   const urlParams = new URLSearchParams(window.location.search)
   const storeId = urlParams.get("storeId")
   const templateId = urlParams.get("templateId")
-  const priceCategory = urlParams.get("cat") || "price"
+  const priceCategory = urlParams.get("cat") === "price" || !urlParams.get("cat")
+  ? "pricePerBox"
+  : urlParams.get("cat");
+
   const navigate = useNavigate()
 
   const [products, setProducts] = useState([])
@@ -183,7 +186,7 @@ const CreateOrderModalStore = ({ }) => {
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
       const type = priceType[product.id] || "box"; // Default to 'box'
-      const price = type === "unit" ? product.aPrice : product[priceCategory]   ||product.pricePerBox;
+      const price = type === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
 
       return total + price * quantity;
     }, 0);
