@@ -123,7 +123,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
       console.log("template",template)
       console.log("prices",selectedPricing)
       exportPriceListToPDF(template,selectedPricing);
-      return
+      
       toast({
         title: "PDF Downloaded",
         description: "Price list PDF has been generated and downloaded",
