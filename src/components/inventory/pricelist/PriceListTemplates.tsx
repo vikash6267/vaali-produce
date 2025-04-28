@@ -10,6 +10,7 @@ import CreateOrderModal from './CreateOrderModal';
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 import { createPriceListAPI, getAllPriceListAPI,updatePriceList } from "@/services2/operations/priceList"
+import {deltePriceAPI} from "@/services2/operations/priceList"
 
 // Mock data for price list templates
 const initialTemplates: PriceListTemplateType[] = [
@@ -108,8 +109,9 @@ const PriceListTemplates = () => {
     }
   };
 
-  const handleDelete = (templateId: string) => {
+  const handleDelete = async(templateId: string) => {
     setTemplates(templates.filter(t => t.id !== templateId));
+    await deltePriceAPI(templateId)
     toast({
       title: "Template Deleted",
       description: "The price list template has been deleted successfully"

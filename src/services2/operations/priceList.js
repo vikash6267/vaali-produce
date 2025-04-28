@@ -6,7 +6,8 @@ const {
     CREATE_PRICE_LIST, 
     GET_ALL_PRICE_LIST,
     UPDATE_PRICE_LIST,
-    GET_PRICE_LIST
+    GET_PRICE_LIST,
+    DELETE_PRICE_LIST
 } = priceList
 
 
@@ -103,6 +104,32 @@ export const getSinglePriceAPI = async (id) => {
 
     try {
         const response = await apiConnector("GET", `${GET_PRICE_LIST}/${id}`)
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+        console.log(response)
+
+        return response?.data?.data
+    } catch (error) {
+        console.error("GET GET_PRICE_LIST API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get GET_PRICE_LIST!");
+        return false;
+    } finally {
+
+    }
+
+};
+
+
+
+
+export const deltePriceAPI = async (id) => {
+
+
+    try {
+        const response = await apiConnector("DELETE", `${DELETE_PRICE_LIST}/${id}`)
 
 
         if (!response?.data?.success) {
