@@ -338,7 +338,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
 
               {/* Main Price */}
               <TableCell className="text-right">
-                {renderEditablePrice(product.id, product.price, 'price')}
+                {renderEditablePrice(product.id, product.pricePerBox, 'price')}
               </TableCell>
 
               {/* A Price */}
