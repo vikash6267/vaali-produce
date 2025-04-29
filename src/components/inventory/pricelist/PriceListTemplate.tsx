@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { PriceListTemplate as PriceListTemplateType, EmailSendOptions } from '@/components/inventory/forms/formTypes';
 import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,11 @@ import { sendPriceListTemplateEmail } from '@/utils/email/inventoryEmailUtils';
 import { exportPriceListToPDF } from '@/utils/pdf';
 import { Input } from '@/components/ui/input';
 import { CardTitle } from '@/components/ui/card';
+import SelecteStores from './SelecteStores';
+import {priceListEmailMulti} from "@/services2/operations/email"
+import { useSelector } from 'react-redux';
+import { RootState } from '@/redux/store';
+
 
 interface PriceListTemplateProps {
   template: PriceListTemplateType;
@@ -38,13 +43,18 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
 }) => {
   const formattedDate = format(new Date(template.createdAt), 'MMMM dd, yyyy');
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [isMultiEmail, setMultiEmail] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
   const { toast } = useToast();
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   const [selectedPricing, setSelectedPricing] = useState<string>("pricePerBox");
+  const [selectedStore, setSelectedStore] = useState<
+  { label: string; value: string }[]
+>([]);
 
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [prices, setPrices] = useState({
     price: '',
@@ -64,6 +74,12 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
     }));
   };
 
+
+  const sendMulti = async()=>{
+    const url = `http://valiproduce.shop/store/template?templateId=${template.id}`
+    console.log(url)
+    await priceListEmailMulti({url,selectedStore},token)
+  }
  
 
   const handleSendEmail = async (emailData) => {
@@ -118,6 +134,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
     }
   };
 
+ 
   const handleDownloadPDF = () => {
     try {
       console.log("template",template)
@@ -305,6 +322,15 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
           <Send className="h-4 w-4 mr-1" />
           Send to Stores
         </Button>
+        <Button 
+          size="sm" 
+          variant="outline"
+          onClick={() => setMultiEmail(true)}
+          className="text-green-600 border-green-200 hover:bg-green-50"
+        >
+          <Send className="h-4 w-4 mr-1" />
+          Send to Bulk Stores
+        </Button>
         
         <Button 
           size="sm" 
@@ -342,6 +368,9 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
             attachmentsEnabled={true}
             webhookUrl="/api/email" // Replace with your actual webhook URL
           />
+
+      
+
           <DialogFooter>
             <Button 
               variant="outline" 
@@ -361,6 +390,47 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+
+
+      <Dialog open={isMultiEmail} onOpenChange={setMultiEmail}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send Price List</DialogTitle>
+            <DialogDescription>
+              The price list will be sent as a PDF attachment to the selected stores.
+            </DialogDescription>
+          </DialogHeader>
+       
+
+          <SelecteStores selectedStore={selectedStore} setSelectedStore={setSelectedStore} />
+
+
+          <DialogFooter>
+            <Button 
+              variant="outline" 
+              onClick={() => setMultiEmail(false)}
+              disabled={isSendingEmail}
+            >
+              Cancel
+            </Button>
+            <Button 
+             onClick={sendMulti}
+              form="email-form"
+              disabled={isSendingEmail || selectedStore.length === 0}
+              isLoading={isSendingEmail}
+            >
+              Send Price List
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+
+
+
+
+
     </div>
   );
 };

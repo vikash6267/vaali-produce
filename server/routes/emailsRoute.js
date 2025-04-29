@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 
 
-const { priceListSend } = require("../controllers/emails");
+const { priceListSend, priceListSendMulti } = require("../controllers/emails");
 
 
 
 router.post("/price-list", priceListSend)
+router.post("/price-list-multi", priceListSendMulti)
 
 
 

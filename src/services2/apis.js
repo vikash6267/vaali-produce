@@ -103,6 +103,7 @@ export const store = {
 }
 export const email = {
   PRICE_LIST: BASE_URL + "/email/price-list",
+  PRICE_LIST_MULTI: BASE_URL + "/email/price-list-multi",
 
 }
 
