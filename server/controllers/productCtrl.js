@@ -1,6 +1,7 @@
 const Task = require('../models/taskModel');
 const productModel = require("../models/productModel")
 const categoryModel = require("../models/categoryModel")
+const Order = require("../models/orderModle");
 
 
 
@@ -67,34 +68,55 @@ const createProductCtrl = async (req, res) => {
     }
 };
 
+
 const getAllProductCtrl = async (req, res) => {
-    try {
-        const products = await productModel.find()
-            .populate({
-                path: "category",
-                select: "categoryName",
-            })
-            .lean();
+  try {
+    // Step 1: Fetch all products with category
+    const products = await productModel.find()
+      .populate({
+        path: "category",
+        select: "categoryName",
+      })
+      .lean();
 
-        // Map products to replace category object with only its name
-        const modifiedProducts = products.map(product => ({
-            ...product,
-            category: product.category?.categoryName || null, // Directly set category as name
-        }));
+    // Step 2: Aggregate total orders for each product
+    const orderStats = await Order.aggregate([
+      { $unwind: "$items" },
+      {
+        $group: {
+          _id: "$items.productId", 
+          totalOrder: { $sum: "$items.quantity" }, // or use $sum: 1 for just count
+        }
+      }
+    ]);
 
-       
+    // Step 3: Convert stats to a map for quick access
+    const orderMap = {};
+    orderStats.forEach(stat => {
+      orderMap[stat._id.toString()] = stat.totalOrder;
+    });
 
-        return res.status(200).json({
-            success: true,
-            products: modifiedProducts
-        })
-    } catch (error) {
-        return res.status(500).json({
-            success: false,
-            message: "Error in getting  products API!",
-        });
-    }
-}
+    // Step 4: Attach totalOrder to each product and format category
+    const modifiedProducts = products.map(product => ({
+      ...product,
+      category: product.category?.categoryName || null,
+      totalOrder: orderMap[product._id.toString()] || 0,
+    }));
+
+
+    return res.status(200).json({
+      success: true,
+      products: modifiedProducts,
+    });
+  } catch (error) {
+    console.error("Product fetch error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error in getting products API!",
+    });
+  }
+};
+
 
 
 const getSingleProductCtrl = async (req, res) => {

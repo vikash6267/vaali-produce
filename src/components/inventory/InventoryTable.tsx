@@ -203,6 +203,12 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 Updated {renderSortIcon("lastUpdated")}
               </div>
             </TableHead>
+            <TableHead
+              className="text-right "
+       
+            >
+           Total Order
+            </TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -371,6 +377,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {new Date(product.lastUpdated).toLocaleDateString()}
+                </TableCell>
+                <TableCell className="text-right text-muted-foreground">
+                  {product?.totalOrder}
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">
