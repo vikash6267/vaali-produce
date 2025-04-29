@@ -42,7 +42,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
     doc.setTextColor(60, 60, 60)
     doc.text(`Effective from: ${today.toLocaleDateString()}`, MARGIN, 18)
     doc.text("Whatsapp: +1 501 400 2406", pageWidth - MARGIN, 8, { align: "right" })
-    doc.text("Phone: +1 501 669 0123", pageWidth - MARGIN, 12, { align: "right" })
+    doc.text("Phone: +1 501 559 0123", pageWidth - MARGIN, 12, { align: "right" })
     doc.text("Email: order@valiproduce.shop", pageWidth - MARGIN, 16, { align: "right" })
 
     doc.setDrawColor(180, 180, 180)
