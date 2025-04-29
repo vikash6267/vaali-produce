@@ -13,52 +13,7 @@ import { createPriceListAPI, getAllPriceListAPI,updatePriceList } from "@/servic
 import {deltePriceAPI} from "@/services2/operations/priceList"
 
 // Mock data for price list templates
-const initialTemplates: PriceListTemplateType[] = [
-  {
-    id: 'p1',
-    name: 'Summer Vegetables',
-    description: 'Special pricing for summer vegetables and fruits',
-    status: 'active',
-    createdAt: '2023-07-10T10:00:00Z',
-    products: [
-      { id: 'item1', productId: 'prod1', productName: 'Organic Tomatoes', category: 'Vegetables', price: 3.99, unit: 'lb' },
-      { id: 'item2', productId: 'prod2', productName: 'Bell Peppers', category: 'Vegetables', price: 2.49, unit: 'lb' },
-      { id: 'item3', productId: 'prod3', productName: 'Zucchini', category: 'Vegetables', price: 1.99, unit: 'lb' },
-      { id: 'item4', productId: 'prod4', productName: 'Yellow Squash', category: 'Vegetables', price: 1.89, unit: 'lb' },
-      { id: 'item5', productId: 'prod5', productName: 'Watermelon', category: 'Fruits', price: 5.99, unit: 'each' },
-      { id: 'item6', productId: 'prod6', productName: 'Peaches', category: 'Fruits', price: 3.49, unit: 'lb' },
-      { id: 'item7', productId: 'prod7', productName: 'Sweet Corn', category: 'Vegetables', price: 0.75, unit: 'ear' }
-    ]
-  },
-  {
-    id: 'p2',
-    name: 'Organic Selection',
-    description: 'Premium pricing for certified organic products',
-    status: 'active',
-    createdAt: '2023-06-15T14:30:00Z',
-    products: [
-      { id: 'item8', productId: 'prod8', productName: 'Organic Apples', category: 'Fruits', price: 4.99, unit: 'lb' },
-      { id: 'item9', productId: 'prod9', productName: 'Organic Carrots', category: 'Vegetables', price: 3.49, unit: 'lb' },
-      { id: 'item10', productId: 'prod10', productName: 'Organic Spinach', category: 'Leafy Greens', price: 4.29, unit: 'bunch' },
-      { id: 'item11', productId: 'prod11', productName: 'Organic Blueberries', category: 'Berries', price: 6.99, unit: 'pint' },
-      { id: 'item12', productId: 'prod12', productName: 'Organic Potatoes', category: 'Root Vegetables', price: 5.49, unit: 'lb' }
-    ]
-  },
-  {
-    id: 'p3',
-    name: 'Economy Pack',
-    description: 'Budget-friendly options for wholesale buyers',
-    status: 'draft',
-    createdAt: '2023-07-05T09:15:00Z',
-    products: [
-      { id: 'item13', productId: 'prod13', productName: 'Russet Potatoes (10lb)', category: 'Root Vegetables', price: 7.99, unit: 'bag' },
-      { id: 'item14', productId: 'prod14', productName: 'Yellow Onions (5lb)', category: 'Vegetables', price: 4.29, unit: 'bag' },
-      { id: 'item15', productId: 'prod15', productName: 'Gala Apples (5lb)', category: 'Fruits', price: 8.99, unit: 'bag' },
-      { id: 'item16', productId: 'prod16', productName: 'Bananas (40lb case)', category: 'Fruits', price: 25.99, unit: 'case' },
-      { id: 'item17', productId: 'prod17', productName: 'Carrots (25lb)', category: 'Root Vegetables', price: 19.99, unit: 'bag' }
-    ]
-  }
-];
+
 
 
 
