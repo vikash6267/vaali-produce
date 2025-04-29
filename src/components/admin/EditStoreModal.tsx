@@ -271,6 +271,7 @@ const StoreEditModal = ({ storeId, isOpen, onClose, onSuccess }: StoreEditModalP
                           <SelectItem value="price">Price</SelectItem>
                           <SelectItem value="aPrice">A Price</SelectItem>
                           <SelectItem value="bPrice">B Price</SelectItem>
+                          <SelectItem value="cPrice">C Price</SelectItem>
                           <SelectItem value="restaurantPrice">Restaurant Price</SelectItem>
                         </SelectContent>
                       </Select>
