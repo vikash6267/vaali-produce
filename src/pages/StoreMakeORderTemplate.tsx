@@ -56,10 +56,8 @@ const CreateOrderModalStore = ({ }) => {
   const urlParams = new URLSearchParams(window.location.search)
   const storeId = urlParams.get("storeId")
   const templateId = urlParams.get("templateId")
-  const priceCategory = urlParams.get("cat") === "price" || !urlParams.get("cat")
-  ? "pricePerBox"
-  : urlParams.get("cat");
-
+  // const priceCategory = urlParams.get("cat") || "price"
+  const [priceCategory,setPriceCategory] = useState("pricePerBox")
   const navigate = useNavigate()
 
   const [products, setProducts] = useState([])
@@ -145,6 +143,13 @@ const CreateOrderModalStore = ({ }) => {
 
     const response = await getUserAPI({ email, setIsGroupOpen })
 
+    if (response.priceCategory === "price") {
+      setPriceCategory("pricePerBox");
+    } else {
+      setPriceCategory(response.priceCategory);
+    }
+    
+    // console.log(response)
     setBillingAddress({
       name: response.ownerName || "",
       email: response.email || "",
@@ -186,7 +191,7 @@ const CreateOrderModalStore = ({ }) => {
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
       const type = priceType[product.id] || "box"; // Default to 'box'
-      const price = type === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
+      const price = type === "unit" ? product.price : product[priceCategory] ||product.pricePerBox;
 
       return total + price * quantity;
     }, 0);
@@ -485,7 +490,8 @@ const CreateOrderModalStore = ({ }) => {
                   />
                 )}
 
-                <div className="border rounded-md overflow-hidden">
+        { true ? 
+                  <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-4">
                     <Input
                       placeholder="Search products..."
@@ -576,7 +582,17 @@ const CreateOrderModalStore = ({ }) => {
 
                     </Table>
                   </div>
-                </div>
+                  
+                </div> :
+                 <div className="flex justify-center items-center h-[80px] bg-gray-200 p-4">
+                 <div className="flex items-center space-x-2">
+                   <ShoppingCart className="text-gray-500" />
+                   <p className="text-lg font-medium text-gray-800">
+                     Select Store then products will appear
+                   </p>
+                 </div>
+               </div>
+        }
 
                 {/* Summary Row */}
                 <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">

@@ -46,6 +46,10 @@ const authSchema = new mongoose.Schema(
             type: String,
             required: true,
         },
+        priceCategory: {
+            type: String,
+            default:"price"
+        },
 
         agreeTerms: {
             type: Boolean,

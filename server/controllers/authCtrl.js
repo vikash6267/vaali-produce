@@ -272,12 +272,13 @@ const updateStoreCtrl = async (req, res) => {
       state,
       zipCode,
       businessDescription,
+      priceCategory
 
     } = req.body;
 
+  
     const { id } = req.params;
-    console.log(id)
-    console.log(req.body)
+ 
 
     if (!id) {
       return res.status(400).json({
@@ -302,6 +303,7 @@ const updateStoreCtrl = async (req, res) => {
     store.city = city || store.city;
     store.state = state || store.state;
     store.zipCode = zipCode || store.zipCode;
+    store.priceCategory = priceCategory || store.priceCategory;
     store.businessDescription = businessDescription || store.businessDescription;
 
     await store.save();

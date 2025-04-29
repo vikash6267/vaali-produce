@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Plus, SendHorizontal } from 'lucide-react';
+import { Loader, Plus, SendHorizontal } from 'lucide-react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import PriceListTemplate from './PriceListTemplate';
 import PriceListTemplateForm from './PriceListTemplateForm';
@@ -70,6 +70,7 @@ const PriceListTemplates = () => {
   const [selectedTemplate, setSelectedTemplate] = useState<PriceListTemplateType | null>(null);
   const { toast } = useToast();
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const [loading, setLoading] = useState(false);
 
   const handleAddNew = () => {
     setCurrentTemplate(null);
@@ -79,20 +80,16 @@ const PriceListTemplates = () => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true); // Show loader
       const response = await getAllPriceListAPI();
       console.log(response);
       if (response) {
-        console.log(response)
-        setTemplates(response)
-        // const updatedProducts = response.map((product) => ({
-        //   ...product,
-        //   id: product._id,
-        //   lastUpdated:product?.updatedAt
-        // }));
-
+        setTemplates(response);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false); // Hide loader
     }
   };
 
@@ -169,8 +166,12 @@ const PriceListTemplates = () => {
           New Template
         </Button>
       </div>
-
-      {templates.length === 0 ? (
+      <div>
+      {loading ? (
+        <div className="flex items-center justify-center h-40">
+          <Loader className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : templates.length === 0 ? (
         <div className="bg-muted rounded-lg p-10 text-center">
           <SendHorizontal className="h-10 w-10 mx-auto text-muted-foreground mb-4" />
           <h3 className="text-lg font-medium mb-2">No Price Lists Yet</h3>
@@ -196,6 +197,8 @@ const PriceListTemplates = () => {
           ))}
         </div>
       )}
+    </div>
+
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-6">

@@ -1,28 +1,22 @@
 "use client"
 
 import { Pencil, Trash2, ExternalLink } from "lucide-react"
-import { Dialog, DialogContent } from "@/components/ui/dialog"
 import { useState } from "react"
-import StoreRegistration from "@/pages/StoreRegistration"
-import type { RootState } from "@/redux/store"
-import { useSelector } from "react-redux"
 import { useToast } from "@/hooks/use-toast"
 import { userWithOrderDetails } from "@/services2/operations/auth"
 import UserDetailsModal from "./user-details-modal"
+import StoreEditModal from "./EditStoreModal"
 
 const StoreTable = ({ loading, groups, fetchStores }: any) => {
-  const [isGroupOpen, setIsGroupOpen] = useState(false)
-  const [isEdit, setIsEdit] = useState(false)
-  const [editGroup, setEditGroup] = useState(null)
+  const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
   const [selectedUserData, setSelectedUserData] = useState(null)
   const { toast } = useToast()
-  const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
   const handleEdit = async (group) => {
-    setIsEdit(true)
-    setEditGroup(group)
-    setIsGroupOpen(true)
+    setSelectedStoreId(group?.id || group?._id)
+    setIsEditModalOpen(true)
   }
 
   const handleDelete = (id: any) => {
@@ -47,21 +41,6 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
         variant: "destructive",
       })
     }
-  }
-
-  const renderStoreRegistrationModal = () => {
-    return (
-      <Dialog open={isGroupOpen} onOpenChange={setIsGroupOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-0">
-          <StoreRegistration
-            setIsGroupOpen={(value: boolean) => setIsGroupOpen(value)}
-            isEdit={isEdit}
-            groups={editGroup}
-            fetchStores={fetchStores}
-          />
-        </DialogContent>
-      </Dialog>
-    )
   }
 
   return (
@@ -135,8 +114,15 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
         </div>
       )}
 
-      {renderStoreRegistrationModal()}
+      {/* Store Edit Modal */}
+      <StoreEditModal
+        storeId={selectedStoreId}
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSuccess={fetchStores}
+      />
 
+      {/* User Details Modal */}
       <UserDetailsModal
         isOpen={userDetailsOpen}
         onClose={() => setUserDetailsOpen(false)}
