@@ -490,7 +490,7 @@ const CreateOrderModalStore = ({ }) => {
                   />
                 )}
 
-        { true ? 
+        { selectedStore?.value  ? 
                   <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-4">
                     <Input
