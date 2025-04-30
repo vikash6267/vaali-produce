@@ -191,6 +191,17 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
 >
   Copy URL
 </button>
+  <button
+  onClick={() => {
+    const catValue = selectedPricing === "pricePerBox" ? "price" : selectedPricing;
+    const url = `http://valiproduce.shop/store/nextweek?templateId=${template.id}&cat=${catValue}`;
+    navigator.clipboard.writeText(url);
+    alert("URL copied to clipboard!");
+  }}
+  className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+>
+  Copy  Next Week Order URL
+</button>
 
 </div>
 
