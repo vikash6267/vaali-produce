@@ -362,7 +362,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
       <Dialog open={orderDetails} onOpenChange={setOrderDetails}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Order Details (Last 7 Days)</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Order Details (Last Mon,Tue,Wed)</DialogTitle>
           </DialogHeader>
           {productOrderData && (
             <div className="space-y-4">
@@ -400,6 +400,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
               </div>
             </div>
           )}
+
+          <div>
+            Total Orders - {productOrderData?.totalOrdersThisWeek}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
