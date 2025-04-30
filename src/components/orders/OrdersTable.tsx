@@ -400,10 +400,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
   
       // Prepare data for table
       const tableData = mergedProducts.map((product) => [
-            product.name,
-        product.quantity.toString(),
-     
-      ])
+        product.name,
+        product.pricingType.toLowerCase() !== 'box'
+          ? `${product.quantity} ${product.pricingType.toLowerCase()}`
+          : product.quantity.toString()
+      ]);
+      
   
       // Calculate total value of all products
       const totalValue = mergedProducts.reduce((sum, product) => sum + product.totalPrice, 0)
