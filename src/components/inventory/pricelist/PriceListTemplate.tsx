@@ -180,7 +180,8 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   </div>
 
   {/* 🚀 Copy URL Button */}
-  <button
+<div className=' flex gap-2'>
+<button
   onClick={() => {
     const catValue = selectedPricing === "pricePerBox" ? "price" : selectedPricing;
     const url = `http://valiproduce.shop/store/template?templateId=${template.id}&cat=${catValue}`;
@@ -203,6 +204,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   Copy  Next Week Order URL
 </button>
 
+</div>
 </div>
 
         <DropdownMenu>
