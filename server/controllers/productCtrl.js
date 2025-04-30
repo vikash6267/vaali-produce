@@ -132,16 +132,36 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
         return res.status(404).json({ success: false, message: "Product not found" });
       }
   
-      // Get start of the current week (Sunday)
       const today = new Date();
-      const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+      const currentDay = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+  
+      // If today is Monday, return empty
+      if (currentDay === 1) {
+        return res.status(200).json({
+          success: true,
+          productId,
+          productTitle: product.name,
+          productImage: product.image || null,
+          totalOrdersThisWeek: 0,
+          buyers: []
+        });
+      }
+  
+      // Calculate start of the week (Monday)
+      const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
+      const startOfWeek = new Date(today);
+      startOfWeek.setDate(today.getDate() - diffToMonday);
       startOfWeek.setHours(0, 0, 0, 0);
   
-      // Get orders for this product this week
+      // End date is yesterday (not including today)
+      const endDate = new Date(today);
+      endDate.setDate(today.getDate() - 1);
+      endDate.setHours(23, 59, 59, 999);
+  
+      // Get orders for the product this week (until yesterday)
       const orders = await Order.find({
         createdAt: { $gte: startOfWeek },
-        "items.productId": productId,
-         orderType: "Regural"
+        "items.productId": productId
       })
         .populate("store", "storeName ownerName")
         .lean();
@@ -182,6 +202,10 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
       });
     }
   };
+  
+
+
+
 
 const getSingleProductCtrl = async (req, res) => {
     try {
