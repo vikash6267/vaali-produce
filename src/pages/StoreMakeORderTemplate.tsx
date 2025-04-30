@@ -30,8 +30,9 @@ import { useNavigate } from "react-router-dom"
 import StoreRegistration from "./StoreRegistration"
 import AddressForm from "@/components/AddressFields"
 import { getAllProductAPI } from "@/services2/operations/product"
+import { useLocation } from 'react-router-dom'; // or usePathname() if you're using Next.js
 
-const CreateOrderModalStore = ({ }) => {
+const CreateOrderModalStore = () => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null)
   const [selectedStore, setSelectedStore] = useState<{
     label: string
@@ -59,7 +60,14 @@ const CreateOrderModalStore = ({ }) => {
   // const priceCategory = urlParams.get("cat") || "price"
   const [priceCategory,setPriceCategory] = useState("pricePerBox")
   const navigate = useNavigate()
+  const location = useLocation(); // React Router v6+
+  const [nextWeek, setNextWeek] = useState(false);
 
+  useEffect(() => {
+    if (location.pathname.includes('/store/nextweek')) {
+      setNextWeek(true);
+    }
+  }, [location.pathname]);
   const [products, setProducts] = useState([])
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
@@ -290,10 +298,17 @@ const CreateOrderModalStore = ({ }) => {
       shippinCost: calculateShipping(),
       store: selectedStore.value,
       billingAddress,
+      orderType:nextWeek ? "NextWeek" :"Regural",
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     }
 
-    await createOrderAPI(order, token)
+await createOrderAPI(order, token)
+
+
+    if(nextWeek){
+      navigate("/")
+      return
+    }
 
     setOrderDetails(order)
     setOrderConfirmed(true)
@@ -430,13 +445,13 @@ const CreateOrderModalStore = ({ }) => {
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl sm:text-2xl">
-              {orderConfirmed ? "Order Invoice" : "Create Order from Price List"}
+              {orderConfirmed ? "Order Invoice" : nextWeek ? "Next Week Order":"Create Order from Price List"}
             </DialogTitle>
-            <DialogDescription className="text-sm sm:text-base">
+       { !nextWeek &&    <DialogDescription className="text-sm sm:text-base">
               {orderConfirmed
                 ? "Your order has been created successfully. You can download the confirmation PDF."
                 : `Create a new order based on "${template?.name}" price list.`}
-            </DialogDescription>
+            </DialogDescription>}
           </DialogHeader>
 
           {!orderConfirmed ? (
@@ -490,7 +505,7 @@ const CreateOrderModalStore = ({ }) => {
                   />
                 )}
 
-        { selectedStore?.value  ? 
+        { selectedStore?.value || true  ? 
                   <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-4">
                     <Input
@@ -520,9 +535,9 @@ const CreateOrderModalStore = ({ }) => {
                         <TableRow>
                           <TableHead className="w-[200px] sm:w-[300px]">Product</TableHead>
                           <TableHead className="hidden sm:table-cell">Category</TableHead>
-                          <TableHead className="text-right">Price</TableHead>
+                      { !nextWeek &&   <TableHead className="text-right">Price</TableHead>}
                           <TableHead className="w-[80px] sm:w-[150px] text-center">Qty</TableHead>
-                          <TableHead className="text-right">Total</TableHead>
+                        {!nextWeek &&  <TableHead className="text-right">Total</TableHead>}
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -548,7 +563,7 @@ const CreateOrderModalStore = ({ }) => {
 
                               <TableCell className="hidden sm:table-cell">{product.category}</TableCell>
 
-                              <TableCell className="text-right text-xs sm:text-sm">
+                         {!nextWeek &&     <TableCell className="text-right text-xs sm:text-sm">
                                 <div className="flex flex-col items-end gap-1">
                                   <select
                                     value={selectedType}
@@ -560,7 +575,7 @@ const CreateOrderModalStore = ({ }) => {
                                   </select>
                                   <span>{formatCurrency(price)}</span>
                                 </div>
-                              </TableCell>
+                              </TableCell>}
 
                               <TableCell>
                                 <Input
@@ -572,9 +587,9 @@ const CreateOrderModalStore = ({ }) => {
                                 />
                               </TableCell>
 
-                              <TableCell className="text-right font-medium text-xs sm:text-sm">
+                          {!nextWeek &&    <TableCell className="text-right font-medium text-xs sm:text-sm">
                                 {formatCurrency(total)}
-                              </TableCell>
+                              </TableCell>}
                             </TableRow>
                           );
                         })}
@@ -595,7 +610,7 @@ const CreateOrderModalStore = ({ }) => {
         }
 
                 {/* Summary Row */}
-                <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
+             {!nextWeek &&   <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
                   <div className="w-full sm:max-w-xl">
                     <div className="grid grid-cols-3 gap-2 font-medium text-muted-foreground text-xs sm:text-sm mb-1">
                       <div className="text-center">Subtotal</div>
@@ -608,7 +623,7 @@ const CreateOrderModalStore = ({ }) => {
                       <div className="text-center text-green-600">{formatCurrency(calculateTotal())}</div>
                     </div>
                   </div>
-                </div>
+                </div>}
               </div>
 
               <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
@@ -621,7 +636,9 @@ const CreateOrderModalStore = ({ }) => {
                   className="w-full sm:w-auto order-1 sm:order-2"
                 >
                   <ShoppingCart className="mr-2 h-4 w-4" />
-                  Create Order
+                  {
+                    nextWeek ? "Create  Week Order" : "Create Order"
+                  }
                 </Button>
               </DialogFooter>
             </>

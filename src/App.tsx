@@ -154,6 +154,14 @@ export default function App() {
           }
         />
         <Route
+          path="/store/nextweek"
+          element={
+            // <PrivateRoute isStore={isStore}>
+            <CreateOrderModalStore />
+            // </PrivateRoute>
+          }
+        />
+        <Route
           path="/store/users"
           element={
             <PrivateRoute isStore={isStore}>

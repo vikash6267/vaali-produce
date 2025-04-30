@@ -28,7 +28,7 @@ const createProductCtrl = async (req, res) => {
             boxSize,
             pricePerBox,
             image,
-            shippinCost=0
+            shippinCost=0,
         } = req.body;
 
       
@@ -140,7 +140,8 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
       // Get orders for this product this week
       const orders = await Order.find({
         createdAt: { $gte: startOfWeek },
-        "items.productId": productId
+        "items.productId": productId,
+         orderType: "Regural"
       })
         .populate("store", "storeName ownerName")
         .lean();

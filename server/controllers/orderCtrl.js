@@ -4,9 +4,15 @@ const authModel = require("../models/authModel");  // Ensure the correct path fo
 
 const createOrderCtrl = async (req, res) => {
     try {
-        const { items, status, total, clientId, billingAddress, shippingAddress, shippinCost = 0 } = req.body;
-        console.log(req.body)
-
+        const { items, 
+            status, 
+            total, 
+            clientId, 
+            billingAddress, shippingAddress, shippinCost = 0,
+            orderType="Regural"
+        
+        } = req.body;
+      
 
 
         if (!items || items.length === 0) {
@@ -32,6 +38,7 @@ const createOrderCtrl = async (req, res) => {
             shippingAddress,
             billingAddress,
             total,
+            orderType,
             shippinCost
         });
 
