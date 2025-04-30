@@ -9,7 +9,8 @@ const { CREATE_PRODUCT,
     DELETE_PRODUCT, 
     UPDATE_PRODUCT, 
     UPDATE_PRODUCT_PRICE,
-    UPDATE_BULK_DISCOUNT
+    UPDATE_BULK_DISCOUNT,
+    GET_PRODUCT_ORDER
 } = product
 
 export const createProductAPI = async (formData, token) => {
@@ -136,6 +137,28 @@ export const getSingleProductAPI = async (id) => {
         }
 
         return response?.data?.product
+    } catch (error) {
+        console.error("GET Product API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get product!");
+        return false;
+    } finally {
+
+    }
+
+};
+export const getSingleProductOrderAPI = async (id) => {
+
+
+    try {
+        const response = await apiConnector("GET", `${GET_PRODUCT_ORDER}/${id}`)
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+       
+
+        return response?.data
     } catch (error) {
         console.error("GET Product API ERROR:", error);
         toast.error(error?.response?.data?.message || "Failed to get product!");

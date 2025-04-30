@@ -2,6 +2,8 @@ const Task = require('../models/taskModel');
 const productModel = require("../models/productModel")
 const categoryModel = require("../models/categoryModel")
 const Order = require("../models/orderModle");
+const Product = require("../models/productModel");
+const mongoose = require("mongoose");
 
 
 
@@ -68,7 +70,6 @@ const createProductCtrl = async (req, res) => {
     }
 };
 
-
 const getAllProductCtrl = async (req, res) => {
   try {
     // Step 1: Fetch all products with category
@@ -117,7 +118,69 @@ const getAllProductCtrl = async (req, res) => {
   }
 };
 
-
+const getWeeklyOrdersByProductCtrl = async (req, res) => {
+    try {
+      const { productId } = req.params;
+  
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({ success: false, message: "Invalid Product ID" });
+      }
+  
+      // Fetch product details
+      const product = await Product.findById(productId).select("name image").lean();
+      if (!product) {
+        return res.status(404).json({ success: false, message: "Product not found" });
+      }
+  
+      // Get start of the current week (Sunday)
+      const today = new Date();
+      const startOfWeek = new Date(today.setDate(today.getDate() - today.getDay()));
+      startOfWeek.setHours(0, 0, 0, 0);
+  
+      // Get orders for this product this week
+      const orders = await Order.find({
+        createdAt: { $gte: startOfWeek },
+        "items.productId": productId
+      })
+        .populate("store", "storeName ownerName")
+        .lean();
+  
+      let totalQuantity = 0;
+      const buyers = [];
+  
+      orders.forEach(order => {
+        const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
+  
+        order.items.forEach(item => {
+          if (item.productId?.toString() === productId) {
+            totalQuantity += item.quantity || 1;
+  
+            buyers.push({
+              name: buyerName,
+              quantity: item.quantity || 1,
+              orderDate: order.createdAt
+            });
+          }
+        });
+      });
+  
+      return res.status(200).json({
+        success: true,
+        productId,
+        productTitle: product.name,
+        productImage: product.image || null,
+        totalOrdersThisWeek: totalQuantity,
+        buyers
+      });
+  
+    } catch (error) {
+      console.error("Error in getWeeklyOrdersByProductCtrl:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Server Error",
+      });
+    }
+  };
 
 const getSingleProductCtrl = async (req, res) => {
     try {
@@ -418,4 +481,14 @@ exports.getProductsByStore = async (req, res) => {
 
 
 
-module.exports = { createProductCtrl, getAllProductCtrl, getSingleProductCtrl, deleteProductCtrl, updateProductCtrl, updateProductPrice, bulkDiscountApply };
+module.exports = { 
+    createProductCtrl, 
+    getAllProductCtrl, 
+    getSingleProductCtrl, 
+    deleteProductCtrl, 
+    updateProductCtrl, 
+    updateProductPrice, 
+    bulkDiscountApply,
+    getWeeklyOrdersByProductCtrl
+
+};
