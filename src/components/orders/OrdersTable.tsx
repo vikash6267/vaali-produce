@@ -266,65 +266,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
     )
   }
 
-  // const handleDownloadMergedProducts = () => {
-  //   // Filter only NextWeek orders
-  //   const nextWeekOrders = orders.filter((order) => order.orderType === "NextWeek")
-
-  //   OrderPdfDownload(nextWeekOrders)
-  //   // Create a map to store merged product quantities
-  //   const productMap = new Map()
-
-  //   // Loop through all NextWeek orders and their items
-  //   nextWeekOrders.forEach((order) => {
-  //     order.items.forEach((item) => {
-  //       const productId = item.product || item.productId
-  //       const productName = item.name || item.productName
-
-  //       if (productMap.has(productId)) {
-  //         // If product already exists in map, add to its quantity
-  //         const existingProduct = productMap.get(productId)
-  //         existingProduct.quantity += item.quantity
-  //         existingProduct.totalPrice += item.total || item.price * item.quantity
-  //       } else {
-  //         // If product doesn't exist in map, add it
-  //         productMap.set(productId, {
-  //           id: productId,
-  //           name: productName,
-  //           quantity: item.quantity,
-  //           unitPrice: item.price || item.unitPrice,
-  //           totalPrice: item.total || item.price * item.quantity,
-  //           pricingType: item.pricingType || "unit",
-  //         })
-  //       }
-  //     })
-  //   })
-
-  //   // Convert map to array
-  //   const mergedProducts = Array.from(productMap.values())
-
-  //   // Create CSV content
-  //   let csvContent = "Product ID,Product Name,Quantity,Unit Price,Total Price,Pricing Type\n"
-
-  //   mergedProducts.forEach((product) => {
-  //     csvContent += `${product.id},${product.name},${product.quantity},${product.unitPrice},${product.totalPrice},${product.pricingType}\n`
-  //   })
-
-  //   // Create a blob and download link
-  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
-  //   const url = URL.createObjectURL(blob)
-  //   const link = document.createElement("a")
-  //   link.setAttribute("href", url)
-  //   link.setAttribute("download", `next-week-orders-${new Date().toISOString().split("T")[0]}.csv`)
-  //   link.style.visibility = "hidden"
-  //   document.body.appendChild(link)
-  //   link.click()
-  //   document.body.removeChild(link)
-
-  //   toast({
-  //     title: "Download Started",
-  //     description: `Merged product quantities for ${nextWeekOrders.length} NextWeek orders`,
-  //   })
-  // }
 
 
     const handleDownloadMergedProducts = (type:string) => {
@@ -364,23 +305,29 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
         order.items.forEach((item) => {
           const productId = item.product || item.productId || ""
           const productName = item.name || item.productName || ""
-  
-          if (productMap.has(productId)) {
-            // If product already exists in map, add to its quantity
-            const existingProduct = productMap.get(productId)
-            existingProduct.quantity += item.quantity
-            existingProduct.totalPrice += item.total || item.price * item.quantity
-          } else {
-            // If product doesn't exist in map, add it
+          const pricingType = item.pricingType?.toLowerCase() || "unit"
+      
+          if (!productMap.has(productId)) {
             productMap.set(productId, {
               id: productId,
               name: productName,
-              quantity: item.quantity,
-              unitPrice: item.price || item.unitPrice || 0,
-              totalPrice: item.total || item.price * item.quantity,
-              pricingType: item.pricingType || "unit",
+              boxQuantity: 0,
+              unitQuantity: 0,
+              unitLabel: "", // to show proper unit like "kg", "piece"
+              totalPrice: 0,
             })
           }
+      
+          const productEntry = productMap.get(productId)
+      
+          if (pricingType === "box") {
+            productEntry.boxQuantity += item.quantity
+          } else {
+            productEntry.unitQuantity += item.quantity
+            productEntry.unitLabel = pricingType // store last non-box label
+          }
+      
+          productEntry.totalPrice += item.total || item.price * item.quantity
         })
       })
   
@@ -399,12 +346,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
       doc.text(`Total User Order: ${nextWeekOrders.length}`, 14, 30)
   
       // Prepare data for table
-      const tableData = mergedProducts.map((product) => [
+      const tableData = Array.from(productMap.values()).map((product) => [
         product.name,
-        product.pricingType.toLowerCase() !== 'box'
-          ? `${product.quantity} ${product.pricingType.toLowerCase()}`
-          : product.quantity.toString()
-      ]);
+        product.boxQuantity > 0 ? product.boxQuantity.toString() : "",
+        product.unitQuantity > 0 ? `${product.unitQuantity} ${product.unitLabel}` : ""
+      ])
+      
+      
       
   
       // Calculate total value of all products
@@ -412,14 +360,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
   
       // Add table to PDF
       autoTable(doc, {
-        head: [["Product Name", "Quantity" ]],
+        head: [["Product Name", "Box Quantity", "Unit Quantity"]],
         body: tableData,
         startY: 40,
-        foot: [["", "", "", "Grand Total:", `$${totalValue.toFixed(2)}`, ""]],
+    
         theme: "striped",
         headStyles: { fillColor: [66, 66, 66] },
         footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
       })
+      
+      
   
       // Save the PDF
       doc.save(`${type}-orders-${new Date().toISOString().split("T")[0]}.pdf`)
