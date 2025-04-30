@@ -62,6 +62,7 @@ export interface Order {
   _id?: string;
   orderId?: string;
   orderNumber?: string;
+  orderType?: string;
   store?: string;
   customer?: string;
   date: string;

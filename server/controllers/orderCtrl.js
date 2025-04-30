@@ -388,7 +388,43 @@ const updatePaymentDetails = async (req, res) => {
     }
 };
 
-
+const updateOrderTypeCtrl = async (req, res) => {
+    try {
+      const { orderId } = req.params;
+      const { orderType } = req.body;
+  
+      // Check if orderId is valid
+      if (!mongoose.Types.ObjectId.isValid(orderId)) {
+        return res.status(400).json({ success: false, message: "Invalid Order ID" });
+      }
+  
+      // Validate orderType
+      if (!orderType || typeof orderType !== "string") {
+        return res.status(400).json({ success: false, message: "orderType is required and must be a string" });
+      }
+  
+      // Find and update the order
+      const updatedOrder = await orderModel.findByIdAndUpdate(
+        orderId,
+        { orderType },
+        { new: true }
+      );
+  
+      if (!updatedOrder) {
+        return res.status(404).json({ success: false, message: "Order not found" });
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: "Order type updated successfully",
+        order: updatedOrder,
+      });
+    } catch (error) {
+      console.error("Error updating orderType:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  };
+  
 module.exports = { 
     createOrderCtrl, 
     getAllOrderCtrl, 
@@ -397,7 +433,8 @@ module.exports = {
     updatePalletInfo,
     userDetailsWithOrder,
     updatePaymentDetails,
-    deleteOrderCtrl
+    deleteOrderCtrl,
+    updateOrderTypeCtrl
      };
 
 

@@ -1,14 +1,9 @@
+"use client"
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow
-} from '@/components/ui/table';
+import type React from "react"
+import { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,10 +12,10 @@ import {
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
-  DropdownMenuSeparator
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
   ArrowUpDown,
   MoreHorizontal,
@@ -41,80 +36,75 @@ import {
   ReceiptText,
   FilePlus2,
   PencilRuler,
-  Wrench
-} from 'lucide-react';
-import { Order, formatCurrency, formatDate } from '@/lib/data';
-import { cn } from '@/lib/utils';
-import { useToast } from '@/hooks/use-toast';
-import {
-  Dialog,
-  DialogContent,
-} from '@/components/ui/dialog';
-import OrderEditForm from './OrderEditForm';
-import InvoiceGenerator from './InvoiceGenerator';
-import TransportationReceipt from './TransportationReceipt';
-import OrderDetailsModal from './OrderView';
-import { RootState } from '@/redux/store';
-import { useSelector } from 'react-redux';
-import WorkOrderForm from './WorkOrder';
-import { PaymentStatusPopup } from './PaymentUpdateModel';
-import { deleteOrderAPI } from "@/services2/operations/order"
-import Swal from 'sweetalert2';
+  Wrench,
+} from "lucide-react"
+import { type Order, formatCurrency, formatDate } from "@/lib/data"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/hooks/use-toast"
+import { Dialog, DialogContent } from "@/components/ui/dialog"
+import OrderEditForm from "./OrderEditForm"
+import InvoiceGenerator from "./InvoiceGenerator"
+import TransportationReceipt from "./TransportationReceipt"
+import OrderDetailsModal from "./OrderView"
+import type { RootState } from "@/redux/store"
+import { useSelector } from "react-redux"
+import WorkOrderForm from "./WorkOrder"
+import { PaymentStatusPopup } from "./PaymentUpdateModel"
+import { deleteOrderAPI,updateOrderTypeAPI } from "@/services2/operations/order"
+import Swal from "sweetalert2"
 
 interface OrdersTableProps {
-  orders: Order[];
-  fetchOrders: () => void;
+  orders: Order[]
+  fetchOrders: () => void
   onDelete: (id: string) => void
-  onPayment: (id: string,paymentMethod:any) => void
+  onPayment: (id: string, paymentMethod: any) => void
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete, onPayment }) => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const { toast } = useToast();
-  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false);
-  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
-  const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false);
-  const navigate = useNavigate();
-  const user = useSelector((state: RootState) => state.auth?.user ?? null);
-  const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null);
+  const [searchQuery, setSearchQuery] = useState("")
+  const { toast } = useToast()
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [isInvoiceOpen, setIsInvoiceOpen] = useState(false)
+  const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
+  const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false)
+  const navigate = useNavigate()
+  const user = useSelector((state: RootState) => state.auth?.user ?? null)
+  const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null)
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
-
+  const [activeTab, setActiveTab] = useState<"Regural" | "NextWeek">("Regural")
 
   // PAYMENT MODEL
   const [open, setOpen] = useState(false)
   const [orderId, setOrderId] = useState("")
-  const [paymentOrder, setpaymentOrder] = useState<Order | null>(null);
+  const [paymentOrder, setpaymentOrder] = useState<Order | null>(null)
   const [orderIdDB, setOrderIdDB] = useState("")
   const [totalAmount, setTotalAmount] = useState(0)
 
-
   useEffect(() => {
     if (!open) {
-      setOrderId("");
-      setTotalAmount(0);
+      setOrderId("")
+      setTotalAmount(0)
     }
-  }, [open]);
-
+  }, [open])
 
   const handleEdit = (order: Order) => {
-    navigate(`/orders/edit/${order._id}`);
-  };
+    navigate(`/orders/edit/${order._id}`)
+  }
 
   const handleDelete = async (id: string, orderNumber: string) => {
     const result = await Swal.fire({
-      title: 'Are you sure?',
+      title: "Are you sure?",
       text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
-      icon: 'warning',
+      icon: "warning",
       showCancelButton: true,
-      confirmButtonColor: '#d33',
-      cancelButtonColor: '#3085d6',
-      confirmButtonText: 'Yes, delete it!',
-    });
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete it!",
+    })
 
     if (result.isConfirmed) {
-      const deletedOrder = await deleteOrderAPI(id, token);
+      const deletedOrder = await deleteOrderAPI(id, token)
 
       if (deletedOrder) {
         // Swal.fire({
@@ -125,143 +115,151 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
         //     showConfirmButton: false,
         // });
 
-
         onDelete(id)
       }
     }
-  };
+  }
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
     setIsDetailsModalOpen(true)
-
-
-  };
+  }
 
   const handleViewClientProfile = (clientId: string) => {
-    navigate(`/clients/profile/${clientId}`);
-  };
+    navigate(`/clients/profile/${clientId}`)
+  }
 
   const handleSaveOrder = (updatedOrder: Order) => {
     toast({
       title: "Order Updated",
       description: `Order ${updatedOrder.id} has been updated successfully`,
-    });
-    setIsEditDialogOpen(false);
-  };
+    })
+    setIsEditDialogOpen(false)
+  }
 
   const handleGenerateInvoice = (order: Order) => {
-    setSelectedOrder(order);
-    setIsInvoiceOpen(true);
-  };
+    setSelectedOrder(order)
+    setIsInvoiceOpen(true)
+  }
 
   const handleTransportationReceipt = (order: Order) => {
-    setSelectedOrder(order);
-    setIsTransportReceiptOpen(true);
-  };
+    setSelectedOrder(order)
+    setIsTransportReceiptOpen(true)
+  }
 
   const handleCreateDocument = (order: Order, docType: string) => {
-    setSelectedOrder(order);
+    setSelectedOrder(order)
 
     switch (docType) {
-      case 'invoice':
-        setIsInvoiceOpen(true);
-        break;
-      case 'transport':
-        setIsTransportReceiptOpen(true);
-        break;
+      case "invoice":
+        setIsInvoiceOpen(true)
+        break
+      case "transport":
+        setIsTransportReceiptOpen(true)
+        break
       default:
         toast({
           title: "Document Creation",
           description: `Creating ${docType} for order ${order.id}`,
-        });
+        })
     }
-  };
+  }
 
   const handleCreateWorkOrder = (order: Order) => {
-    setWorkOrderDialogOrder(order);
-  };
+    setWorkOrderDialogOrder(order)
+  }
 
   const handleNewOrder = () => {
-    navigate('/orders/new');
-  };
+    navigate("/orders/new")
+  }
+
+  const handleConvertToRegular = async(order: Order) => {
+    // You would implement the API call here to update the order type
+    console.log(order._id)
+    await updateOrderTypeAPI({orderType:"Regural"},token,order._id)
+    toast({
+      title: "Order Converted",
+      description: `Order ${order.id} has been converted to Regular`,
+    })
+    fetchOrders() // Refresh orders after conversion
+  }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'pending':
-        return <Clock size={14} />;
-      case 'processing':
-        return <Package size={14} />;
-      case 'shipped':
-        return <Truck size={14} />;
-      case 'delivered':
-        return <CheckCircle2 size={14} />;
-      case 'cancelled':
-        return <XCircle size={14} />;
-      case 'paid':
-        return <CheckCircle2 size={14} />; // You can change icon if needed
+      case "pending":
+        return <Clock size={14} />
+      case "processing":
+        return <Package size={14} />
+      case "shipped":
+        return <Truck size={14} />
+      case "delivered":
+        return <CheckCircle2 size={14} />
+      case "cancelled":
+        return <XCircle size={14} />
+      case "paid":
+        return <CheckCircle2 size={14} /> // You can change icon if needed
       default:
-        return null;
+        return null
     }
-  };
-
+  }
 
   const getStatusClass = (status: string) => {
     switch (status) {
-      case 'pending':
-        return "bg-amber-100 text-amber-700";
-      case 'processing':
-        return "bg-blue-100 text-blue-700";
-      case 'shipped':
-        return "bg-purple-100 text-purple-700";
-      case 'delivered':
-        return "bg-green-100 text-green-700";
-      case 'cancelled':
-        return "bg-red-100 text-red-700";
-      case 'paid':
-        return "bg-emerald-100 text-emerald-700";
+      case "pending":
+        return "bg-amber-100 text-amber-700"
+      case "processing":
+        return "bg-blue-100 text-blue-700"
+      case "shipped":
+        return "bg-purple-100 text-purple-700"
+      case "delivered":
+        return "bg-green-100 text-green-700"
+      case "cancelled":
+        return "bg-red-100 text-red-700"
+      case "paid":
+        return "bg-emerald-100 text-emerald-700"
       default:
-        return "bg-gray-100 text-gray-700";
+        return "bg-gray-100 text-gray-700"
     }
-  };
+  }
 
-
-  const filteredOrders = orders.filter(order =>
-    order.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    order.id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredOrders = orders.filter(
+    (order) =>
+      (order.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        order.id.toLowerCase().includes(searchQuery.toLowerCase())) &&
+      (order.orderType === activeTab || (!order.orderType && activeTab === "Regural")),
+  )
 
   const renderInvoiceGenerator = () => {
-    if (!selectedOrder) return null;
+    if (!selectedOrder) return null
 
     return (
       <InvoiceGenerator
         order={selectedOrder}
         open={isInvoiceOpen}
         onClose={() => {
-          setIsInvoiceOpen(false);
-          setTimeout(() => setSelectedOrder(null), 300);
+          setIsInvoiceOpen(false)
+          setTimeout(() => setSelectedOrder(null), 300)
         }}
         onViewClientProfile={() => selectedOrder.clientId && handleViewClientProfile(selectedOrder.clientId)}
       />
-    );
-  };
+    )
+  }
 
   const renderTransportationReceipt = () => {
-    if (!selectedOrder) return null;
+    if (!selectedOrder) return null
 
     return (
       <TransportationReceipt
         order={selectedOrder}
         open={isTransportReceiptOpen}
         onClose={() => {
-          setIsTransportReceiptOpen(false);
-          setTimeout(() => setSelectedOrder(null), 300);
+          setIsTransportReceiptOpen(false)
+          setTimeout(() => setSelectedOrder(null), 300)
         }}
         onViewClientProfile={() => selectedOrder.clientId && handleViewClientProfile(selectedOrder.clientId)}
       />
-    );
-  };
+    )
+  }
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -281,11 +279,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
             <RefreshCw size={16} className="mr-2" />
             Refresh
           </Button>
-          {user.role === "admin" && <Button size="sm" className="h-10" onClick={handleNewOrder}>
-            <Plus size={16} className="mr-2" />
-            New Order
-          </Button>}
+          {user.role === "admin" && (
+            <Button size="sm" className="h-10" onClick={handleNewOrder}>
+              <Plus size={16} className="mr-2" />
+              New Order
+            </Button>
+          )}
         </div>
+      </div>
+      <div className="flex gap-2 border-b">
+        <button
+          className={`px-4 py-2 font-medium ${
+            activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("Regural")}
+        >
+          Regular Orders
+        </button>
+        <button
+          className={`px-4 py-2 font-medium ${
+            activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+          }`}
+          onClick={() => setActiveTab("NextWeek")}
+        >
+          Next Week Orders
+        </button>
       </div>
       <OrderDetailsModal
         order={selectedOrder}
@@ -336,10 +354,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
                   </TableCell>
                   <TableCell>{formatDate(order.date)}</TableCell>
                   <TableCell>
-                    <div className={cn(
-                      "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
-                      getStatusClass(order.status)
-                    )}>
+                    <div
+                      className={cn(
+                        "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
+                        getStatusClass(order.status),
+                      )}
+                    >
                       {getStatusIcon(order.status)}
                       <span className="capitalize">{order.status}</span>
                     </div>
@@ -349,26 +369,37 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
                       <div
                         className={cn(
                           "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
-                          getStatusClass(order.paymentStatus)
+                          getStatusClass(order.paymentStatus),
                         )}
                       >
                         {getStatusIcon(order.paymentStatus)}
                         <span className="capitalize">{order.paymentStatus}</span>
                       </div>
 
-                      {(
+                      {
                         <button
-                          onClick={() => { setOrderId(order.orderNumber); setOpen(true); setTotalAmount(order.total); setOrderIdDB(order?._id || order?.id) ;setpaymentOrder(order) }} // define this handler function
+                          onClick={() => {
+                            setOrderId(order.orderNumber)
+                            setOpen(true)
+                            setTotalAmount(order.total)
+                            setOrderIdDB(order?._id || order?.id)
+                            setpaymentOrder(order)
+                          }}
                           className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
                         >
-                          {
-                            order.paymentStatus === "pending" ? "Pay Now" : "Edit"
-                          }
+                          {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
+                        </button>
+                      }
+                      {activeTab === "NextWeek" && (
+                        <button
+                          onClick={() => handleConvertToRegular(order)}
+                          className="mt-1 text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition"
+                        >
+                          Convert to Regular
                         </button>
                       )}
                     </div>
                   </TableCell>
-
                   <TableCell>{order.items.length} items</TableCell>
                   <TableCell className="font-medium">{formatCurrency(order.total)}</TableCell>
                   <TableCell className="text-right">
@@ -389,10 +420,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
                             View Client Profile
                           </DropdownMenuItem>
                         )}
-                        {user.role === "admin" && <DropdownMenuItem onClick={() => handleEdit(order)}>
-                          <Edit size={14} className="mr-2" />
-                          Edit
-                        </DropdownMenuItem>}
+                        {user.role === "admin" && (
+                          <DropdownMenuItem onClick={() => handleEdit(order)}>
+                            <Edit size={14} className="mr-2" />
+                            Edit
+                          </DropdownMenuItem>
+                        )}
 
                         <DropdownMenuSeparator />
 
@@ -402,37 +435,43 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
                             Generate Documents
                           </DropdownMenuSubTrigger>
                           <DropdownMenuSubContent className="min-w-[220px]">
-                            <DropdownMenuItem onClick={() => handleCreateDocument(order, 'invoice')}>
+                            <DropdownMenuItem onClick={() => handleCreateDocument(order, "invoice")}>
                               <FileSpreadsheet size={14} className="mr-2" />
                               Invoice
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCreateDocument(order, 'transport')}>
-                              <Receipt size={14} className="mr-2" />
-                              Transportation Receipt
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCreateDocument(order, 'delivery')}>
-                              <ReceiptText size={14} className="mr-2" />
-                              Delivery Note
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCreateDocument(order, 'custom')}>
-                              <PencilRuler size={14} className="mr-2" />
-                              Custom Document
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
-                              <Wrench className="mr-2 h-4 w-4" /> Create Work Order
-                            </DropdownMenuItem>
+                            {(!order.orderType || order.orderType === "Regural") && (
+                              <>
+                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
+                                  <Receipt size={14} className="mr-2" />
+                                  Transportation Receipt
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "delivery")}>
+                                  <ReceiptText size={14} className="mr-2" />
+                                  Delivery Note
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "custom")}>
+                                  <PencilRuler size={14} className="mr-2" />
+                                  Custom Document
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
+                                  <Wrench className="mr-2 h-4 w-4" /> Create Work Order
+                                </DropdownMenuItem>
+                              </>
+                            )}
                           </DropdownMenuSubContent>
                         </DropdownMenuSub>
 
                         <DropdownMenuSeparator />
 
-                        {user.role === "admin" && <DropdownMenuItem
-                          onClick={() => handleDelete(order?._id, order?.id)}
-                          className="text-red-600 hover:text-red-700 focus:text-red-700"
-                        >
-                          <Trash size={14} className="mr-2" />
-                          Delete
-                        </DropdownMenuItem>}
+                        {user.role === "admin" && (
+                          <DropdownMenuItem
+                            onClick={() => handleDelete(order?._id, order?.id)}
+                            className="text-red-600 hover:text-red-700 focus:text-red-700"
+                          >
+                            <Trash size={14} className="mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
@@ -459,18 +498,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
         </Dialog>
       )}
 
-
       <Dialog open={!!workOrderDialogOrder} onOpenChange={(open) => !open && setWorkOrderDialogOrder(null)}>
         <DialogContent className="max-w-4xl p-0">
           {workOrderDialogOrder && (
-            <WorkOrderForm
-              order={workOrderDialogOrder}
-              onClose={() => setWorkOrderDialogOrder(null)}
-            />
+            <WorkOrderForm order={workOrderDialogOrder} onClose={() => setWorkOrderDialogOrder(null)} />
           )}
         </DialogContent>
       </Dialog>
-
 
       <PaymentStatusPopup
         open={open}
@@ -483,7 +517,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
         paymentOrder={paymentOrder}
       />
     </div>
-  );
-};
+  )
+}
 
-export default OrdersTable;
+export default OrdersTable

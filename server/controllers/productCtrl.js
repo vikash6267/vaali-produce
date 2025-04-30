@@ -161,7 +161,8 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
       // Get orders for the product this week (until yesterday)
       const orders = await Order.find({
         createdAt: { $gte: startOfWeek },
-        "items.productId": productId
+        "items.productId": productId,
+         orderType: "Regural"
       })
         .populate("store", "storeName ownerName")
         .lean();
