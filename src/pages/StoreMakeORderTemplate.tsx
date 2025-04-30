@@ -90,6 +90,33 @@ const CreateOrderModalStore = () => {
     postalCode: "",
     country: "",
   })
+
+  useEffect(() => {
+    if (nextWeek) {
+      setShippingAddress({
+        name: "John Doe",
+        email: "john@example.com",
+        phone: "1234567890",
+        address: "123 Dummy Street",
+        city: "Dummy City",
+        postalCode: "123456",
+        country: "Dummyland",
+      });
+  
+      setBillingAddress({
+        name: "John Doe",
+        email: "john@example.com",
+        phone: "1234567890",
+        address: "123 Dummy Street",
+        city: "Dummy City",
+        postalCode: "123456",
+        country: "Dummyland",
+      });
+    }
+  }, [nextWeek]);
+
+  
+  
   const [sameAsBilling, setSameAsBilling] = useState(false)
   const [templateLoading, setTemplateLoading] = useState(true)
   // const [priceCategory, setPriceCate] = useState("aPrice")
@@ -256,6 +283,7 @@ const CreateOrderModalStore = () => {
 
         const unitPrice = pricingType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
  
+      
         return {
           product: product.id,
           name: product.name,
@@ -282,6 +310,12 @@ const CreateOrderModalStore = () => {
 
     const selectedStoreName = stores.find((store) => store.id === selectedStore)?.name || ""
     const totalAmount = calculateTotal()
+    const generateOrderNumber = () => {
+      const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit random number
+      return `${randomNumber}`;
+  };
+  const ONo = generateOrderNumber()
+console.log(ONo)
 
     const order = {
       id: `${Math.floor(Math.random() * 10000)
@@ -299,10 +333,16 @@ const CreateOrderModalStore = () => {
       store: selectedStore.value,
       billingAddress,
       orderType:nextWeek ? "NextWeek" :"Regural",
-      shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
-    }
+      orderNumber :ONo,
 
-await createOrderAPI(order, token)
+      shippingAddress: nextWeek ? billingAddress : sameAsBilling ? billingAddress : shippingAddress,
+    }
+console.log(order)
+
+
+const orderRes = await createOrderAPI(order, token)
+
+console.log(orderRes)
 
 
     if(nextWeek){
@@ -315,7 +355,7 @@ await createOrderAPI(order, token)
 
     try {
       const invoiceData: InvoiceData = {
-        invoiceNumber: order.id,
+        invoiceNumber: ONo,
         customerName: selectedStore.label,
         items: orderedProducts.map((item) => ({
           productName: item.productName || item.name,
@@ -327,19 +367,23 @@ await createOrderAPI(order, token)
         date: order.date,
         shippinCost: calculateShipping(),
       }
-
-      exportInvoiceToPDF({
-        id: invoiceData.invoiceNumber,
-        clientId: selectedStore.value,
-        clientName: invoiceData.customerName,
-        date: invoiceData.date,
-        status: "pending",
-        items: orderedProducts,
-        total: invoiceData.total,
-        paymentStatus: "pending",
-        subtotal: order.subtotal,
-        shippinCost: calculateShipping(),
-      })
+console.log(invoiceData)
+exportInvoiceToPDF({
+  id: orderRes.orderNumber as any,
+  clientId: (orderRes.store as any)._id,
+  clientName: (orderRes.store as any).storeName,
+  shippinCost: orderRes.shippinCost || 0,
+  date: orderRes.date,
+  shippingAddress: orderRes?.shippingAddress,
+  billingAddress: orderRes?.billingAddress,
+  status: orderRes.status,
+  items: orderRes.items,
+  total: orderRes.total,
+  paymentStatus: orderRes.paymentStatus || "pending",
+  subtotal: orderRes.total,
+  store: orderRes.store,
+  paymentDetails:orderRes.paymentDetails || {}
+});
     } catch (error) {
       console.error("Error generating invoice PDF:", error)
     }
@@ -490,20 +534,24 @@ await createOrderAPI(order, token)
                 </div>
 
                 {storeLoading ? (
-                  <div className="flex justify-center items-center p-4">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
-                    <span className="text-sm">Finding user details...</span>
-                  </div>
-                ) : (
-                  <AddressForm
-                    billingAddress={billingAddress}
-                    setBillingAddress={setBillingAddress}
-                    shippingAddress={shippingAddress}
-                    setShippingAddress={setShippingAddress}
-                    sameAsBilling={sameAsBilling}
-                    setSameAsBilling={setSameAsBilling}
-                  />
-                )}
+  <div role="status" className="flex justify-center items-center p-4">
+    <Loader2 className="h-6 w-6 animate-spin text-primary mr-2" />
+    <span className="text-sm">Finding user details...</span>
+  </div>
+) : (
+  !nextWeek && (
+    <AddressForm
+      billingAddress={billingAddress}
+      setBillingAddress={setBillingAddress}
+      shippingAddress={shippingAddress}
+      setShippingAddress={setShippingAddress}
+      sameAsBilling={sameAsBilling}
+      setSameAsBilling={setSameAsBilling}
+    />
+  )
+)}
+
+
 
         { selectedStore?.value || true  ? 
                   <div className="border rounded-md overflow-hidden">

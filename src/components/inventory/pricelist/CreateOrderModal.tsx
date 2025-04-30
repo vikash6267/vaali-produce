@@ -272,7 +272,11 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
     const selectedStoreName = stores.find((store) => store.id === selectedStore)?.name || ""
     const totalAmount = calculateTotal()
-
+    const generateOrderNumber = () => {
+      const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit random number
+      return `${randomNumber}`;
+  };
+  const ONo = generateOrderNumber()
     const order = {
       id: `${Math.floor(Math.random() * 10000)
         .toString()
@@ -288,41 +292,35 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       shippinCost: calculateShipping(),
       store: selectedStore.value,
       billingAddress,
+      orderNumber :ONo,
+
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     }
 
-    await createOrderAPI(order, token)
+    const orderRes = await createOrderAPI(order, token)
 
     setOrderDetails(order)
     setOrderConfirmed(true)
 
     try {
-      const invoiceData: InvoiceData = {
-        invoiceNumber: order.id,
-        customerName: selectedStore.label,
-        items: orderedProducts.map((item) => ({
-          productName: item.productName || item.name,
-          price: item.unitPrice ,
-          quantity: item.quantity,
-          total: (item.unitPrice ) * item.quantity,
-        })),
-        total: order.total,
-        date: order.date,
-        shippinCost: calculateShipping(),
-      }
+    
 
       exportInvoiceToPDF({
-        id: invoiceData.invoiceNumber,
-        clientId: selectedStore.value,
-        clientName: invoiceData.customerName,
-        date: invoiceData.date,
-        status: "pending",
-        items: orderedProducts,
-        total: invoiceData.total,
-        paymentStatus: "pending",
-        subtotal: order.subtotal,
-        shippinCost: calculateShipping(),
-      })
+        id: orderRes.orderNumber as any,
+        clientId: (orderRes.store as any)._id,
+        clientName: (orderRes.store as any).storeName,
+        shippinCost: orderRes.shippinCost || 0,
+        date: orderRes.date,
+        shippingAddress: orderRes?.shippingAddress,
+        billingAddress: orderRes?.billingAddress,
+        status: orderRes.status,
+        items: orderRes.items,
+        total: orderRes.total,
+        paymentStatus: orderRes.paymentStatus || "pending",
+        subtotal: orderRes.total,
+        store: orderRes.store,
+        paymentDetails:orderRes.paymentDetails || {}
+      });
     } catch (error) {
       console.error("Error generating invoice PDF:", error)
     }

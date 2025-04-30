@@ -37,6 +37,7 @@ import {
   FilePlus2,
   PencilRuler,
   Wrench,
+  Download,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -50,8 +51,13 @@ import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import WorkOrderForm from "./WorkOrder"
 import { PaymentStatusPopup } from "./PaymentUpdateModel"
-import { deleteOrderAPI,updateOrderTypeAPI } from "@/services2/operations/order"
+import { deleteOrderAPI } from "@/services2/operations/order"
 import Swal from "sweetalert2"
+import OrderPdfDownload from "@/utils/pdf/nextweek"
+import { toast } from "@/components/ui/use-toast"
+import jsPDF from "jspdf"
+import autoTable from "jspdf-autotable"
+
 
 interface OrdersTableProps {
   orders: Order[]
@@ -173,10 +179,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
     navigate("/orders/new")
   }
 
-  const handleConvertToRegular = async(order: Order) => {
+  const handleConvertToRegular = (order: Order) => {
     // You would implement the API call here to update the order type
-    console.log(order._id)
-    await updateOrderTypeAPI({orderType:"Regural"},token,order._id)
     toast({
       title: "Order Converted",
       description: `Order ${order.id} has been converted to Regular`,
@@ -228,6 +232,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
         order.id.toLowerCase().includes(searchQuery.toLowerCase())) &&
       (order.orderType === activeTab || (!order.orderType && activeTab === "Regural")),
   )
+  console.log(filteredOrders)
 
   const renderInvoiceGenerator = () => {
     if (!selectedOrder) return null
@@ -261,6 +266,169 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
     )
   }
 
+  // const handleDownloadMergedProducts = () => {
+  //   // Filter only NextWeek orders
+  //   const nextWeekOrders = orders.filter((order) => order.orderType === "NextWeek")
+
+  //   OrderPdfDownload(nextWeekOrders)
+  //   // Create a map to store merged product quantities
+  //   const productMap = new Map()
+
+  //   // Loop through all NextWeek orders and their items
+  //   nextWeekOrders.forEach((order) => {
+  //     order.items.forEach((item) => {
+  //       const productId = item.product || item.productId
+  //       const productName = item.name || item.productName
+
+  //       if (productMap.has(productId)) {
+  //         // If product already exists in map, add to its quantity
+  //         const existingProduct = productMap.get(productId)
+  //         existingProduct.quantity += item.quantity
+  //         existingProduct.totalPrice += item.total || item.price * item.quantity
+  //       } else {
+  //         // If product doesn't exist in map, add it
+  //         productMap.set(productId, {
+  //           id: productId,
+  //           name: productName,
+  //           quantity: item.quantity,
+  //           unitPrice: item.price || item.unitPrice,
+  //           totalPrice: item.total || item.price * item.quantity,
+  //           pricingType: item.pricingType || "unit",
+  //         })
+  //       }
+  //     })
+  //   })
+
+  //   // Convert map to array
+  //   const mergedProducts = Array.from(productMap.values())
+
+  //   // Create CSV content
+  //   let csvContent = "Product ID,Product Name,Quantity,Unit Price,Total Price,Pricing Type\n"
+
+  //   mergedProducts.forEach((product) => {
+  //     csvContent += `${product.id},${product.name},${product.quantity},${product.unitPrice},${product.totalPrice},${product.pricingType}\n`
+  //   })
+
+  //   // Create a blob and download link
+  //   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
+  //   const url = URL.createObjectURL(blob)
+  //   const link = document.createElement("a")
+  //   link.setAttribute("href", url)
+  //   link.setAttribute("download", `next-week-orders-${new Date().toISOString().split("T")[0]}.csv`)
+  //   link.style.visibility = "hidden"
+  //   document.body.appendChild(link)
+  //   link.click()
+  //   document.body.removeChild(link)
+
+  //   toast({
+  //     title: "Download Started",
+  //     description: `Merged product quantities for ${nextWeekOrders.length} NextWeek orders`,
+  //   })
+  // }
+
+
+    const handleDownloadMergedProducts = (type:string) => {
+      // Filter only NextWeek orders
+      const nextWeekOrders = orders.filter((order) => order.orderType === type)
+  
+      if (nextWeekOrders.length === 0) {
+        toast({
+          title: "No orders found",
+          description: "There are no Next Week orders to download",
+          variant: "destructive",
+        })
+        return
+      }
+  
+      // Find oldest and newest order dates
+      const orderDates = nextWeekOrders.map((order) => new Date(order.createdAt))
+      const oldestDate = new Date(Math.min(...orderDates.map((date) => date.getTime())))
+      const newestDate = new Date(Math.max(...orderDates.map((date) => date.getTime())))
+  
+      // Format dates for display
+      const formatDate = (date: Date) => {
+        return date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })
+      }
+  
+      const dateRangeText = `${type} Orders (${formatDate(oldestDate)} - ${formatDate(newestDate)})`
+  
+      // Create a map to store merged product quantities
+      const productMap = new Map()
+  
+      // Loop through all NextWeek orders and their items
+      nextWeekOrders.forEach((order) => {
+        order.items.forEach((item) => {
+          const productId = item.product || item.productId || ""
+          const productName = item.name || item.productName || ""
+  
+          if (productMap.has(productId)) {
+            // If product already exists in map, add to its quantity
+            const existingProduct = productMap.get(productId)
+            existingProduct.quantity += item.quantity
+            existingProduct.totalPrice += item.total || item.price * item.quantity
+          } else {
+            // If product doesn't exist in map, add it
+            productMap.set(productId, {
+              id: productId,
+              name: productName,
+              quantity: item.quantity,
+              unitPrice: item.price || item.unitPrice || 0,
+              totalPrice: item.total || item.price * item.quantity,
+              pricingType: item.pricingType || "unit",
+            })
+          }
+        })
+      })
+  
+      // Convert map to array
+      const mergedProducts = Array.from(productMap.values())
+  
+      // Create PDF document
+      const doc = new jsPDF()
+  
+      // Add title with date range
+      doc.setFontSize(16)
+      doc.text(dateRangeText, 14, 20)
+  
+      // Add order count information
+      doc.setFontSize(12)
+      doc.text(`Total User Order: ${nextWeekOrders.length}`, 14, 30)
+  
+      // Prepare data for table
+      const tableData = mergedProducts.map((product) => [
+            product.name,
+        product.quantity.toString(),
+     
+      ])
+  
+      // Calculate total value of all products
+      const totalValue = mergedProducts.reduce((sum, product) => sum + product.totalPrice, 0)
+  
+      // Add table to PDF
+      autoTable(doc, {
+        head: [["Product Name", "Quantity" ]],
+        body: tableData,
+        startY: 40,
+        foot: [["", "", "", "Grand Total:", `$${totalValue.toFixed(2)}`, ""]],
+        theme: "striped",
+        headStyles: { fillColor: [66, 66, 66] },
+        footStyles: { fillColor: [240, 240, 240], textColor: [0, 0, 0], fontStyle: "bold" },
+      })
+  
+      // Save the PDF
+      doc.save(`${type}-orders-${new Date().toISOString().split("T")[0]}.pdf`)
+  
+      toast({
+        title: "PDF Download Started",
+        description: `Merged product quantities for ${nextWeekOrders.length} NextWeek orders`,
+      })
+    }
+
+    
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -287,23 +455,31 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
           )}
         </div>
       </div>
-      <div className="flex gap-2 border-b">
-        <button
-          className={`px-4 py-2 font-medium ${
-            activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("Regural")}
-        >
-          Regular Orders
-        </button>
-        <button
-          className={`px-4 py-2 font-medium ${
-            activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-          }`}
-          onClick={() => setActiveTab("NextWeek")}
-        >
-          Next Week Orders
-        </button>
+      <div className="flex justify-between items-center border-b">
+        <div className="flex gap-2">
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+            }`}
+            onClick={() => setActiveTab("Regural")}
+          >
+            Regular Orders
+          </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+            }`}
+            onClick={() => setActiveTab("NextWeek")}
+          >
+            Next Week Orders
+          </button>
+        </div>
+        { (
+          <Button size="sm" variant="outline" className="mb-2 mr-2" onClick={()=>handleDownloadMergedProducts(activeTab)}>
+            <Download size={16} className="mr-2" />
+            Download Merged Products
+          </Button>
+        )}
       </div>
       <OrderDetailsModal
         order={selectedOrder}

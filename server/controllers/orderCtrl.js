@@ -9,7 +9,8 @@ const createOrderCtrl = async (req, res) => {
             total, 
             clientId, 
             billingAddress, shippingAddress, shippinCost = 0,
-            orderType="Regural"
+            orderType="Regural",
+            orderNumber
         
         } = req.body;
       
@@ -31,7 +32,7 @@ const createOrderCtrl = async (req, res) => {
             return `${randomNumber}`;
         };
         const newOrder = new orderModel({
-            orderNumber: generateOrderNumber(),
+            orderNumber:orderNumber,
             items,
             store: clientId.value,
             status,

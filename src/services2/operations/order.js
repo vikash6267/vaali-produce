@@ -32,7 +32,7 @@ export const createOrderAPI = async (formData, token) => {
 
         toast.success(response?.data?.message);
 
-        return response;
+        return response.data?.newOrder;
     } catch (error) {
         console.error("CREATE_ORDER  API ERROR:", error);
         toast.error(error?.response?.data?.message || "Failed to CREATE_ORDER!");
