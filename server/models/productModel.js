@@ -89,6 +89,11 @@ const ProductSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
+        updatedFromOrders: [{
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "PurchaseOrder",
+          }]
+          
     },
     { timestamps: true }
 );

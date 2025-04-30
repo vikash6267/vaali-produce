@@ -296,6 +296,7 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
     console.log(`Purchase #${purchaseId} final status: ${newStatus}`);
 
     // Navigate back to purchases list
+    return
     navigate('/vendors');
   };
 

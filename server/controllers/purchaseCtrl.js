@@ -1,4 +1,5 @@
 const  PurchaseOrder =  require("../models/purchaseModel");
+const Product = require("../models/productModel");
 
 exports.createPurchaseOrder = async (req, res) => {
     try {
@@ -103,36 +104,53 @@ exports.deletePurchaseOrder = async (req, res) => {
     }
 };
 
+
+
+
 exports.updateItemQualityStatus = async (req, res) => {
     try {
-        const { purchaseOrderId } = req.params;
-        const updatedItems  = req.body;
-    console.log(updatedItems)
-        const order = await PurchaseOrder.findById(purchaseOrderId);
-        if (!order) {
-          return res.status(404).json({ success: false, message: "Purchase order not found" });
-        }
-    
-        // Loop over the incoming updatedItems
-        updatedItems.forEach((incomingItem) => {
-          const existingItem = order.items.id(incomingItem._id);
-          if (existingItem) {
-            existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
-            existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
-            existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
-          }
-        });
-    
-        await order.save();
-    
-        res.status(200).json({
-          success: true,
-          message: "Items updated successfully",
-          data: order.items,
-        });
-      } catch (error) {
-        console.error("Error in bulk quality update:", error);
-        res.status(500).json({ success: false, message: "Internal server error", error });
-      }
-  };
+      const { purchaseOrderId } = req.params;
+      const updatedItems = req.body;
   
+      const order = await PurchaseOrder.findById(purchaseOrderId);
+      if (!order) {
+        return res.status(404).json({ success: false, message: "Purchase order not found" });
+      }
+  
+      // Loop over the incoming updatedItems
+      for (const incomingItem of updatedItems) {
+        const existingItem = order.items.id(incomingItem._id);
+        if (existingItem) {
+          // Update item quality status
+          existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
+          existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
+          existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
+  
+          // If approved, update the product quantity
+          if (incomingItem.qualityStatus === "approved") {
+            const product = await Product.findById(incomingItem.productId._id);
+            if (product) {
+              // Check if already updated for this order
+              const alreadyUpdated = product.updatedFromOrders.includes(purchaseOrderId);
+              if (!alreadyUpdated) {
+                product.quantity += incomingItem.quantity;
+                product.updatedFromOrders.push(purchaseOrderId);
+                await product.save();
+              }
+            }
+          }
+        }
+      }
+  
+      await order.save();
+  
+      res.status(200).json({
+        success: true,
+        message: "Items and product quantities updated successfully",
+        data: order.items,
+      });
+    } catch (error) {
+      console.error("Error in bulk quality update:", error);
+      res.status(500).json({ success: false, message: "Internal server error", error });
+    }
+  };
