@@ -68,6 +68,7 @@ export const order = {
   UPDATE_PLATE_ORDER: BASE_URL + "/order/update-plate",
   UPDATE_PAYMENT_ORDER: BASE_URL + "/order/payment-update",
   GET_STORE_ORDERS: BASE_URL + "/order/store-orders",
+  GET_USERSTATEMENT: BASE_URL + "/order/statement",
 
 }
 export const crm = {

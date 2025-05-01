@@ -7,7 +7,7 @@ const fileUpload = require("express-fileupload");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const bodyParser = require("body-parser");
-
+const Order = require("./models/orderModle")
 
 dotenv.config();
 
@@ -47,6 +47,7 @@ app.use("/api/v1/email", require("./routes/emailsRoute"))
 app.use("/api/v1/pricing", require("./routes/groupPricing"))
 app.use("/api/v1/vendors", require("./routes/vendorRoute"))
 app.use("/api/v1/purchase-orders", require("./routes/purchaseOrderRoute"))
+
 
 
 

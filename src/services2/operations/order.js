@@ -11,7 +11,8 @@ const { CREATE_PRODUCT,
     UPDATE_PLATE_ORDER,
     UPDATE_PAYMENT_ORDER,
     DELETE_ORDER,
-    UPDATE_ORDER_ORDER_TYPE
+    UPDATE_ORDER_ORDER_TYPE,
+    GET_USERSTATEMENT
 } = order
 
 
@@ -64,6 +65,29 @@ export const getOrderAPI = async (id,token) => {
     }
 
 };
+
+export const getStatement = async (id,token) => {
+
+    try {
+        const response = await apiConnector("GET", `${GET_USERSTATEMENT}/${id}`,{},{
+            Authorization: `Bearer ${token}`,
+        })
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        return response?.data.data|| [];
+    } catch (error) {
+        console.error("GET GET_ALL_ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get GET_ALL_ORDER!");
+        return [];
+    }
+
+};
+
+
 export const getAllOrderAPI = async (token) => {
 
     try {

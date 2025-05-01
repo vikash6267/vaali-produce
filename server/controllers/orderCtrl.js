@@ -32,7 +32,7 @@ const createOrderCtrl = async (req, res) => {
             return `${randomNumber}`;
         };
         const newOrder = new orderModel({
-            orderNumber:orderNumber,
+            orderNumber:orderNumber ? orderNumber : generateOrderNumber(),
             items,
             store: clientId.value,
             status,
@@ -426,6 +426,141 @@ const updateOrderTypeCtrl = async (req, res) => {
     }
   };
   
+
+
+
+  const getUserOrderStatement = async (req, res) => {
+    try {
+      const userId = req.params.userId || req.query.userId;
+      const paymentStatus = req.query.paymentStatus || 'all';
+      const startMonth = req.query.startMonth; // format: yyyy-MM
+      const endMonth = req.query.endMonth;     // format: yyyy-MM
+  
+      console.log(startMonth)
+      console.log(endMonth)
+      if (!userId) {
+        return res.status(400).json({
+          success: false,
+          message: 'User ID is required',
+        });
+      }
+  
+      const user = await authModel.findById(userId).select('name storeName ownerName phone email');
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+  
+      const query = { store: userId };
+      if (paymentStatus !== 'all') {
+        query.paymentStatus = paymentStatus;
+      }
+  
+      // Convert month ranges to date filters
+      if (startMonth || endMonth) {
+        query.createdAt = {};
+        if (startMonth) {
+          const [year, month] = startMonth.split("-");
+          query.createdAt.$gte = new Date(`${year}-${month}-01`);
+        }
+        if (endMonth) {
+          const [year, month] = endMonth.split("-");
+          const endDate = new Date(year, Number(month), 0); // last day of month
+          query.createdAt.$lte = endDate;
+        }
+      }
+  
+      const orders = await orderModel.find(query).sort({ createdAt: 1 });
+  
+      if (!orders.length) {
+        return res.status(404).json({
+          success: false,
+          message: 'No orders found with applied filters',
+        });
+      }
+  
+      const summary = {};
+      let totalPaid = 0, totalPending = 0, totalProductsOrdered = 0;
+  
+      for (const order of orders) {
+        const created = new Date(order.createdAt);
+        const year = created.getFullYear();
+        const month = (created.getMonth() + 1).toString().padStart(2, '0');
+        const monthKey = `${year}-${month}`;
+  
+        if (!summary[monthKey]) {
+          summary[monthKey] = {
+            orders: [],
+            totalAmount: 0,
+            totalPaid: 0,
+            totalPending: 0,
+            totalProducts: 0
+          };
+        }
+  
+        const itemCount = Array.isArray(order.items)
+          ? order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)
+          : 0;
+  
+        summary[monthKey].orders.push({
+          orderNumber: order.orderNumber,
+          date: created.toISOString().split('T')[0],
+          amount: order.total,
+          paymentStatus: order.paymentStatus,
+          productCount: itemCount
+        });
+  
+        const paid = order.paymentStatus === 'paid' ? order.total : 0;
+        const pending = order.paymentStatus === 'paid' ? 0 : order.total;
+  
+        summary[monthKey].totalAmount += order.total;
+        summary[monthKey].totalPaid += paid;
+        summary[monthKey].totalPending += pending;
+        summary[monthKey].totalProducts += itemCount;
+  
+        totalPaid += paid;
+        totalPending += pending;
+        totalProductsOrdered += itemCount;
+      }
+  
+      res.status(200).json({
+        success: true,
+        message: 'Order statement generated successfully',
+        data: {
+          user: {
+            name: user.ownerName || user.name,
+            storeName: user.storeName,
+            phone: user.phone,
+            email: user.email
+          },
+          filters: {
+            paymentStatus,
+            startMonth: startMonth || "all",
+            endMonth: endMonth || "all"
+          },
+          summaryByMonth: summary,
+          totalPaid,
+          totalPending,
+          totalProductsOrdered,
+          closingBalance: totalPending
+        }
+      });
+  
+    } catch (err) {
+      console.error("Error generating user statement:", err);
+      res.status(500).json({
+        success: false,
+        message: 'Server error',
+      });
+    }
+  };
+  
+
+  
+
+
 module.exports = { 
     createOrderCtrl, 
     getAllOrderCtrl, 
@@ -435,7 +570,8 @@ module.exports = {
     userDetailsWithOrder,
     updatePaymentDetails,
     deleteOrderCtrl,
-    updateOrderTypeCtrl
+    updateOrderTypeCtrl,
+    getUserOrderStatement
      };
 
 

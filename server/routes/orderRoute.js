@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const { auth, } = require("../middleware/auth");
-const { createOrderCtrl, getAllOrderCtrl, getOrderForStoreCtrl, updateOrderCtrl, updatePalletInfo, userDetailsWithOrder, updatePaymentDetails, deleteOrderCtrl, updateOrderTypeCtrl } = require("../controllers/orderCtrl");
+const { createOrderCtrl, getAllOrderCtrl, getOrderForStoreCtrl, updateOrderCtrl, updatePalletInfo, userDetailsWithOrder, updatePaymentDetails, deleteOrderCtrl, updateOrderTypeCtrl, getUserOrderStatement } = require("../controllers/orderCtrl");
 
 router.post("/create", auth, createOrderCtrl)
 router.get("/getAll", auth,  getAllOrderCtrl)
@@ -12,6 +12,7 @@ router.put("/update-plate/:orderId", auth, updatePalletInfo)
 router.get("/user/:userId",  userDetailsWithOrder)
 router.put("/payment-update/:orderId",  updatePaymentDetails)
 router.put("/update-otype/:orderId",  updateOrderTypeCtrl)
+router.get("/statement/:userId",  getUserOrderStatement)
 
 
 
