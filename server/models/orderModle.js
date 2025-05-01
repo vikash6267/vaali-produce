@@ -65,7 +65,7 @@ const orderSchema = new mongoose.Schema(
     },
     orderNumber: {
       type: String,
-      default:generateOrderNumber()
+    
     },
     shippinCost: {
       type: Number,

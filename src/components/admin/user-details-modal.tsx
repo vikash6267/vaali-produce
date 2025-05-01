@@ -159,9 +159,9 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
           <Button variant="link" onClick={() => fetchUserDetailsOrder(userData._id)}>
             Refresh
           </Button>
-          {/* <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
+          <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
             {isGeneratingPDF ? "Generating PDF..." : "Download Statement"}
-          </Button> */}
+          </Button>
 
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
