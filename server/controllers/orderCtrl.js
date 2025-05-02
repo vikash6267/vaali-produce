@@ -639,6 +639,57 @@ const updateOrderTypeCtrl = async (req, res) => {
   };
   
 
+  const updateShippingController = async (req, res) => {
+    try {
+      // Extract the required values from the request body
+      const { orderId, newShippingCost, plateCount } = req.body;
+  
+      // Validate input
+      if (!orderId || !newShippingCost || !plateCount) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide orderId, newShippingCost, and plateCount.",
+        });
+      }
+  
+      // Fetch order from the database
+      const order = await orderModel.findById(orderId);
+      if (!order) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found.",
+        });
+      }
+  
+      // Store the old shipping cost
+      const oldShippingCost = order.shippinCost;
+  
+      // Calculate new shipping cost by multiplying with plate count
+      const calculatedShippingCost = newShippingCost * plateCount;
+  
+      // Update the order's shipping cost and total
+  
+      order.shippinCost = calculatedShippingCost; // New shipping cost
+      order.total = order.total + (calculatedShippingCost - oldShippingCost); // Update total cost
+  
+      // Save the updated order in the database
+      await order.save();
+  
+      // Respond with success message
+      return res.status(200).json({
+        success: true,
+        message: `Shipping cost updated successfully. Old Shipping Cost: ${oldShippingCost}, New Shipping Cost: ${calculatedShippingCost}`,
+        updatedOrder: order, // Optionally send updated order details
+      });
+    } catch (error) {
+      console.error("Error updating shipping cost:", error);
+      return res.status(500).json({
+        success: false,
+        message: "An error occurred while updating the shipping cost.",
+      });
+    }
+  };
+
   
 
 
@@ -652,7 +703,8 @@ module.exports = {
     updatePaymentDetails,
     deleteOrderCtrl,
     updateOrderTypeCtrl,
-    getUserOrderStatement
+    getUserOrderStatement,
+    updateShippingController
      };
 
 

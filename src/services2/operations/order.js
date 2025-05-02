@@ -12,7 +12,8 @@ const { CREATE_PRODUCT,
     UPDATE_PAYMENT_ORDER,
     DELETE_ORDER,
     UPDATE_ORDER_ORDER_TYPE,
-    GET_USERSTATEMENT
+    GET_USERSTATEMENT,
+    UPDATE_SHIPPING_COST
 } = order
 
 
@@ -136,6 +137,38 @@ export const updateOrderAPI = async (formData, token,id) => {
         toast.dismiss(toastId);
     }
 };
+export const updateOrderShippingAPI = async (formData, token) => {
+    const toastId = toast.loading("Loading...");
+
+    try {
+        // Sending PUT request to update shipping cost
+        const response = await apiConnector("POST", `${UPDATE_SHIPPING_COST}`, formData, {
+            Authorization: `Bearer ${token}`,
+        });
+
+        // Check if response indicates success
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        // If success, show a success toast
+        toast.success(response?.data?.message || "Shipping cost updated successfully!");
+
+        return response.data.updatedOrder;  // Return the response in case you want to use it elsewhere
+    } catch (error) {
+        console.error("updateOrderShippingAPI ERROR:", error);
+
+        // Displaying error message
+        const errorMessage = error?.response?.data?.message || error.message || "Failed to update shipping cost!";
+        toast.error(errorMessage);
+
+        return null;  // Returning null to indicate failure
+    } finally {
+        // Dismissing the loading toast after the operation is done
+        toast.dismiss(toastId);
+    }
+};
+
 export const updateOrderTypeAPI = async (formData, token,id) => {
 
     const toastId = toast.loading("Loading...");

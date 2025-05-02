@@ -239,12 +239,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders, fetchOrders, onDelete
 
     return (
       <InvoiceGenerator
-        order={selectedOrder}
+        orderSingle={selectedOrder}
         open={isInvoiceOpen}
         onClose={() => {
           setIsInvoiceOpen(false)
           setTimeout(() => setSelectedOrder(null), 300)
+          fetchOrders()
         }}
+        fetchOrders={fetchOrders}
         onViewClientProfile={() => selectedOrder.clientId && handleViewClientProfile(selectedOrder.clientId)}
       />
     )

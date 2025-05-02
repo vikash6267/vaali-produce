@@ -41,18 +41,23 @@ import { Input } from "@/components/ui/input";
 import { exportInvoiceToPDF } from "@/utils/pdf";
 import { Badge } from "../ui/badge";
 // import { CreditCard, Cash } from 'lucide-react';  // Import icons from lucide-react
+import {updateOrderShippingAPI} from "@/services2/operations/order"
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
 
 interface InvoiceGeneratorProps {
-  order: Order;
+  orderSingle: Order;
   open: boolean;
   onClose: () => void;
+  fetchOrders: () => void;
   onViewClientProfile?: () => void;
 }
 
 const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
-  order,
+  orderSingle,
   open,
   onClose,
+  fetchOrders,
   onViewClientProfile,
 }) => {
   const { toast } = useToast();
@@ -68,7 +73,14 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
     invoiceTemplate: "standard",
   });
   const [showOptions, setShowOptions] = useState(false);
-console.log(order)
+  const [order, setOrder] = useState(orderSingle);
+  const [showShipping, setShowShipping] = useState(true);
+  const [shippingCost, setShippingCost] = useState(order.shippinCost || 0);
+  const [plateCount, setPlateCount] = useState('');
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  
+
+
   const handlePrint = () => {
     window.print();
     toast({
@@ -77,7 +89,47 @@ console.log(order)
     });
   };
 
-  console.log(order);
+  const updateShipping = async (cost: number, plates: number) => {
+    console.log("Shipping cost:", cost);
+    console.log("Plate count:", plates);
+
+    // Prepare the form object with required data
+    const form = {
+        orderId: order._id,  // Assuming 'order' is available in this context
+        newShippingCost: cost,
+        plateCount: plates,
+    };
+
+    // Assuming 'token' is available in the current scope, you can replace 'yourToken' with the actual token value
+ 
+    // Call the update API with form data
+    const response = await updateOrderShippingAPI(form, token);
+
+    if (response) {
+        console.log("Shipping updated successfully:", response);
+
+        // Assuming the response contains the 'orderNumber' and whole order data
+        const updatedOrder = response; // This assumes the full order data is returned in response
+
+        // Now, only update the order ID with the 'orderNumber' from the response
+        if (updatedOrder?.orderNumber) {
+            setOrder(prevOrder => ({
+                ...updatedOrder,  // Update the order with the new response data
+                id: updatedOrder.orderNumber,  // Replace the id with orderNumber
+                date: updatedOrder.createdAt,  // Replace the id with orderNumber
+            }));
+            setShowShipping(false)
+          
+        }
+
+        // Optionally, you can perform additional actions here with the updated order
+    } else {
+        console.log("Failed to update shipping");
+    }
+};
+
+  
+ 
   const handleDownload = () => {
     exportInvoiceToPDF({
       id: order.orderNumber as any,
@@ -296,7 +348,41 @@ console.log(order)
           </div>
         )}
 
-        <div
+
+{showShipping && (
+  <div className="p-4 bg-gray-100 rounded-lg space-y-4">
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">Shipping Cost</label>
+      <input
+        type="number"
+        value={shippingCost}
+        onChange={(e) => setShippingCost(e.target.value)}
+        placeholder="Enter shipping cost"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+    <div>
+      <label className="block text-sm font-medium text-gray-700 mb-1">How Much Pallet</label>
+      <input
+        type="number"
+        value={plateCount}
+        onChange={(e) => setPlateCount(e.target.value)}
+        placeholder="Enter plate count"
+        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+    <button
+      onClick={() => updateShipping(shippingCost, plateCount)}
+      className="w-full bg-blue-600 text-white py-2 rounded-md hover:bg-blue-700 transition"
+    >
+      Submit
+    </button>
+  </div>
+)}
+
+
+
+      { !showShipping && <div
           className={`invoice-container p-6 border rounded-md bg-white ${
             invoiceOptions.invoiceTemplate === "minimal"
               ? "font-sans"
@@ -536,7 +622,7 @@ console.log(order)
               </div>
             </div>
           )}
-        </div>
+        </div>}
 
         <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
           <div className="flex gap-2 flex-1">
