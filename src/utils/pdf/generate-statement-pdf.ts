@@ -1,4 +1,6 @@
 import jsPDF from "jspdf"
+import "jspdf-autotable"
+import { format, differenceInDays } from "date-fns"
 import autoTable from "jspdf-autotable"
 
 interface OrderItem {
@@ -23,275 +25,249 @@ interface StatementData {
   totalPaid: number
   totalPending: number
   totalProductsOrdered: number
-  user: {
+  filters?: {
+    paymentStatus: string
+    startMonth: string
+    endMonth: string
+  }
+  user?: {
     email: string
     name: string
     phone: string
     storeName: string
+    address: string
+    city: string
+    state: string
+    zipCode: string
   }
+  
 }
 
 export const generateStatementPDF = async (data: StatementData) => {
   try {
-    // Create a new PDF document
-    const doc = new jsPDF()
-    const PAGE_WIDTH = doc.internal.pageSize.width
-    const PAGE_HEIGHT = doc.internal.pageSize.height
-    
-    // Set up constants
-    const printDate = new Date().toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
+    // Create a new PDF document in landscape orientation
+    const doc = new jsPDF({
+      orientation: "landscape",
+      unit: "mm",
     })
-    
-    const dateRange = {
-      from: "01/01/2024",
-      to: "31/12/2025",
-    }
+    const PAGE_WIDTH = doc.internal.pageSize.width
 
-    // Add logo
-    const logoUrl = "/logg.png"
-    const logoHeight = 23
-    const logoWidth = 0 // Assuming square logo
+    // Set up constants
+    const agingDate = format(new Date(), "M/d/yyyy")
 
-    // Center the logo horizontally
-    const centerX = PAGE_WIDTH / 2
-    const leftMargin = 10;
-    doc.addImage(logoUrl, "PNG", leftMargin, 5, logoWidth, logoHeight);
-    
-    // Add company information
-    let yPos = 10
-    const rightX = PAGE_WIDTH - 10
-
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(41, 98, 255)
-    doc.text("Vali Produce", rightX, yPos + 2, { align: "right" })
-
-    doc.setFontSize(7)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(100, 100, 100)
-    doc.text("4300 Pleasantdale Rd,", rightX, yPos + 7, { align: "right" })
-    doc.text("Atlanta, GA 30340, USA", rightX, yPos + 11, { align: "right" })
-    doc.text("order@valiproduce.shop", rightX, yPos + 15, { align: "right" })
-
-    // Add statement title
-    yPos = 35
+    // Add header
+    doc.setTextColor(41, 98, 255) // Blue color for header
     doc.setFontSize(12)
     doc.setFont("helvetica", "bold")
-    doc.setTextColor(0, 0, 0)
-    doc.text("Outstanding Statement", 10, yPos)
+    doc.text("CUSTOMER STATEMENT", 10, 15)
 
-    doc.setFontSize(8)
+    doc.setTextColor(0, 0, 0) // Reset to black
+    doc.setFontSize(10)
     doc.setFont("helvetica", "normal")
-    doc.text(`From: ${dateRange.from} To: ${dateRange.to}`, 10, yPos + 5)
-
-    // Add print date and page number
-    doc.setFontSize(8)
-    doc.text(`Print Date`, rightX, yPos, { align: "right" })
-    doc.text(`${printDate}`, rightX, yPos + 5, { align: "right" })
-    doc.text(`Page 1 of 2`, rightX, yPos + 10, { align: "right" })
+    doc.text(`Aging Date:    ${agingDate}`, 220, 15)
 
     // Add customer information
-    yPos = 50
-    doc.setFontSize(9)
-    doc.setFont("helvetica", "bold")
-    doc.text(`Customer: ${data.user.storeName}`, 10, yPos)
+    const customerName = data.user?.storeName || "";
+
+    const customerAddress = `${data.user?.address || ""}, ${data.user?.city || ""}`;
+    const customerCity = `${data.user?.state || ""}, ${data.user?.zipCode || ""}`;
     
-    doc.setFontSize(8)
-    doc.setFont("helvetica", "normal")
-    doc.text(`Name: ${data.user.name}`, 10, yPos + 5)
-    doc.text(`Email: ${data.user.email}`, 10, yPos + 10)
-    doc.text(`Phone: ${data.user.phone}`, 10, yPos + 15)
+    const customerPhone = data.user?.phone || "";
+    const customerContact = data.user?.name || "";
+    
 
-    // Add summary information
-    yPos = 75
     doc.setFontSize(10)
-    doc.setFont("helvetica", "bold")
-    doc.text("Statement Summary", 10, yPos)
+    doc.text(customerName, 10, 25)
+    doc.text(customerAddress, 10, 30)
+    doc.text(customerCity, 10, 35)
+    doc.text(`Phone : ${customerPhone}`, 10, 40)
+    doc.text(`Contact : ${customerContact}`, 10, 45)
 
-    // Create summary table
-    const summaryData = [
-      ["Closing Balance", formatCurrency(data.closingBalance)],
-      ["Total Paid", formatCurrency(data.totalPaid)],
-      ["Total Pending", formatCurrency(data.totalPending)],
-      ["Total Products Ordered", data.totalProductsOrdered.toString()],
+    // Add company information
+    doc.setFontSize(9)
+    doc.text("9020 Sterling Street Irving, TX 75063 USA", 10, 55)
+    doc.text("Phone : 214-233-3500           Email : accounting@omproduce.com", 10, 60)
+
+    // Create aging table headers - match the exact order from the sample
+    const headers = [
+      [
+        "Posting Date",
+        "Due Date",
+        "Document",
+        "Days Past Due",
+        "Original Amount",
+        "Applied Amount",
+        "Balance Due",
+        "Cuml.Bal",
+        "0 - 7",
+        "8 - 14",
+        "15 - 21",
+        "22 - 28",
+        "29+",
+      ],
     ]
 
+    // Prepare data for aging table
+    const tableData = []
+    let totalAmount = 0
+    let total0to7 = 0
+    let total8to14 = 0
+    let total15to21 = 0
+    let total22to28 = 0
+    let total29plus = 0
+
+    // Process all orders from all months
+    const allOrders: OrderItem[] = []
+    Object.values(data.summaryByMonth).forEach((month) => {
+      allOrders.push(...month.orders)
+    })
+
+    // Sort orders by date
+    allOrders.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    // Process each order for aging
+    allOrders.forEach((order) => {
+      const orderDate = new Date(order.date)
+      const dueDate = new Date(order.date) // Assuming due date is same as order date
+      const daysPastDue = differenceInDays(new Date(), orderDate)
+    
+      let amount0to7 = 0
+      let amount8to14 = 0
+      let amount15to21 = 0
+      let amount22to28 = 0
+      let amount29plus = 0
+    
+      let balanceDue = 0  // Default Balance Due to 0
+      let appliedAmount = "$0.00"  // Default Applied Amount to 0
+    
+      // Check if the order has been paid or is pending
+      if (order.paymentStatus === "pending") {
+        balanceDue = order.amount
+      } else if (order.paymentStatus === "paid") {
+        appliedAmount = `$${order.amount.toFixed(2)}`  // Use the actual paid amount for appliedAmount
+        balanceDue = 0  // For paid orders, balanceDue is 0
+      }
+    
+      // Determine which aging bucket the amount falls into
+      if (daysPastDue <= 7) {
+        amount0to7 = order.amount
+        total0to7 += order.amount
+      } else if (daysPastDue <= 14) {
+        amount8to14 = order.amount
+        total8to14 += order.amount
+      } else if (daysPastDue <= 21) {
+        amount15to21 = order.amount
+        total15to21 += order.amount
+      } else if (daysPastDue <= 28) {
+        amount22to28 = order.amount
+        total22to28 += order.amount
+      } else {
+        amount29plus = order.amount
+        total29plus += order.amount
+      }
+    
+      totalAmount += order.amount
+    
+      // Match the exact column order from the sample
+      tableData.push([
+        format(orderDate, "MM/dd/yyyy"),
+        format(dueDate, "MM/dd/yyyy"),
+        `IN ${order.orderNumber}`,
+        daysPastDue.toString(),
+        `$${order.amount.toFixed(2)}`,
+        appliedAmount,  // Display the applied amount (paid or $0.00 for pending)
+        `$${balanceDue.toFixed(2)}`,  // Balance Due for pending orders
+        `$${totalAmount.toFixed(2)}`,  // Cuml.Bal
+        `$${amount0to7.toFixed(2)}`,
+        `$${amount8to14.toFixed(2)}`,
+        `$${amount15to21.toFixed(2)}`,
+        `$${amount22to28.toFixed(2)}`,
+        `$${amount29plus.toFixed(2)}`,
+      ])
+    })
+    
+    
+
+    // Add totals and percentages row into the table
+    const totalRow = [
+      "Total:", "", "", "", "", "", "", `$${totalAmount.toFixed(2)}`, 
+      `$${total0to7.toFixed(2)}`, `$${total8to14.toFixed(2)}`, 
+      `$${total15to21.toFixed(2)}`, `$${total22to28.toFixed(2)}`, 
+      `$${total29plus.toFixed(2)}`
+    ]
+
+    const agingRow = [
+      "Aging %", "", "", "", "", "", "", "100%", 
+      `${((total0to7 / totalAmount) * 100).toFixed(2)}%`, 
+      `${((total8to14 / totalAmount) * 100).toFixed(2)}%`, 
+      `${((total15to21 / totalAmount) * 100).toFixed(2)}%`, 
+      `${((total22to28 / totalAmount) * 100).toFixed(2)}%`, 
+      `${((total29plus / totalAmount) * 100).toFixed(2)}%`
+    ]
+
+    // Insert totals and aging percentages row at the end of the table data
+    tableData.push(totalRow, agingRow)
+
+    // Add aging table
     autoTable(doc, {
-      startY: yPos + 5,
-      head: [["Description", "Amount"]],
-      body: summaryData,
+      startY: 65,
+      head: headers,
+      body: tableData,
       theme: "grid",
-      headStyles: {
-        fillColor: [41, 98, 255],
-        textColor: [255, 255, 255],
-        fontStyle: "bold",
-      },
       styles: {
         fontSize: 8,
-        cellPadding: 3,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [41, 98, 255], // Blue header background
+        textColor: [255, 255, 255], // White text
+        fontStyle: "bold",
       },
       columnStyles: {
-        1: { halign: "right" },
+        4: { halign: "right" },
+        5: { halign: "right" },
+        6: { halign: "right" },
+        7: { halign: "right" },
+        8: { halign: "right" },
+        9: { halign: "right" },
+        10: { halign: "right" },
+        11: { halign: "right" },
+        12: { halign: "right" },
+      },
+      didDrawPage: (data) => {
+        // Add footer on each page
+        const str = `Page ${doc.getNumberOfPages()}`
+        doc.setFontSize(8)
+        doc.text(str, PAGE_WIDTH - 20, doc.internal.pageSize.height - 10)
       },
     })
 
     // Get the final Y position after the table
-    yPos = (doc as any).lastAutoTable.finalY + 10
+    const finalY = (doc as any).lastAutoTable.finalY + 10
 
-    // Add monthly details
+    // Add remittance information
     doc.setFontSize(10)
     doc.setFont("helvetica", "bold")
-    doc.text("Monthly Order Details", 10, yPos)
-    yPos += 5
+    doc.text("Remittance Method", 10, finalY + 15)
 
-    // Process each month
-    for (const [month, monthData] of Object.entries(data.summaryByMonth)) {
-      // Format month name
-      const monthName = month === "2025-04" ? "April 2025" : "May 2025"
-      
-      // Add month header
-      doc.setFontSize(9)
-      doc.setFont("helvetica", "bold")
-      doc.text(monthName, 10, yPos)
-      yPos += 5
-
-      // Add month summary
-      const monthSummary = [
-        ["Total Amount", formatCurrency(monthData.totalAmount)],
-        ["Total Paid", formatCurrency(monthData.totalPaid)],
-        ["Total Pending", formatCurrency(monthData.totalPending)],
-        ["Total Products", monthData.totalProducts.toString()],
-      ]
-
-      autoTable(doc, {
-        startY: yPos,
-        body: monthSummary,
-        theme: "plain",
-        styles: {
-          fontSize: 8,
-          cellPadding: 2,
-        },
-        columnStyles: {
-          1: { halign: "right" },
-        },
-      })
-
-      // Get the final Y position after the table
-      yPos = (doc as any).lastAutoTable.finalY + 5
-
-      // Check if we need to add a new page for orders
-      if (yPos > PAGE_HEIGHT - 100) {
-        doc.addPage()
-        yPos = 20
-        
-        // Add header to new page
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "bold")
-        doc.text(`${monthName} - Orders (Continued)`, 10, yPos)
-        yPos += 5
-      } else {
-        // Add orders header
-        doc.setFontSize(9)
-        doc.setFont("helvetica", "normal")
-        doc.text("Orders:", 10, yPos)
-        yPos += 5
-      }
-
-      // Prepare orders table data
-      const ordersTableBody = monthData.orders.map(order => [
-        order.orderNumber,
-        formatDate(order.date),
-        formatCurrency(order.amount),
-        order.paymentStatus.toUpperCase(),
-        order.productCount.toString()
-      ])
-
-      // Add orders table
-      autoTable(doc, {
-        startY: yPos,
-        head: [["Order #", "Date", "Amount", "Payment Status", "Products"]],
-        body: ordersTableBody,
-        theme: "grid",
-        styles: {
-          fontSize: 7,
-          cellPadding: 2,
-        },
-        headStyles: {
-          fillColor: [41, 98, 255],
-          textColor: [255, 255, 255],
-          fontStyle: "bold",
-        },
-        columnStyles: {
-          2: { halign: "right" },
-          4: { halign: "right" },
-        },
-      })
-
-      // Get the final Y position after the table
-      yPos = (doc as any).lastAutoTable.finalY + 10
-
-      // Check if we need to add a new page for the next month
-      if (yPos > PAGE_HEIGHT - 40 && Object.keys(data.summaryByMonth).indexOf(month) < Object.keys(data.summaryByMonth).length - 1) {
-        doc.addPage()
-        yPos = 20
-      }
-    }
-
-    // Add final page with total outstanding
-    doc.addPage()
-
-    // Add logo and company info to final page
-    doc.addImage(logoUrl, "PNG", centerX - logoWidth / 2, 5, logoWidth, logoHeight)
-
-    yPos = 10
     doc.setFontSize(9)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(41, 98, 255)
-    doc.text("Vali Produce", rightX, yPos + 2, { align: "right" })
-
-    doc.setFontSize(7)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(100, 100, 100)
-    doc.text("4300 Pleasantdale Rd,", rightX, yPos + 7, { align: "right" })
-    doc.text("Atlanta, GA 30340, USA", rightX, yPos + 11, { align: "right" })
-    doc.text("order@valiproduce.shop", rightX, yPos + 15, { align: "right" })
-
-    // Add statement title and page info
-    yPos = 35
-    doc.setFontSize(12)
-    doc.setFont("helvetica", "bold")
-    doc.setTextColor(0, 0, 0)
-    doc.text("Outstanding Statement", 10, yPos)
-
-    doc.setFontSize(8)
     doc.setFont("helvetica", "normal")
-    doc.text(`From: ${dateRange.from} To: ${dateRange.to}`, 10, yPos + 5)
-
-    doc.setFontSize(8)
-    doc.text(`Print Date`, rightX, yPos, { align: "right" })
-    doc.text(`${printDate}`, rightX, yPos + 5, { align: "right" })
-    doc.text(`Page 2 of 2`, rightX, yPos + 10, { align: "right" })
-
-    // Add total outstanding
-    yPos = 100
-    doc.setFontSize(14)
-    doc.setFont("helvetica", "bold")
-    doc.text("Total Outstanding Report Value", centerX, yPos, { align: "center" })
-    doc.setFontSize(18)
-    doc.text(formatCurrency(data.closingBalance), centerX, yPos + 15, { align: "center" })
-
-    // Add signature line
-    yPos = 150
-    doc.setFontSize(10)
-    doc.line(10, yPos, 100, yPos)
-    doc.text("Authorized Signature", 55, yPos + 10, { align: "center" })
+    doc.text(
+      "Pay by Email : Send a copy of Check to accounting@omproduce.com   Pay by Zelle : accounting@omproduce.com",
+      10,
+      finalY + 25,
+    )
+    doc.text(
+      "Secure Check by Fax : Send a copy of Check to 214-233-3515           Pay by ACH : Account name: Om Trading LLC",
+      10,
+      finalY + 35,
+    )
+    doc.text("Routing: 071006486 | Account: 2810026 | Bank: CIBC", 10, finalY + 45)
 
     // Save the PDF
-    doc.save(`Statement_${data.user.storeName.replace(/\s+/g, "_")}_${printDate.replace(/\//g, "-")}.pdf`)
-    
+    const fileName = `Statement_${customerName.replace(/\s+/g, "_")}_${agingDate.replace(/\//g, "-")}.pdf`
+    doc.save(fileName)
+
     return true
   } catch (error) {
     console.error("Error generating PDF:", error)
@@ -299,20 +275,3 @@ export const generateStatementPDF = async (data: StatementData) => {
   }
 }
 
-// Helper functions
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: 2,
-  }).format(amount)
-}
-
-function formatDate(dateString: string): string {
-  const date = new Date(dateString)
-  return date.toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
-}

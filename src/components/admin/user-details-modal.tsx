@@ -408,18 +408,33 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
                                     </TableRow>
                                   </TableBody>
                                 </Table>
-                                <button
-                                  onClick={() => {
-                                    setOrderId(order.orderNumber)
-                                    setOpen(true)
-                                    setTotalAmount(order.total)
-                                    setOrderIdDB(order?._id || order?.id)
-                                    setpaymentOrder(order)
-                                  }}
-                                  className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                                >
-                                  {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
-                                </button>
+                                <div className="mt-2 space-y-2">
+  <button
+    onClick={() => {
+      setOrderId(order.orderNumber)
+      setOpen(true)
+      setTotalAmount(order.total)
+      setOrderIdDB(order?._id || order?.id)
+      setpaymentOrder(order)
+    }}
+    className="text-xs bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 transition duration-200 shadow-sm"
+  >
+    {order.paymentStatus === "pending" ? "Pay Now" : "Edit Payment"}
+  </button>
+
+  {order.paymentDetails && (
+    <div className="bg-gray-100 p-3 rounded-md text-sm text-gray-800 border border-gray-200 shadow-sm">
+      <p><span className="font-medium">Method:</span> {order.paymentDetails.method || "N/A"}</p>
+      {order.paymentDetails.method === "creditcard" && (
+        <p><span className="font-medium">Transaction ID:</span> {order.paymentDetails.transactionId || "N/A"}</p>
+      )}
+      {order.paymentDetails.method === "cash" && (
+        <p><span className="font-medium">Notes:</span> {order.paymentDetails.notes || "N/A"}</p>
+      )}
+    </div>
+  )}
+</div>
+
                               </div>
                             </div>
                           </AccordionContent>

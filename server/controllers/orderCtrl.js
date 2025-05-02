@@ -445,7 +445,8 @@ const updateOrderTypeCtrl = async (req, res) => {
         });
       }
   
-      const user = await authModel.findById(userId).select('name storeName ownerName phone email');
+      const user = await authModel.findById(userId).select('name storeName ownerName phone email address city state zipCode');
+
       if (!user) {
         return res.status(404).json({
           success: false,
@@ -533,8 +534,13 @@ const updateOrderTypeCtrl = async (req, res) => {
             name: user.ownerName || user.name,
             storeName: user.storeName,
             phone: user.phone,
-            email: user.email
+            email: user.email,
+            address: user.address,
+            city: user.city,
+            state: user.state,
+            zipCode: user.zipCode
           },
+          
           filters: {
             paymentStatus,
             startMonth: startMonth || "all",
