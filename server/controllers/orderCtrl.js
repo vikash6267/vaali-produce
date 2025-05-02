@@ -1,6 +1,41 @@
 const orderModel = require("../models/orderModle");
 const mongoose = require("mongoose");
 const authModel = require("../models/authModel");  // Ensure the correct path for your Auth model
+const { generateStatementPDF } = require("../utils/generateOrder");
+const nodemailer = require("nodemailer");
+
+const mailSender = async (to, subject, text, pdfBase64) => {
+  try {
+     let transporter = nodemailer.createTransport({
+         host: process.env.MAIL_HOST,
+         auth: {
+           user: process.env.MAIL_USER,
+           pass: process.env.MAIL_PASS,
+         },
+         secure: false,
+       });
+
+    const mailOptions = {
+      from: process.env.MAIL_USER,
+      to,
+      subject,
+      text,
+      attachments: [
+        {
+          filename: "Customer_Statement.pdf",
+          content: Buffer.from(pdfBase64, "base64"),
+          contentType: "application/pdf",
+        },
+      ],
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent:", info.response);
+  } catch (err) {
+    console.error("Email sending failed:", err);
+  }
+};
+
 
 const createOrderCtrl = async (req, res) => {
     try {
@@ -526,6 +561,42 @@ const updateOrderTypeCtrl = async (req, res) => {
         totalProductsOrdered += itemCount;
       }
   
+
+
+
+    
+//       try{
+//         const responsePDF = await generateStatementPDF(     {
+//           user: {
+//             name: user.ownerName || user.name,
+//             storeName: user.storeName,
+//             phone: user.phone,
+//             email: user.email,
+//             address: user.address,
+//             city: user.city,
+//             state: user.state,
+//             zipCode: user.zipCode
+//           },
+          
+//           filters: {
+//             paymentStatus,
+//             startMonth: startMonth || "all",
+//             endMonth: endMonth || "all"
+//           },
+//           summaryByMonth: summary,
+//           totalPaid,
+//           totalPending,
+//           totalProductsOrdered,
+//           closingBalance: totalPending
+//         })
+  
+//         const customerEmail = 'vikashvarnsolutions@gmail.com';  // Customer's email address
+//         console.log("PDF size in KB:", Buffer.byteLength(responsePDF, 'base64') / 1024);
+
+//         mailSender(customerEmail,"TEST","hello vikash ",responsePDF)
+//       }catch(err){
+// console.log(err)
+//       }
       res.status(200).json({
         success: true,
         message: 'Order statement generated successfully',

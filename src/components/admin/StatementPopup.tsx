@@ -53,7 +53,6 @@ export const StatementFilterPopup = ({ isOpen, onClose, userId, token }: Stateme
       const response = await getStatement(url, token)
       if (response) {
         await generateStatementPDF(response)
-        console.log(response)
         onClose()
       }
     } catch (error) {

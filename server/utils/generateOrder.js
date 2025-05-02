@@ -1,55 +1,24 @@
-import jsPDF from "jspdf"
-import "jspdf-autotable"
-import { format, differenceInDays } from "date-fns"
-import autoTable from "jspdf-autotable"
+const { jsPDF } = require('jspdf');
 
-interface OrderItem {
-  orderNumber: string
-  date: string
-  amount: number
-  paymentStatus: string
-  productCount: number
-}
+require('jspdf-autotable'); // This is the correct import for Node.js
 
-interface MonthSummary {
-  orders: OrderItem[]
-  totalAmount: number
-  totalPaid: number
-  totalPending: number
-  totalProducts: number
-}
+const { format, differenceInDays } = require('date-fns');
+const axios = require("axios");
 
-interface StatementData {
-  closingBalance: number
-  summaryByMonth: Record<string, MonthSummary>
-  totalPaid: number
-  totalPending: number
-  totalProductsOrdered: number
-  filters?: {
-    paymentStatus: string
-    startMonth: string
-    endMonth: string
-  }
-  user?: {
-    email: string
-    name: string
-    phone: string
-    storeName: string
-    address: string
-    city: string
-    state: string
-    zipCode: string
-  }
-  
-}
 
-export const generateStatementPDF = async (data: StatementData) => {
+const fs = require("fs")
+const path = require("path")
+const sharp = require('sharp');
+
+
+exports.generateStatementPDF = async (data) => {
   try {
     // Create a new PDF document in landscape orientation
     const doc = new jsPDF({
       orientation: "landscape",
       unit: "mm",
     })
+  
     const PAGE_WIDTH = doc.internal.pageSize.width
 
     
@@ -59,13 +28,25 @@ export const generateStatementPDF = async (data: StatementData) => {
 
 
     // Add header layout like the image sample
-    const logoUrl = "/logg.png";
-    const logoHeight = 23;
-    const logoWidth = 0; // Assuming square logo. You can adjust this as per your actual image ratio.
-  
+    const logoPath = path.join(__dirname, "../images/logo.webp");
+    if (!fs.existsSync(logoPath)) {
+      console.error("Image file not found:", logoPath);
+      return;
+    }
+
+    // Convert WEBP to PNG base64
+    const logoBuffer = await sharp(logoPath)
+      .resize(150)  // Resize if needed
+      .toFormat('png')
+      .toBuffer();
+
+    const logoBase64 = logoBuffer.toString('base64');
+
+    const logoHeight = 40;
+    const logoWidth = 0;  // Assuming square logo. Adjust as needed.
+
     // Center the logo horizontally
-    const centerX = PAGE_WIDTH / 2;
-    doc.addImage(logoUrl, "PNG", 0, 5, logoWidth, logoHeight);
+    doc.addImage(logoBase64, 'PNG', 0, -3, logoWidth, logoHeight);
 
 // Centered title
 doc.setFont("helvetica", "bold")
@@ -152,14 +133,14 @@ doc.text(
     let total29plus = 0
 
     // Process all orders from all months
-    const allOrders: OrderItem[] = []
-    Object.values(data.summaryByMonth).forEach((month) => {
+    const allOrders = []
+ Object.values(data.summaryByMonth).forEach((month) => {
       allOrders.push(...month.orders)
     })
 
     // Sort orders by date
     allOrders.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
-
+ 
     // Process each order for aging
     allOrders.forEach((order) => {
       const orderDate = new Date(order.date)
@@ -244,7 +225,7 @@ doc.text(
     tableData.push(totalRow, agingRow)
 
     // Add aging table
-    autoTable(doc, {
+    doc.autoTable( {
       startY: 45,
       head: headers,
       body: tableData,
@@ -278,8 +259,7 @@ doc.text(
     })
 
     // Get the final Y position after the table
-    const finalY = (doc as any).lastAutoTable.finalY + 10
-
+   
     // Add remittance information
     const pageHeight = doc.internal.pageSize.height
     const boxHeight = 40
@@ -305,11 +285,11 @@ doc.text(
       boxTop + 16
     )
     doc.text(
-      "    ACH: , Routing: 063114030, Account: 8010002074700",
+      "Fax: Send secure check to xxxxxxx    |    ACH: , Routing: xxxxxxxx, Account: xxxxxxxxx",
       boxLeft + 4,
       boxTop + 24
     )
-    doc.text("Bank: xxxxxx", boxLeft + 4, boxTop + 32)
+    doc.text("Bank: SouthState Bank", boxLeft + 4, boxTop + 32)
     
 
     // Save the PDF
@@ -323,4 +303,3 @@ doc.text(
     return false
   }
 }
-
