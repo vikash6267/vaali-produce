@@ -57,6 +57,8 @@ interface OrderEditFormProps {
   setStoreDetails?: (data: string) => void;
   onCancel: () => void;
   onViewClientProfile?: () => void;
+  shippingCost?: number;
+
 }
 
 const OrderEditForm: React.FC<OrderEditFormProps> = ({
@@ -64,7 +66,8 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   onSubmit,
   onCancel,
   onViewClientProfile,
-  setStoreDetails
+  setStoreDetails,
+  shippingCost=0
 }) => {
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState([]);
@@ -152,14 +155,16 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
       (total, item) => total + item.quantity * item.unitPrice,
       0
     );
+    
   };
   
   const calculateShipping = () => {
     const items = form.getValues("items");
-    return items.reduce(
-      (total, item) => total + item.quantity * (item.shippinCost || 0),
-      0
-    );
+    // return items.reduce(
+    //   (total, item) => total + item.quantity * (item.shippinCost || 0),
+    //   0
+    // );
+    return shippingCost
   };
   
   const calculateTotal = () => {

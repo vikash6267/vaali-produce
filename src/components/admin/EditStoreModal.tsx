@@ -25,6 +25,7 @@ const storeEditSchema = z.object({
   city: z.string().min(2, "City is required"),
   state: z.string().min(2, "State is required"),
   zipCode: z.string().min(5, "Zip code is required"),
+  shippingCost: z.string().optional(),
   businessDescription: z.string().optional(),
   priceCategory: z.enum(["price", "aPrice", "bPrice", "restaurantPrice"]),
 })
@@ -55,6 +56,7 @@ const StoreEditModal = ({ storeId, isOpen, onClose, onSuccess }: StoreEditModalP
       city: "",
       state: "",
       zipCode: "",
+      shippingCost: 0,
       businessDescription: "",
       priceCategory: "price", // Default value
     },
@@ -81,6 +83,7 @@ const StoreEditModal = ({ storeId, isOpen, onClose, onSuccess }: StoreEditModalP
           city: storeData.city || "",
           state: storeData.state || "",
           zipCode: storeData.zipCode || "",
+          shippingCost: storeData.shippingCost || 0,
           businessDescription: storeData.businessDescription || "",
           priceCategory: storeData.priceCategory || "price",
         })
@@ -254,6 +257,7 @@ const StoreEditModal = ({ storeId, isOpen, onClose, onSuccess }: StoreEditModalP
                     </FormItem>
                   )}
                 />
+             
 
                 <FormField
                   control={form.control}
@@ -275,6 +279,19 @@ const StoreEditModal = ({ storeId, isOpen, onClose, onSuccess }: StoreEditModalP
                           <SelectItem value="restaurantPrice">Restaurant Price</SelectItem>
                         </SelectContent>
                       </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                   <FormField
+                  control={form.control}
+                  name="shippingCost"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Shipping Cost</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter Shipping Cost" {...field}  type="number"/>
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

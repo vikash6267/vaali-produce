@@ -21,6 +21,7 @@ const NewOrder = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
+  const [shippinC, setShippinC] = useState(0)
 
   const [storeDetails, setStoreDetails] = useState("");
   const [storeLoading, setStoreLoading] = useState(false);
@@ -58,6 +59,8 @@ const NewOrder = () => {
         const res = await getUserAPI({ id });
         console.log(res);
         if (res) {
+          setShippinC(res.shippingCost)
+
           setBillingAddress({
             name: res.ownerName || "",
             email: res.email || "",
@@ -213,6 +216,7 @@ const NewOrder = () => {
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
                 setStoreDetails={setStoreDetails}
+                shippingCost={shippinC}
               />
             </div>
           </div>

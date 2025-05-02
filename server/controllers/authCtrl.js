@@ -272,7 +272,8 @@ const updateStoreCtrl = async (req, res) => {
       state,
       zipCode,
       businessDescription,
-      priceCategory
+      priceCategory,
+      shippingCost
 
     } = req.body;
 
@@ -305,6 +306,7 @@ const updateStoreCtrl = async (req, res) => {
     store.zipCode = zipCode || store.zipCode;
     store.priceCategory = priceCategory || store.priceCategory;
     store.businessDescription = businessDescription || store.businessDescription;
+    store.shippingCost = shippingCost || store.shippingCost;
 
     await store.save();
 

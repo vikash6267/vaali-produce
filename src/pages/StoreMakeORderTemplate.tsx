@@ -119,6 +119,7 @@ const CreateOrderModalStore = () => {
   
   const [sameAsBilling, setSameAsBilling] = useState(false)
   const [templateLoading, setTemplateLoading] = useState(true)
+  const [shippinC, setShippinC] = useState(0)
   // const [priceCategory, setPriceCate] = useState("aPrice")
 
   const fetchProducts = async () => {
@@ -178,12 +179,14 @@ const CreateOrderModalStore = () => {
 
     const response = await getUserAPI({ email, setIsGroupOpen })
 
+    
     if (response.priceCategory === "price") {
       setPriceCategory("pricePerBox");
     } else {
       setPriceCategory(response.priceCategory);
     }
     
+    setShippinC(response.shippingCost)
     // console.log(response)
     setBillingAddress({
       name: response.ownerName || "",
@@ -250,7 +253,8 @@ const CreateOrderModalStore = () => {
       }
     })
 
-    return maxShipping
+    // return maxShipping
+    return shippinC
   }
 
   const calculateTotal = () => {

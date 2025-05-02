@@ -50,6 +50,10 @@ const authSchema = new mongoose.Schema(
             type: String,
             default:"price"
         },
+        shippingCost: {
+            type: Number,
+            default:0
+        },
 
         agreeTerms: {
             type: Boolean,

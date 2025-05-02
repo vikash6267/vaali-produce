@@ -43,8 +43,7 @@ const createOrderCtrl = async (req, res) => {
             status, 
             total, 
             clientId, 
-            billingAddress, shippingAddress, shippinCost = 0,
-            orderType="Regural",
+            billingAddress, shippingAddress,             orderType="Regural",
             orderNumber
         
         } = req.body;
@@ -66,6 +65,11 @@ const createOrderCtrl = async (req, res) => {
             const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit random number
             return `${randomNumber}`;
         };
+
+      const user = await authModel.findById(clientId.value).select('shippingCost');
+        
+      const shippinCost = user.shippingCost
+
         const newOrder = new orderModel({
             orderNumber:orderNumber ? orderNumber : generateOrderNumber(),
             items,
@@ -73,7 +77,7 @@ const createOrderCtrl = async (req, res) => {
             status,
             shippingAddress,
             billingAddress,
-            total,
+            total:total+shippinCost,
             orderType,
             shippinCost
         });
@@ -542,7 +546,7 @@ const updateOrderTypeCtrl = async (req, res) => {
   
         summary[monthKey].orders.push({
           orderNumber: order.orderNumber,
-          date: created.toISOString().split('T')[0],
+          date: created.toISOString(),
           amount: order.total,
           paymentStatus: order.paymentStatus,
           productCount: itemCount

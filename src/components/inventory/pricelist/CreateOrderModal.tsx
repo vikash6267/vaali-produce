@@ -96,6 +96,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   });
   const [sameAsBilling, setSameAsBilling] = useState(false);
 
+  const [shippinC, setShippinC] = useState(0)
 
 
   useEffect(() => {
@@ -119,6 +120,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             country: res.state || "",
             phone: res.phone || "",
           });
+          setShippinC(res.shippingCost)
+
         }
       } catch (error) {
         console.error("Error fetching store user:", error);
@@ -213,7 +216,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       }
     })
 
-    return maxShipping
+    // return maxShipping
+    return shippinC
   }
 
   const calculateTotal = () => {
