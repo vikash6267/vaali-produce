@@ -35,7 +35,8 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
   const rightColumnX = leftColumnX + columnWidth + columnGap
   const startY = 25
   const HEADER_HEIGHT = 20
-  const MAX_TABLE_HEIGHT = pageHeight - startY - 20 // Maximum height for a table on a page
+  const FOOTER_HEIGHT = 10
+  const MAX_Y = pageHeight - MARGIN - FOOTER_HEIGHT // Maximum Y position before footer
 
   const drawHeader = () => {
     doc.setFillColor(255, 255, 255)
@@ -75,85 +76,76 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
     productsByCategory[product.category].push(product)
   })
 
-  // Get all unique categories
+  // Get all categories and sort them by number of products (descending)
   const allCategories = Object.keys(productsByCategory)
-
-  // Interleave categories (e.g., vegetables, fruits, vegetables, fruits...)
-  // First, create a mapping of category types (assuming main types like "Vegetables", "Fruits", etc.)
-  const categoryTypes: Record<string, string[]> = {}
-
-  allCategories.forEach((category) => {
-    // Extract the main category type (assuming format like "Vegetables - Leafy", "Fruits - Citrus")
-    // If your categories don't follow this pattern, you'll need to adjust this logic
-    const mainType = category.split(" - ")[0].trim()
-
-    if (!categoryTypes[mainType]) {
-      categoryTypes[mainType] = []
-    }
-    categoryTypes[mainType].push(category)
-  })
-
-  // Create an interleaved list of categories
-  const interleavedCategories: string[] = []
-  const mainTypes = Object.keys(categoryTypes)
-
-  // Find the category with the most subcategories
-  const maxSubcategories = Math.max(...mainTypes.map((type) => categoryTypes[type].length))
-
-  // Interleave the categories
-  for (let i = 0; i < maxSubcategories; i++) {
-    for (const type of mainTypes) {
-      if (categoryTypes[type][i]) {
-        interleavedCategories.push(categoryTypes[type][i])
-      }
-    }
-  }
-
-  // If no clear pattern for interleaving, fall back to the original categories
-  const sortedCategories = interleavedCategories.length > 0 ? interleavedCategories : allCategories
+  const sortedCategories = allCategories.sort((a, b) => productsByCategory[b].length - productsByCategory[a].length)
 
   // Draw header on first page
   drawHeader()
 
-  // First, create a temporary document to measure exact heights
-  const tempDoc = new jsPDF()
-
-  // Function to measure exact height of a category
-  const measureCategoryHeight = (category: string, products: PriceListProduct[]): number => {
-    const rows = [
-      [
-        {
-          content: category.toUpperCase(),
-          colSpan: 3,
-          styles: {
-            halign: "left",
-            fillColor: [230, 230, 230],
-            textColor: [0, 0, 0],
-            fontStyle: "bold",
-          },
-        },
-      ],
-      ...products.map((product) => [
-        product.name.toUpperCase(),
-        `${formatCurrencyValue(product[price] || product.pricePerBox)}`,
-        "",
-      ]),
-    ]
+  // Function to measure height per product (approximate)
+  const measureProductHeight = (product: PriceListProduct): number => {
+    const tempDoc = new jsPDF()
 
     autoTable(tempDoc, {
       startY: 0,
       head: [["DESCRIPTION", "PRICE", "QTY"]],
-      body: rows,
+      body: [[product.name.toUpperCase(), `${formatCurrencyValue(product[price] || product.pricePerBox)}`, ""]],
       tableWidth: columnWidth,
       styles: {
         fontSize: TABLE_FONT_SIZE,
         cellPadding: ROW_PADDING,
         lineWidth: 0.1,
       },
-      columnStyles: {
-        0: { cellWidth: columnWidth * 0.55 },
-        1: { cellWidth: columnWidth * 0.16, halign: "center" },
-        2: { cellWidth: columnWidth * 0.2, halign: "center" },
+    })
+
+    return tempDoc.lastAutoTable?.finalY ?? 5 // Default to 5 if measurement fails
+  }
+
+  // Function to measure category header height
+  const measureCategoryHeaderHeight = (category: string): number => {
+    const tempDoc = new jsPDF()
+
+    autoTable(tempDoc, {
+      startY: 0,
+      body: [
+        [
+          {
+            content: category.toUpperCase(),
+            colSpan: 3,
+            styles: {
+              halign: "left",
+              fillColor: [230, 230, 230],
+              textColor: [0, 0, 0],
+              fontStyle: "bold",
+            },
+          },
+        ],
+      ],
+      tableWidth: columnWidth,
+      styles: {
+        fontSize: TABLE_FONT_SIZE,
+        cellPadding: ROW_PADDING,
+        lineWidth: 0.1,
+      },
+    })
+
+    return tempDoc.lastAutoTable?.finalY ?? 8 // Default to 8 if measurement fails
+  }
+
+  // Function to measure table header height
+  const measureTableHeaderHeight = (): number => {
+    const tempDoc = new jsPDF()
+
+    autoTable(tempDoc, {
+      startY: 0,
+      head: [["DESCRIPTION", "PRICE", "QTY"]],
+      body: [],
+      tableWidth: columnWidth,
+      styles: {
+        fontSize: TABLE_FONT_SIZE,
+        cellPadding: ROW_PADDING,
+        lineWidth: 0.1,
       },
       headStyles: {
         fillColor: [240, 240, 240],
@@ -162,50 +154,37 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
         halign: "center",
         cellPadding: ROW_PADDING,
       },
-      alternateRowStyles: {
-        fillColor: [250, 250, 250],
-      },
     })
 
-    return tempDoc.lastAutoTable?.finalY ?? 0
+    return tempDoc.lastAutoTable?.finalY ?? 8 // Default to 8 if measurement fails
   }
 
-  // Define a category object with its measured height
-  type CategoryWithHeight = {
-    name: string
-    products: PriceListProduct[]
-    height: number
-    originalIndex: number // Keep track of original order
-  }
-
-  // Measure all categories
-  const categoriesWithHeight: CategoryWithHeight[] = sortedCategories.map((category, index) => {
-    const products = productsByCategory[category]
-    const height = measureCategoryHeight(category, products)
-    return {
-      name: category,
-      products,
-      height,
-      originalIndex: index,
-    }
-  })
-
-  // Function to render a category and return its final Y position
-  const renderCategory = (category: CategoryWithHeight, x: number, y: number): number => {
+  // Function to render a category chunk and return its final Y position
+  const renderCategoryChunk = (
+    categoryName: string,
+    products: PriceListProduct[],
+    x: number,
+    y: number,
+    showCategoryHeader = true,
+  ): number => {
     const rows = [
-      [
-        {
-          content: category.name.toUpperCase(),
-          colSpan: 3,
-          styles: {
-            halign: "left",
-            fillColor: [230, 230, 230],
-            textColor: [0, 0, 0],
-            fontStyle: "bold",
-          },
-        },
-      ],
-      ...category.products.map((product) => [
+      ...(showCategoryHeader
+        ? [
+            [
+              {
+                content: categoryName.toUpperCase(),
+                colSpan: 3,
+                styles: {
+                  halign: "left",
+                  fillColor: [230, 230, 230],
+                  textColor: [0, 0, 0],
+                  fontStyle: "bold",
+                },
+              },
+            ],
+          ]
+        : []),
+      ...products.map((product) => [
         { content: product.name.toUpperCase(), styles: { fontStyle: "bold" } },
         {
           content: `${formatCurrencyValue(product[price] || product.pricePerBox)}`,
@@ -244,68 +223,144 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
       didDrawPage: () => drawHeader(),
     })
 
-    return doc.lastAutoTable?.finalY ?? y + category.height
+    return doc.lastAutoTable?.finalY ?? y + 10 // Default if measurement fails
   }
 
-  // Improved layout algorithm for better flow between categories
+  // Function to estimate how many products can fit in the remaining space
+  const estimateProductsInSpace = (
+    availableHeight: number,
+    products: PriceListProduct[],
+    includeHeader: boolean,
+    tableHeaderHeight: number,
+    categoryHeaderHeight: number,
+  ): number => {
+    if (products.length === 0) return 0
+
+    const sampleProduct = products[0]
+    const approxProductHeight = measureProductHeight(sampleProduct)
+
+    // Account for headers if needed
+    const headerHeight = (includeHeader ? categoryHeaderHeight : 0) + tableHeaderHeight
+    const spaceForProducts = availableHeight - headerHeight
+
+    if (spaceForProducts <= 0) return 0
+
+    const productsFit = Math.floor(spaceForProducts / approxProductHeight)
+    return productsFit >= 1 ? productsFit : 0
+    
+  }
+
+  // Improved layout algorithm with maximum space utilization
   const layoutCategories = () => {
     let leftY = startY
     let rightY = startY
     let currentPage = 1
+    const productsQueue: { category: string; products: PriceListProduct[] }[] = []
 
-    // Calculate available height per column
-    const maxColumnHeight = pageHeight - 40 - startY
+    // Initialize the queue with all categories and their products
+    sortedCategories.forEach((category) => {
+      productsQueue.push({
+        category,
+        products: [...productsByCategory[category]],
+      })
+    })
 
-    // Process categories in the interleaved order
-    for (let i = 0; i < categoriesWithHeight.length; i++) {
-      const category = categoriesWithHeight[i]
+    const tableHeaderHeight = measureTableHeaderHeight()
 
-      // Determine which column has more space
-      const leftSpace = maxColumnHeight - (leftY - startY)
-      const rightSpace = maxColumnHeight - (rightY - startY)
+    // Process the queue until empty
+    while (productsQueue.length > 0) {
+      const currentItem = productsQueue[0]
+      const categoryName = currentItem.category
+      const categoryHeaderHeight = measureCategoryHeaderHeight(categoryName)
 
-      // Choose the column with more space
-      const targetColumn = leftSpace >= rightSpace ? "left" : "right"
-      const availableSpace = targetColumn === "left" ? leftSpace : rightSpace
+      // Calculate available space in both columns
+      const leftAvailableHeight = MAX_Y - leftY
+      const rightAvailableHeight = MAX_Y - rightY
 
-      // If category doesn't fit in available space
-      if (category.height > availableSpace) {
-        // Check if we need to start a new page
-        if (leftY > startY && rightY > startY) {
-          // Both columns have content, start a new page
+      // Determine which column to use (prefer the one with more space)
+      const useLeftColumn = leftAvailableHeight >= rightAvailableHeight
+
+      // Calculate how many products can fit in the chosen column
+      const targetY = useLeftColumn ? leftY : rightY
+      const targetX = useLeftColumn ? leftColumnX : rightColumnX
+      const availableHeight = useLeftColumn ? leftAvailableHeight : rightAvailableHeight
+
+      // Check if we need to show category header
+      const isFirstChunkOfCategory = currentItem.products.length === productsByCategory[categoryName].length
+
+      // Estimate how many products can fit
+      const maxProductsInColumn = estimateProductsInSpace(
+        availableHeight,
+        currentItem.products,
+        isFirstChunkOfCategory,
+        tableHeaderHeight,
+        categoryHeaderHeight,
+      )
+
+      // If we can fit at least one product
+      if (maxProductsInColumn > 0 && (isFirstChunkOfCategory ? maxProductsInColumn >= 1 : true)) {
+
+        // Take products that can fit
+        const productsToRender = currentItem.products.slice(0, maxProductsInColumn)
+        currentItem.products = currentItem.products.slice(maxProductsInColumn)
+
+        // Render this chunk
+        const newY = renderCategoryChunk(categoryName, productsToRender, targetX, targetY, isFirstChunkOfCategory) + 2
+
+        // Update the Y position for the target column
+        if (useLeftColumn) {
+          leftY = newY
+        } else {
+          rightY = newY
+        }
+
+        // If we've processed all products in this category, remove it from the queue
+        if (currentItem.products.length === 0) {
+          productsQueue.shift()
+        }
+      }
+      // If we can't fit any products in either column
+      else {
+        // Check if we've used both columns on this page
+        const bothColumnsUsed = leftY > startY && rightY > startY
+
+        // If both columns have content or neither column can fit even one product
+        if (bothColumnsUsed || (leftY === startY && rightY === startY)) {
+          // Start a new page
           doc.addPage()
           drawHeader()
           leftY = startY
           rightY = startY
           currentPage++
 
-          // Now place the category in the left column of the new page
-          leftY = renderCategory(category, leftColumnX, leftY) + 2
-        } else {
-          // One column is still at the top of the page
-          // Place in whichever column is at the top
-          if (leftY === startY) {
-            leftY = renderCategory(category, leftColumnX, leftY) + 2
+          // Don't remove the item from queue - try again on new page
+        }
+        // If one column is still at the top of the page
+        else {
+          // Force at least one product in the empty column
+          const useEmptyColumn = leftY === startY
+          const targetColX = useEmptyColumn ? leftColumnX : rightColumnX
+
+          // Take just one product
+          const productsToRender = currentItem.products.slice(0, 1)
+          currentItem.products = currentItem.products.slice(1)
+
+          // Render with category header if it's the first chunk
+          const newY =
+            renderCategoryChunk(categoryName, productsToRender, targetColX, startY, isFirstChunkOfCategory) + 2
+
+          // Update Y position
+          if (useEmptyColumn) {
+            leftY = newY
           } else {
-            rightY = renderCategory(category, rightColumnX, rightY) + 2
+            rightY = newY
+          }
+
+          // If we've processed all products in this category, remove it from the queue
+          if (currentItem.products.length === 0) {
+            productsQueue.shift()
           }
         }
-      } else {
-        // Category fits in the target column
-        if (targetColumn === "left") {
-          leftY = renderCategory(category, leftColumnX, leftY) + 2
-        } else {
-          rightY = renderCategory(category, rightColumnX, rightY) + 2
-        }
-      }
-
-      // If both columns are near the bottom, start a new page
-      if (leftY > pageHeight - 40 && rightY > pageHeight - 40) {
-        doc.addPage()
-        drawHeader()
-        leftY = startY
-        rightY = startY
-        currentPage++
       }
     }
   }
