@@ -19,7 +19,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
   const isLargeDataset = totalProducts > 130
 
   const MARGIN = 15
-  const TABLE_FONT_SIZE = isLargeDataset ? 6.0 : 6.5 // Smaller font for large datasets
+  const TABLE_FONT_SIZE = isLargeDataset ? 9.0 : 10.5 // Smaller font for large datasets
   const HEADER_FONT_SIZE = 7.8
   const ROW_PADDING = isLargeDataset ? 0.3 : 0.5 // Reduce padding for large datasets
 
@@ -196,7 +196,8 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
 
     autoTable(doc, {
       startY: y,
-      head: [["DESCRIPTION", "PRICE", "QTY"]],
+      head: products.length > 0 ? [["DESCRIPTION", "PRICE", "QTY"]] : [],
+
       body: rows,
       margin: { top: HEADER_HEIGHT + 2, left: x, right: MARGIN },
       tableWidth: columnWidth,
@@ -235,20 +236,19 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
     categoryHeaderHeight: number,
   ): number => {
     if (products.length === 0) return 0
-
+  
     const sampleProduct = products[0]
     const approxProductHeight = measureProductHeight(sampleProduct)
-
-    // Account for headers if needed
-    const headerHeight = (includeHeader ? categoryHeaderHeight : 0) + tableHeaderHeight
-    const spaceForProducts = availableHeight - headerHeight
-
-    if (spaceForProducts <= 0) return 0
-
-    const productsFit = Math.floor(spaceForProducts / approxProductHeight)
-    return productsFit >= 1 ? productsFit : 0
-    
+  
+    const totalHeaderHeight = (includeHeader ? categoryHeaderHeight : 0) + tableHeaderHeight
+    const spaceForProducts = availableHeight - totalHeaderHeight
+  
+    // Require space for at least one product row + headers
+    if (spaceForProducts < approxProductHeight) return 0
+  
+    return Math.floor(spaceForProducts / approxProductHeight)
   }
+  
 
   // Improved layout algorithm with maximum space utilization
   const layoutCategories = () => {
