@@ -11,22 +11,28 @@ declare module "jspdf" {
   }
 }
 
-export const exportPriceListToPDF = (template: PriceListTemplate, price:string) => {
+export const exportPriceListToPDF = (template: PriceListTemplate, price: string) => {
   const doc = new jsPDF()
 
-  const MARGIN = 15
-  const TABLE_FONT_SIZE = 6.8
-  const HEADER_FONT_SIZE = 7.8
+  // Adaptive sizing based on total product count
+  const totalProducts = template.products.length
+  const isLargeDataset = totalProducts > 130
 
+  const MARGIN = 15
+  const TABLE_FONT_SIZE = isLargeDataset ? 6.0 : 6.5 // Smaller font for large datasets
+  const HEADER_FONT_SIZE = 7.8
+  const ROW_PADDING = isLargeDataset ? 0.3 : 0.5 // Reduce padding for large datasets
 
   const today = new Date()
   const logoUrl = "/logg.png"
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
 
-  const columnWidth = (pageWidth - MARGIN * 2 - 10) / 2
+  // Adjust column width for large datasets
+  const columnGap = isLargeDataset ? 8 : 10
+  const columnWidth = (pageWidth - MARGIN * 2 - columnGap) / 2
   const leftColumnX = MARGIN
-  const rightColumnX = leftColumnX + columnWidth + 10
+  const rightColumnX = leftColumnX + columnWidth + columnGap
   const startY = 25
   const HEADER_HEIGHT = 20
   const MAX_TABLE_HEIGHT = pageHeight - startY - 20 // Maximum height for a table on a page
@@ -69,15 +75,45 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
     productsByCategory[product.category].push(product)
   })
 
-  // Sort categories by number of products (largest first)
-  const sortedCategories = Object.keys(productsByCategory).sort(
-    (a, b) => productsByCategory[b].length - productsByCategory[a].length,
-  )
+  // Get all unique categories
+  const allCategories = Object.keys(productsByCategory)
+
+  // Interleave categories (e.g., vegetables, fruits, vegetables, fruits...)
+  // First, create a mapping of category types (assuming main types like "Vegetables", "Fruits", etc.)
+  const categoryTypes: Record<string, string[]> = {}
+
+  allCategories.forEach((category) => {
+    // Extract the main category type (assuming format like "Vegetables - Leafy", "Fruits - Citrus")
+    // If your categories don't follow this pattern, you'll need to adjust this logic
+    const mainType = category.split(" - ")[0].trim()
+
+    if (!categoryTypes[mainType]) {
+      categoryTypes[mainType] = []
+    }
+    categoryTypes[mainType].push(category)
+  })
+
+  // Create an interleaved list of categories
+  const interleavedCategories: string[] = []
+  const mainTypes = Object.keys(categoryTypes)
+
+  // Find the category with the most subcategories
+  const maxSubcategories = Math.max(...mainTypes.map((type) => categoryTypes[type].length))
+
+  // Interleave the categories
+  for (let i = 0; i < maxSubcategories; i++) {
+    for (const type of mainTypes) {
+      if (categoryTypes[type][i]) {
+        interleavedCategories.push(categoryTypes[type][i])
+      }
+    }
+  }
+
+  // If no clear pattern for interleaving, fall back to the original categories
+  const sortedCategories = interleavedCategories.length > 0 ? interleavedCategories : allCategories
 
   // Draw header on first page
   drawHeader()
-
-  // COMPLETELY NEW APPROACH: Bin packing algorithm for optimal layout
 
   // First, create a temporary document to measure exact heights
   const tempDoc = new jsPDF()
@@ -97,7 +133,11 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
           },
         },
       ],
-      ...products.map((product) => [product.name.toUpperCase(), `${formatCurrencyValue(product[price] || product.pricePerBox)}`, ""]),
+      ...products.map((product) => [
+        product.name.toUpperCase(),
+        `${formatCurrencyValue(product[price] || product.pricePerBox)}`,
+        "",
+      ]),
     ]
 
     autoTable(tempDoc, {
@@ -107,7 +147,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
       tableWidth: columnWidth,
       styles: {
         fontSize: TABLE_FONT_SIZE,
-        cellPadding: 0.5,
+        cellPadding: ROW_PADDING,
         lineWidth: 0.1,
       },
       columnStyles: {
@@ -120,7 +160,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
         textColor: [0, 0, 0],
         fontStyle: "bold",
         halign: "center",
-        cellPadding: 0.5,
+        cellPadding: ROW_PADDING,
       },
       alternateRowStyles: {
         fillColor: [250, 250, 250],
@@ -135,49 +175,20 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
     name: string
     products: PriceListProduct[]
     height: number
+    originalIndex: number // Keep track of original order
   }
 
   // Measure all categories
-  const categoriesWithHeight: CategoryWithHeight[] = sortedCategories.map((category) => {
+  const categoriesWithHeight: CategoryWithHeight[] = sortedCategories.map((category, index) => {
     const products = productsByCategory[category]
     const height = measureCategoryHeight(category, products)
-    return { name: category, products, height }
+    return {
+      name: category,
+      products,
+      height,
+      originalIndex: index,
+    }
   })
-
-  // Maximum height available on a page
-  const maxPageHeight = pageHeight - startY - 20
-
-  // Split large categories if needed
-  const splitLargeCategories = (categories: CategoryWithHeight[]): CategoryWithHeight[] => {
-    const result: CategoryWithHeight[] = []
-
-    categories.forEach((category) => {
-      if (category.height <= maxPageHeight) {
-        // Category fits on a page, keep it as is
-        result.push(category)
-      } else {
-        // Category is too large, split it
-        const productsPerPage = Math.floor(category.products.length * (maxPageHeight / category.height))
-
-        for (let i = 0; i < category.products.length; i += productsPerPage) {
-          const chunkProducts = category.products.slice(i, i + productsPerPage)
-          const chunkName = i === 0 ? category.name : `${category.name} (continued)`
-          const chunkHeight = measureCategoryHeight(chunkName, chunkProducts)
-
-          result.push({
-            name: chunkName,
-            products: chunkProducts,
-            height: chunkHeight,
-          })
-        }
-      }
-    })
-
-    return result
-  }
-
-  // Split any categories that are too large for a single page
-  const allCategories = splitLargeCategories(categoriesWithHeight)
 
   // Function to render a category and return its final Y position
   const renderCategory = (category: CategoryWithHeight, x: number, y: number): number => {
@@ -196,10 +207,12 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
       ],
       ...category.products.map((product) => [
         { content: product.name.toUpperCase(), styles: { fontStyle: "bold" } },
-        { content: `${formatCurrencyValue(product[price] || product.pricePerBox)}`, styles: { fontStyle: "bold", halign: "center" } },
+        {
+          content: `${formatCurrencyValue(product[price] || product.pricePerBox)}`,
+          styles: { fontStyle: "bold", halign: "center" },
+        },
         { content: "", styles: { fontStyle: "bold", halign: "center" } },
       ]),
-      
     ]
 
     autoTable(doc, {
@@ -210,7 +223,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
       tableWidth: columnWidth,
       styles: {
         fontSize: TABLE_FONT_SIZE,
-        cellPadding: 0.5,
+        cellPadding: ROW_PADDING,
         lineWidth: 0.1,
       },
       columnStyles: {
@@ -223,7 +236,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
         textColor: [0, 0, 0],
         fontStyle: "bold",
         halign: "center",
-        cellPadding: 0.5,
+        cellPadding: ROW_PADDING,
       },
       alternateRowStyles: {
         fillColor: [250, 250, 250],
@@ -234,76 +247,65 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
     return doc.lastAutoTable?.finalY ?? y + category.height
   }
 
-  // Bin packing algorithm - try to fit as many categories as possible on each page
+  // Improved layout algorithm for better flow between categories
   const layoutCategories = () => {
     let leftY = startY
     let rightY = startY
     let currentPage = 1
-    const remainingCategories = [...allCategories]
 
-    while (remainingCategories.length > 0) {
-      // Find the best fit for the left column
-      let bestLeftFitIndex = -1
-      let bestLeftFitHeight = 0
+    // Calculate available height per column
+    const maxColumnHeight = pageHeight - 40 - startY
 
-      for (let i = 0; i < remainingCategories.length; i++) {
-        const category = remainingCategories[i]
-        if (leftY + category.height <= pageHeight - 20) {
-          if (bestLeftFitIndex === -1 || category.height > bestLeftFitHeight) {
-            bestLeftFitIndex = i
-            bestLeftFitHeight = category.height
+    // Process categories in the interleaved order
+    for (let i = 0; i < categoriesWithHeight.length; i++) {
+      const category = categoriesWithHeight[i]
+
+      // Determine which column has more space
+      const leftSpace = maxColumnHeight - (leftY - startY)
+      const rightSpace = maxColumnHeight - (rightY - startY)
+
+      // Choose the column with more space
+      const targetColumn = leftSpace >= rightSpace ? "left" : "right"
+      const availableSpace = targetColumn === "left" ? leftSpace : rightSpace
+
+      // If category doesn't fit in available space
+      if (category.height > availableSpace) {
+        // Check if we need to start a new page
+        if (leftY > startY && rightY > startY) {
+          // Both columns have content, start a new page
+          doc.addPage()
+          drawHeader()
+          leftY = startY
+          rightY = startY
+          currentPage++
+
+          // Now place the category in the left column of the new page
+          leftY = renderCategory(category, leftColumnX, leftY) + 2
+        } else {
+          // One column is still at the top of the page
+          // Place in whichever column is at the top
+          if (leftY === startY) {
+            leftY = renderCategory(category, leftColumnX, leftY) + 2
+          } else {
+            rightY = renderCategory(category, rightColumnX, rightY) + 2
           }
+        }
+      } else {
+        // Category fits in the target column
+        if (targetColumn === "left") {
+          leftY = renderCategory(category, leftColumnX, leftY) + 2
+        } else {
+          rightY = renderCategory(category, rightColumnX, rightY) + 2
         }
       }
 
-      // Find the best fit for the right column
-      let bestRightFitIndex = -1
-      let bestRightFitHeight = 0
-
-      for (let i = 0; i < remainingCategories.length; i++) {
-        if (i === bestLeftFitIndex) continue // Skip if already selected for left column
-
-        const category = remainingCategories[i]
-        if (rightY + category.height <= pageHeight - 20) {
-          if (bestRightFitIndex === -1 || category.height > bestRightFitHeight) {
-            bestRightFitIndex = i
-            bestRightFitHeight = category.height
-          }
-        }
-      }
-
-      // If nothing fits in either column, start a new page
-      if (bestLeftFitIndex === -1 && bestRightFitIndex === -1) {
+      // If both columns are near the bottom, start a new page
+      if (leftY > pageHeight - 40 && rightY > pageHeight - 40) {
         doc.addPage()
         drawHeader()
         leftY = startY
         rightY = startY
         currentPage++
-        continue
-      }
-
-      // Place categories in columns
-      if (bestLeftFitIndex !== -1) {
-        const category = remainingCategories[bestLeftFitIndex]
-        leftY = renderCategory(category, leftColumnX, leftY) + 5
-        remainingCategories.splice(bestLeftFitIndex, 1)
-
-        // Adjust right fit index if needed
-        if (bestRightFitIndex !== -1 && bestRightFitIndex > bestLeftFitIndex) {
-          bestRightFitIndex--
-        }
-      }
-
-      if (bestRightFitIndex !== -1) {
-        const category = remainingCategories[bestRightFitIndex]
-        rightY = renderCategory(category, rightColumnX, rightY) + 5
-        remainingCategories.splice(bestRightFitIndex, 1)
-      }
-
-      // If we couldn't place anything, something is wrong - prevent infinite loop
-      if (bestLeftFitIndex === -1 && bestRightFitIndex === -1) {
-        console.error("Layout algorithm failed to place categories")
-        break
       }
     }
   }
@@ -335,4 +337,3 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price:string) 
   doc.save(`vali-produce-price-list-${template.name.toLowerCase().replace(/\s+/g, "-")}.pdf`)
   return doc
 }
-
