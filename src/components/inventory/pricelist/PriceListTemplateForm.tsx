@@ -60,6 +60,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
   const [selectedProducts, setSelectedProducts] = useState<PriceListProduct[]>(
     template?.products || []
   );
+
   const [availableProducts, setAvailableProducts] = useState([]);
 
   // Selection states for checkboxes
@@ -269,6 +270,13 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
     setSelectedAvailableItems([]);
   };
 
+  const handleChnagePrice = (product) => {
+    product.aPrice = product.pricePerBox;
+    product.bPrice = product.pricePerBox;
+    product.cPrice = product.pricePerBox;
+    product.restaurantPrice = product.pricePerBox;
+  };
+
   // Remove selected products from selected list
   const handleRemoveSelected = () => {
     if (selectedSelectedItems.length === 0) return;
@@ -345,6 +353,15 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
       .includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
   });
+
+  useEffect(() => {
+    if (template?.products) {
+      const sorted = [...template.products].sort((a, b) =>
+        a.name.localeCompare(b.name)
+      );
+      setSelectedProducts(sorted);
+    }
+  }, [template?.products]);
 
   return (
     <Form {...form}>
@@ -469,7 +486,7 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                     <TableHead className="text-right">
                       Restaurant Price
                     </TableHead>
-                    <TableHead className="text-center">Quantity</TableHead>
+                    <TableHead className="text-center">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -543,16 +560,9 @@ const PriceListTemplateForm: React.FC<PriceListTemplateFormProps> = ({
                         )}
                       </TableCell>
                       <TableCell className="text-center">
-                        <Input
-                          type="number"
-                          min="0"
-                          value={product.quantity || ""}
-                          onChange={(e) =>
-                            handleQuantityChange(product.id, e.target.value)
-                          }
-                          className="w-20 mx-auto text-center"
-                          placeholder="0"
-                        />
+                        <button onClick={() => handleChnagePrice(product)}>
+                          Copy All
+                        </button>
                       </TableCell>
                     </TableRow>
                   ))}
