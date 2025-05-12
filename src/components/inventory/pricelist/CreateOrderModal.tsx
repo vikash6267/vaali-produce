@@ -97,6 +97,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [sameAsBilling, setSameAsBilling] = useState(false);
 
   const [shippinC, setShippinC] = useState(0)
+  const [priceCategory,setPriceCategory] = useState("pricePerBox")
 
 
   useEffect(() => {
@@ -121,7 +122,12 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
             phone: res.phone || "",
           });
           setShippinC(res.shippingCost)
-
+          console.log(res)
+          if (res.priceCategory === "price") {
+            setPriceCategory("pricePerBox");
+          } else {
+            setPriceCategory(res.priceCategory);
+          }
         }
       } catch (error) {
         console.error("Error fetching store user:", error);
@@ -189,15 +195,16 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   const calculateSubtotal = () => {
     if (!template) return 0;
-  
+
     return template.products.reduce((total, product) => {
       const quantity = quantities[product.id] || 0;
       const type = priceType[product.id] || "box"; // Default to 'box'
-      const price = type === "unit" ? product.price : product.pricePerBox;
-  
+      const price = type === "unit" ? product.price : product[priceCategory] ||product.pricePerBox;
+
       return total + price * quantity;
     }, 0);
   };
+
 
   const calculateShipping = () => {
     if (!template) return 0
@@ -249,8 +256,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       const quantity = quantities[product.id] || 0;
       const pricingType = priceType[product.id] || "box"; // default to 'box'
   
-      const unitPrice = pricingType === "unit" ? product.price : product.pricePerBox;
-  
+      const unitPrice = pricingType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
+
       return {
         product: product.id,
         name: product.name,
@@ -356,13 +363,13 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         customerName: orderDetails.clientName,
         items: orderDetails.items.map((item) => ({
           productName: item.productName || item.name,
-          price: item.unitPrice || item.pricePerBox,
+          price: item[priceCategory] || item.unitPrice || item.pricePerBox,
           quantity: item.quantity,
-          total: (item.unitPrice || item.pricePerBox) * item.quantity,
+          total: (item[priceCategory] || item.unitPrice || item.pricePerBox) * item.quantity,
         })),
         total: orderDetails.total,
         date: orderDetails.date,
-      };
+      }
 
       exportInvoiceToPDF({
         id: invoiceData.invoiceNumber,
@@ -458,7 +465,8 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                         {template?.products.map((product) => {
                           const quantity = quantities[product.id] || 0;
                           const selectedType = priceType[product.id] || "box"; // default to box
-                          const price = selectedType === "unit" ? product.price : product.pricePerBox;
+                          const price = selectedType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
+
                           const total = price * quantity;
 
                           return (

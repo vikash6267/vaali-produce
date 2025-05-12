@@ -228,79 +228,77 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
     let leftY = startY
     let rightY = startY
     let currentPage = 1
-
-    // Create a copy of categories to process
+  
     const categoriesToProcess = [...sortedCategories]
-
+    let retryCount = 0
+    const MAX_RETRIES = 5
+  
     while (categoriesToProcess.length > 0) {
       let bestFitFound = false
-
-      // Try to find the best category that fits in the available space
+  
       for (let i = 0; i < categoriesToProcess.length; i++) {
         const category = categoriesToProcess[i]
         const products = productsByCategory[category]
         const categoryHeight = calculateCategoryHeight(category, products)
-
-        // Check if it fits in left column
+  
         if (categoryHeight <= MAX_Y - leftY) {
-          // Render in left column
           const newY = renderCategory(category, products, leftColumnX, leftY)
-          leftY = newY + 2 // Add some spacing
-          categoriesToProcess.splice(i, 1) // Remove from list
+          leftY = newY + 2
+          categoriesToProcess.splice(i, 1)
           bestFitFound = true
+          retryCount = 0
           break
         }
-
-        // Check if it fits in right column
+  
         if (categoryHeight <= MAX_Y - rightY) {
-          // Render in right column
           const newY = renderCategory(category, products, rightColumnX, rightY)
-          rightY = newY + 2 // Add some spacing
-          categoriesToProcess.splice(i, 1) // Remove from list
+          rightY = newY + 2
+          categoriesToProcess.splice(i, 1)
           bestFitFound = true
+          retryCount = 0
           break
         }
       }
-
-      // If no category fits in current page, try smaller categories
+  
       if (!bestFitFound) {
-        // Sort remaining categories by height (smallest first)
-        categoriesToProcess.sort((a, b) => {
-          const heightA = calculateCategoryHeight(a, productsByCategory[a])
-          const heightB = calculateCategoryHeight(b, productsByCategory[b])
-          return heightA - heightB
-        })
-
-        // Try the smallest category
+        retryCount++
+        if (retryCount >= MAX_RETRIES) {
+          // Force page break
+          doc.addPage()
+          drawHeader()
+          currentPage++
+          leftY = startY
+          rightY = startY
+          retryCount = 0
+          continue
+        }
+  
         const smallestCategory = categoriesToProcess[0]
         const products = productsByCategory[smallestCategory]
         const categoryHeight = calculateCategoryHeight(smallestCategory, products)
-
-        // If it doesn't fit on current page at all, start a new page
+  
         if (categoryHeight > MAX_Y - leftY && categoryHeight > MAX_Y - rightY) {
           doc.addPage()
           drawHeader()
           currentPage++
           leftY = startY
           rightY = startY
+          retryCount = 0
         } else {
-          // It fits somewhere, so place it in the column with more space
           const leftSpace = MAX_Y - leftY
           const rightSpace = MAX_Y - rightY
-
-          if (leftSpace >= rightSpace) {
-            const newY = renderCategory(smallestCategory, products, leftColumnX, leftY)
-            leftY = newY + 2
-          } else {
-            const newY = renderCategory(smallestCategory, products, rightColumnX, rightY)
-            rightY = newY + 2
-          }
-
-          categoriesToProcess.shift() // Remove the first (smallest) category
+          const newY = leftSpace >= rightSpace
+            ? renderCategory(smallestCategory, products, leftColumnX, leftY)
+            : renderCategory(smallestCategory, products, rightColumnX, rightY)
+  
+          if (leftSpace >= rightSpace) leftY = newY + 2
+          else rightY = newY + 2
+  
+          categoriesToProcess.shift()
+          retryCount = 0
         }
       }
-
-      // If both columns are nearly full, start a new page
+  
       if (MAX_Y - leftY < 30 && MAX_Y - rightY < 30 && categoriesToProcess.length > 0) {
         doc.addPage()
         drawHeader()
@@ -310,6 +308,7 @@ export const exportPriceListToPDF = (template: PriceListTemplate, price: string)
       }
     }
   }
+  
 
   // Execute the layout algorithm
   layoutCategories()
