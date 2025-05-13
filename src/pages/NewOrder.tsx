@@ -46,7 +46,7 @@ const NewOrder = () => {
     country: "",
   });
   const [sameAsBilling, setSameAsBilling] = useState(false);
-  const today = new Date().toISOString().split("T")[0];
+  const today = new Date();
 
   const [orderNumber, setOrderNumber] = useState("");
   const [createdAt, setCreatedAt] = useState(today);

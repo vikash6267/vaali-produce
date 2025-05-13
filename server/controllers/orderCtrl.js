@@ -38,67 +38,90 @@ const mailSender = async (to, subject, text, pdfBase64) => {
 
 
 const createOrderCtrl = async (req, res) => {
-    try {
-        const { items, 
-            status, 
-            total, 
-            clientId, 
-            billingAddress, shippingAddress,    
-           orderType="Regural",
-            orderNumber,
-            createdAt
-        
-        } = req.body;
-      
-        console.log(req.body)
+  try {
+    const {
+      items,
+      status,
+      total,
+      clientId,
+      billingAddress,
+      shippingAddress,
+      orderType = "Regural",
+      orderNumber,
+      createdAt,
+    } = req.body
 
+    console.log(req.body)
 
-        if (!items || items.length === 0) {
-            return res.status(400).json({ message: "Order items are required" });
-        }
-
-        if (!status) {
-            return res.status(400).json({ message: "Order status is required" });
-        }
-        if (!total || total <= 0) {
-            return res.status(400).json({ message: "Total amount must be greater than zero" });
-        }
-
-        const generateOrderNumber = () => {
-            const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit random number
-            return `${randomNumber}`;
-        };
-
-      const user = await authModel.findById(clientId.value).select('shippingCost');
-        
-      const shippinCost = user.shippingCost
-
-        const newOrder = new orderModel({
-            orderNumber:orderNumber ? orderNumber : generateOrderNumber(),
-            items,
-            store: clientId.value,
-            status,
-            shippingAddress,
-            billingAddress,
-            total:total+shippinCost,
-            orderType,
-            shippinCost,
-            createdAt: createdAt ? new Date(createdAt) : new Date(), // Set createdAt
-
-        });
-
-        await newOrder.save();
-
-        res.status(201).json({
-            success: true,
-            message: "Order created successfully",
-            newOrder,
-        });
-    } catch (error) {
-        console.error("Error creating order:", error);
-        res.status(500).json({ message: "Internal Server Error" });
+    if (!items || items.length === 0) {
+      return res.status(400).json({ message: "Order items are required" })
     }
-};
+
+    if (!status) {
+      return res.status(400).json({ message: "Order status is required" })
+    }
+    if (!total || total <= 0) {
+      return res.status(400).json({ message: "Total amount must be greater than zero" })
+    }
+
+    const generateOrderNumber = () => {
+      const randomNumber = Math.floor(100000 + Math.random() * 900000) // Generates a 6-digit random number
+      return `${randomNumber}`
+    }
+
+    const user = await authModel.findById(clientId.value).select("shippingCost")
+
+    const shippinCost = user.shippingCost
+
+    // Fix for date timezone issue
+    let orderDate
+    if (createdAt) {
+      // Parse the date string and preserve the exact date without timezone conversion
+      const dateComponents = new Date(createdAt)
+      // Create a new date with the exact year, month, and day components
+      orderDate = new Date(
+        Date.UTC(
+          dateComponents.getFullYear(),
+          dateComponents.getMonth(),
+          dateComponents.getDate(),
+          dateComponents.getHours(),
+          dateComponents.getMinutes(),
+          dateComponents.getSeconds(),
+        ),
+      )
+    } else {
+      // If no date provided, use current date
+      const now = new Date()
+      orderDate = new Date(
+        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()),
+      )
+    }
+
+    const newOrder = new orderModel({
+      orderNumber: orderNumber ? orderNumber : generateOrderNumber(),
+      items,
+      store: clientId.value,
+      status,
+      shippingAddress,
+      billingAddress,
+      total: total + shippinCost,
+      orderType,
+      shippinCost,
+      createdAt: orderDate, // Use the fixed date
+    })
+
+    await newOrder.save()
+
+    res.status(201).json({
+      success: true,
+      message: "Order created successfully",
+      newOrder,
+    })
+  } catch (error) {
+    console.error("Error creating order:", error)
+    res.status(500).json({ message: "Internal Server Error" })
+  }
+}
 
 
 
