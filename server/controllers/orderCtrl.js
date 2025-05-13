@@ -43,11 +43,14 @@ const createOrderCtrl = async (req, res) => {
             status, 
             total, 
             clientId, 
-            billingAddress, shippingAddress,             orderType="Regural",
-            orderNumber
+            billingAddress, shippingAddress,    
+           orderType="Regural",
+            orderNumber,
+            createdAt
         
         } = req.body;
       
+        console.log(req.body)
 
 
         if (!items || items.length === 0) {
@@ -79,7 +82,9 @@ const createOrderCtrl = async (req, res) => {
             billingAddress,
             total:total+shippinCost,
             orderType,
-            shippinCost
+            shippinCost,
+            createdAt: createdAt ? new Date(createdAt) : new Date(), // Set createdAt
+
         });
 
         await newOrder.save();

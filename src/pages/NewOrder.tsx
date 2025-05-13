@@ -46,6 +46,10 @@ const NewOrder = () => {
     country: "",
   });
   const [sameAsBilling, setSameAsBilling] = useState(false);
+  const today = new Date().toISOString().split("T")[0];
+
+  const [orderNumber, setOrderNumber] = useState("");
+  const [createdAt, setCreatedAt] = useState(today);
 
   useEffect(() => {
     if (!storeDetails) return;
@@ -141,10 +145,9 @@ const NewOrder = () => {
     console.log(calculateTotal()); // Call the function to get the result
 
     const order = {
-      id: `${Math.floor(Math.random() * 10000)
-        .toString()
-        .padStart(4, "0")}`,
-      date: new Date().toISOString(),
+      orderNumber: orderNumber || `${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`,
+      createdAt: createdAt ? new Date(createdAt).toISOString() : new Date().toISOString(),
+      date: createdAt ? new Date(createdAt).toISOString() : new Date().toISOString(),
       clientId: { value: data?.store },
       items: data?.items,
       total: calculateTotal(),
@@ -212,12 +215,30 @@ const NewOrder = () => {
                 </>
               )}
 
-              <OrderEditForm
+<OrderEditForm
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
                 setStoreDetails={setStoreDetails}
                 shippingCost={shippinC}
               />
+
+
+<div>
+      <label>Order Number: (Optional)</label>
+      <Input
+        type="text"
+        placeholder="Enter Order Number"
+        value={orderNumber}
+        onChange={(e) => setOrderNumber(e.target.value)}
+      />
+
+      <label>Order Date:  (Optional)</label>
+      <Input
+        type="date"
+        value={createdAt}
+        onChange={(e) => setCreatedAt(e.target.value)}
+      />
+            </div>
             </div>
           </div>
         </main>
