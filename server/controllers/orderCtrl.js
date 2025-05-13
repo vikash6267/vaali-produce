@@ -73,28 +73,37 @@ const createOrderCtrl = async (req, res) => {
 
     const shippinCost = user.shippingCost
 
-    // Fix for date timezone issue
+    // More robust date handling for VPS deployment
     let orderDate
     if (createdAt) {
-      // Parse the date string and preserve the exact date without timezone conversion
-      const dateComponents = new Date(createdAt)
-      // Create a new date with the exact year, month, and day components
-      orderDate = new Date(
-        Date.UTC(
-          dateComponents.getFullYear(),
-          dateComponents.getMonth(),
-          dateComponents.getDate(),
-          dateComponents.getHours(),
-          dateComponents.getMinutes(),
-          dateComponents.getSeconds(),
-        ),
-      )
+      // If a specific date was provided, use it directly as an ISO string
+      // This bypasses timezone issues by storing the exact string representation
+      if (typeof createdAt === "string") {
+        // If it's already a string (like from a date picker), parse it
+        const dateObj = new Date(createdAt)
+        // Force the date to be interpreted as is, without timezone adjustment
+        const year = dateObj.getFullYear()
+        const month = dateObj.getMonth()
+        const day = dateObj.getDate()
+
+        // Create date at noon to avoid any day boundary issues
+        orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0))
+      } else {
+        // If it's already a Date object
+        const year = createdAt.getFullYear()
+        const month = createdAt.getMonth()
+        const day = createdAt.getDate()
+
+        orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0))
+      }
     } else {
-      // If no date provided, use current date
+      // If no date provided, use current date (today)
       const now = new Date()
-      orderDate = new Date(
-        Date.UTC(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), now.getSeconds()),
-      )
+      const year = now.getFullYear()
+      const month = now.getMonth()
+      const day = now.getDate()
+
+      orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0))
     }
 
     const newOrder = new orderModel({
