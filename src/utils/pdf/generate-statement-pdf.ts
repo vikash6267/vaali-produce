@@ -97,18 +97,37 @@ export const generateStatementPDF = async (data: StatementData) => {
     doc.text(
       "4300 Pleasantdale Rd, Atlanta, GA 30340, USA    |    Phone: +1 501 559 0123    |    Email: order@valiproduce.shop",
       MARGIN,
-      MARGIN + 30
+      MARGIN + 30,
     )
 
-    const headers = [[
-      "Posting Date", "Due Date", "Document", "Days Past Due",
-      "Original Amount", "Applied Amount", "Balance Due", "Cuml.Bal",
-      "0 - 7", "8 - 14", "15 - 21", "22 - 28", "29+"
-    ]]
+    const headers = [
+      [
+        "Posting Date",
+        "Due Date",
+        "Document",
+        "Days Past Due",
+        "Original Amount",
+        "Applied Amount",
+        "Balance Due",
+        "Cuml.Bal",
+        "0 - 7",
+        "8 - 14",
+        "15 - 21",
+        "22 - 28",
+        "29+",
+      ],
+    ]
 
     const tableData = []
     let totalAmount = 0
-    let total0to7 = 0, total8to14 = 0, total15to21 = 0, total22to28 = 0, total29plus = 0
+    let total0to7 = 0,
+      total8to14 = 0,
+      total15to21 = 0,
+      total22to28 = 0,
+      total29plus = 0
+    let totalOriginalAmount = 0
+    let totalAppliedAmount = 0
+    let totalBalanceDue = 0
 
     const allOrders: OrderItem[] = []
     Object.values(data.summaryByMonth).forEach((month) => {
@@ -122,7 +141,11 @@ export const generateStatementPDF = async (data: StatementData) => {
       const dueDate = orderDate
       const daysPastDue = differenceInDays(nowUS, orderDate)
 
-      let amount0to7 = 0, amount8to14 = 0, amount15to21 = 0, amount22to28 = 0, amount29plus = 0
+      let amount0to7 = 0,
+        amount8to14 = 0,
+        amount15to21 = 0,
+        amount22to28 = 0,
+        amount29plus = 0
       let balanceDue = 0
       let appliedAmount = "$0.00"
 
@@ -151,6 +174,12 @@ export const generateStatementPDF = async (data: StatementData) => {
       }
 
       totalAmount += order.amount
+      totalOriginalAmount += order.amount
+      if (order.paymentStatus === "paid") {
+        totalAppliedAmount += order.amount
+      } else if (order.paymentStatus === "pending") {
+        totalBalanceDue += order.amount
+      }
 
       tableData.push([
         format(orderDate, "MM/dd/yyyy"),
@@ -165,25 +194,41 @@ export const generateStatementPDF = async (data: StatementData) => {
         `$${amount8to14.toFixed(2)}`,
         `$${amount15to21.toFixed(2)}`,
         `$${amount22to28.toFixed(2)}`,
-        `$${amount29plus.toFixed(2)}`
+        `$${amount29plus.toFixed(2)}`,
       ])
     })
 
     tableData.push(
       [
-        "Total:", "", "", "", "", "", "", `$${totalAmount.toFixed(2)}`,
-        `$${total0to7.toFixed(2)}`, `$${total8to14.toFixed(2)}`,
-        `$${total15to21.toFixed(2)}`, `$${total22to28.toFixed(2)}`,
-        `$${total29plus.toFixed(2)}`
+        "Total:",
+        "",
+        "",
+        "",
+        `$${totalOriginalAmount.toFixed(2)}`,
+        `$${totalAppliedAmount.toFixed(2)}`,
+        `$${totalBalanceDue.toFixed(2)}`,
+        `$${totalAmount.toFixed(2)}`,
+        `$${total0to7.toFixed(2)}`,
+        `$${total8to14.toFixed(2)}`,
+        `$${total15to21.toFixed(2)}`,
+        `$${total22to28.toFixed(2)}`,
+        `$${total29plus.toFixed(2)}`,
       ],
       [
-        "Aging %", "", "", "", "", "", "", "100%",
+        "Aging %",
+        "",
+        "",
+        "",
+        "100%",
+        `${((totalAppliedAmount / totalOriginalAmount) * 100).toFixed(2)}%`,
+        `${((totalBalanceDue / totalOriginalAmount) * 100).toFixed(2)}%`,
+        "100%",
         `${((total0to7 / totalAmount) * 100).toFixed(2)}%`,
         `${((total8to14 / totalAmount) * 100).toFixed(2)}%`,
         `${((total15to21 / totalAmount) * 100).toFixed(2)}%`,
         `${((total22to28 / totalAmount) * 100).toFixed(2)}%`,
-        `${((total29plus / totalAmount) * 100).toFixed(2)}%`
-      ]
+        `${((total29plus / totalAmount) * 100).toFixed(2)}%`,
+      ],
     )
 
     autoTable(doc, {
