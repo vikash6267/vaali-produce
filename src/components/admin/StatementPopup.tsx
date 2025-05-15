@@ -39,28 +39,35 @@ export const StatementFilterPopup = ({ isOpen, onClose, userId, token }: Stateme
     setEndMonth(format(now, "yyyy-MM"))
   }, [])
 
-  const handleDownload = async () => {
-    try {
-      setIsGeneratingPDF(true)
+const handleDownload = async (sendMail: boolean = false) => {
+  try {
+    setIsGeneratingPDF(true)
 
-      let url = `${userId}?paymentStatus=${paymentStatus}`
+    let url = `${userId}?paymentStatus=${paymentStatus}`
 
-      if (monthRangeType === "range") {
-        if (startMonth) url += `&startMonth=${startMonth}`
-        if (endMonth) url += `&endMonth=${endMonth}`
-      }
-
-      const response = await getStatement(url, token)
-      if (response) {
-        await generateStatementPDF(response)
-        onClose()
-      }
-    } catch (error) {
-      console.error("Error downloading statement:", error)
-    } finally {
-      setIsGeneratingPDF(false)
+    if (monthRangeType === "range") {
+      if (startMonth) url += `&startMonth=${startMonth}`
+      if (endMonth) url += `&endMonth=${endMonth}`
     }
+
+    if (sendMail) {
+      url += `&send=1`
+    } else {
+      url += `&send=0`
+    }
+
+    const response = await getStatement(url, token)
+    if (response) {
+      await generateStatementPDF(response)
+      onClose()
+    }
+  } catch (error) {
+    console.error("Error downloading statement:", error)
+  } finally {
+    setIsGeneratingPDF(false)
   }
+}
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -144,8 +151,11 @@ export const StatementFilterPopup = ({ isOpen, onClose, userId, token }: Stateme
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleDownload} disabled={isGeneratingPDF}>
+          <Button onClick={()=>handleDownload(false)} disabled={isGeneratingPDF}>
             {isGeneratingPDF ? "Generating PDF..." : "Download"}
+          </Button>
+          <Button onClick={()=>handleDownload(true)} disabled={isGeneratingPDF}>
+            {isGeneratingPDF ? "Generating PDF..." : "Send Mail & Download"}
           </Button>
         </DialogFooter>
       </DialogContent>
