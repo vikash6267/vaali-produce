@@ -70,6 +70,8 @@ export const order = {
   UPDATE_SHIPPING_COST: BASE_URL + "/order/update-shipping",
   GET_STORE_ORDERS: BASE_URL + "/order/store-orders",
   GET_USERSTATEMENT: BASE_URL + "/order/statement",
+  DASHBOARD_DATA: BASE_URL + "/order/dashboard",
+  PENDING_ORDER_DATA: BASE_URL + "/order/pending",
 
 }
 export const crm = {

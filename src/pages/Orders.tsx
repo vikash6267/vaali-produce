@@ -108,14 +108,7 @@ const Orders = () => {
                   <Plus size={16} className="mr-2" />
                   New Order
                 </Button>
-                {/* <Button variant="outline">
-                  <FileText size={16} className="mr-2" />
-                  Invoices
-                </Button>
-                <Button variant="outline">
-                  <Receipt size={16} className="mr-2" />
-                  Receipts
-                </Button> */}
+
               </div>}
             </PageHeader>
 

@@ -13,7 +13,9 @@ const { CREATE_PRODUCT,
     DELETE_ORDER,
     UPDATE_ORDER_ORDER_TYPE,
     GET_USERSTATEMENT,
-    UPDATE_SHIPPING_COST
+    UPDATE_SHIPPING_COST,
+    DASHBOARD_DATA,
+    PENDING_ORDER_DATA
 } = order
 
 
@@ -87,6 +89,49 @@ export const getStatement = async (id,token) => {
     }
 
 };
+
+
+export const getDashboardData = async (token) => {
+
+    try {
+        const response = await apiConnector("GET", DASHBOARD_DATA,{},{
+            Authorization: `Bearer ${token}`,
+        })
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        console.error("GET GET_ALL_ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get GET_ALL_ORDER!");
+        return [];
+    }
+
+};
+export const getPendingData = async (token) => {
+
+    try {
+        const response = await apiConnector("GET", PENDING_ORDER_DATA,{},{
+            Authorization: `Bearer ${token}`,
+        })
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        return response?.data || [];
+    } catch (error) {
+        console.error("GET GET_ALL_ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to get GET_ALL_ORDER!");
+        return [];
+    }
+
+};
+
 
 
 export const getAllOrderAPI = async (token) => {

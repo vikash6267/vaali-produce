@@ -738,6 +738,143 @@ const getUserOrderStatement = async (req, res) => {
 
   
 
+const getDashboardData = async (req, res) => {
+  try {
+    // Total Orders
+    const totalOrders = await orderModel.countDocuments();
+
+    // Total Stores
+    const totalStores = await authModel.countDocuments({ role: "store" });
+
+    // Total Payment and Pending Payment
+    const paymentData = await orderModel.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$total" },
+          totalReceived: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$total", 0] } },
+          totalPending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, "$total", 0] } }
+        }
+      }
+    ]);
+
+    const totalAmount = paymentData[0]?.totalAmount || 0;
+    const totalReceived = paymentData[0]?.totalReceived || 0;
+    const totalPending = paymentData[0]?.totalPending || 0;
+
+    // Top 10 Users by Order Amount
+    const topUsers = await orderModel.aggregate([
+      {
+        $group: {
+          _id: "$store",
+          totalAmount: { $sum: "$total" },
+          orderCount: { $sum: 1 }
+        }
+      },
+      {
+        $lookup: {
+          from: "auths",
+          localField: "_id",
+          foreignField: "_id",
+          as: "userDetails"
+        }
+      },
+      {
+        $unwind: "$userDetails"
+      },
+      { $sort: { totalAmount: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          name: "$userDetails.ownerName",
+          storeName: "$userDetails.storeName",
+          email: "$userDetails.email",
+          orderCount: 1,
+          totalAmount: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Dashboard data fetched successfully",
+      data: {
+        totalOrders,
+        totalStores,
+        totalAmount,
+        totalReceived,
+        totalPending,
+        topUsers
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching dashboard data",
+      error: error.message
+    });
+  }
+};
+
+const getPendingOrders = async (req, res) => {
+  try {
+    const pendingOrders = await orderModel.aggregate([
+      {
+        $group: {
+          _id: "$store", // ensure this is your correct field for store reference
+          totalOrders: { $sum: 1 },
+          totalAmount: { $sum: "$total" },
+          totalPaid: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$total", 0] } },
+          totalPending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, "$total", 0] } }
+        }
+      },
+      {
+        $match: { totalPending: { $gt: 0 } } // only stores with pending amount
+      },
+      {
+        $lookup: {
+          from: "auths",
+          localField: "_id",
+          foreignField: "_id",
+          as: "storeInfo"
+        }
+      },
+      {
+        $unwind: {
+          path: "$storeInfo",
+          preserveNullAndEmptyArrays: true
+        }
+      },
+      {
+        $sort: { totalPending: -1 } // sort by pending amount descending
+      },
+      {
+        $project: {
+          storeName: "$storeInfo.storeName",
+          storeEmail: "$storeInfo.email",
+          totalOrders: 1,
+          totalAmount: 1,
+          totalPaid: 1,
+          totalPending: 1
+        }
+      }
+    ]);
+
+    res.status(200).json({
+      success: true,
+      message: "Pending orders by store fetched successfully",
+      data: pendingOrders
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching pending orders by store",
+      error: error.message
+    });
+  }
+};
+
+
 
 module.exports = { 
     createOrderCtrl, 
@@ -750,7 +887,9 @@ module.exports = {
     deleteOrderCtrl,
     updateOrderTypeCtrl,
     getUserOrderStatement,
-    updateShippingController
+    updateShippingController,
+    getDashboardData,
+    getPendingOrders
      };
 
 

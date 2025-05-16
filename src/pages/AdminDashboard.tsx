@@ -15,6 +15,7 @@ import AdminTab from '@/components/crm/admin/AdminTab';
 import { useDispatch } from 'react-redux';
 import { logout } from '@/services2/operations/auth';
 import { Card, CardContent } from '@/components/ui/card';
+import DashboardDynamically from '@/components/DashboardDynamically';
 
 const AdminDashboard = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -37,9 +38,12 @@ const AdminDashboard = () => {
       <div className="flex-1 flex flex-col overflow-hidden">
         <Navbar toggleSidebar={toggleSidebar} isSidebarOpen={isSidebarOpen} />
         
+
+
         <main className="flex-1 overflow-y-auto bg-muted/30">
+        <DashboardDynamically />
           <div className="page-container max-w-full px-4 py-4">
-            <PageHeader 
+            {/* <PageHeader 
               title="Admin Dashboard" 
               description="Manage your admin operations"
               icon={<ShieldAlert className="h-6 w-6 text-primary" />}
@@ -99,10 +103,10 @@ const AdminDashboard = () => {
                 </CardContent>
               </Card>
             </div>
-            
-            <div className="mt-6">
+             */}
+            {/* <div className="mt-6">
               <AdminTab />
-            </div>
+            </div> */}
           </div>
         </main>
       </div>

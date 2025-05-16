@@ -34,22 +34,24 @@ export const exportBillOfLadingToPDF = (
   }
 ) => {
   const doc = new jsPDF();
+const PAGE_WIDTH = doc.internal.pageSize.width;
+const PAGE_HEIGHT = doc.internal.pageSize.height;
+const MARGIN = 8;
+const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
+let yPos = 15;
 
-  const PAGE_WIDTH = doc.internal.pageSize.width;
-  const PAGE_HEIGHT = doc.internal.pageSize.height;
-  const MARGIN = 8;
-  const CONTENT_WIDTH = PAGE_WIDTH - 2 * MARGIN;
-  let yPos = 15;
+const addPageIfNeeded = (extraHeight = 30) => {
+  if (yPos + extraHeight >= PAGE_HEIGHT - 15) {
+    doc.addPage();
+    yPos = 15;
+  }
+};
 
-  const addPageIfNeeded = (extraHeight = 30) => {
-    if (yPos + extraHeight >= PAGE_HEIGHT - 15) {
-      doc.addPage();
-      yPos = 15;
-    }
-  };
-
-  const logoUrl = "/logg.png";
-  doc.addImage(logoUrl, "PNG", MARGIN - 8, 0, 0, 23);
+const logoUrl = "/logg.png";
+const logoWidth = 23;
+const logoHeight = 23;
+const xCenter = (PAGE_WIDTH / 2.5) - (logoWidth / 2.5);
+doc.addImage(logoUrl, "PNG", xCenter, 0, 0, 23);
 
   doc.setFontSize(14);
   doc.setFont("helvetica", "bold");
@@ -281,7 +283,7 @@ export const exportBillOfLadingToPDF = (
     doc.setPage(i);
     doc.setFontSize(8);
     doc.setTextColor(150, 150, 150);
-    doc.text(`Page ${i} of ${totalPagesCount}`, PAGE_WIDTH - MARGIN, 10, {
+    doc.text(`Page ${i} of ${totalPagesCount}`, PAGE_WIDTH - MARGIN, 7, {
       align: "right",
     });
   }
