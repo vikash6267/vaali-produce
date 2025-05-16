@@ -135,39 +135,91 @@ const createOrderCtrl = async (req, res) => {
 
 
 const getAllOrderCtrl = async (req, res) => {
-    try {
-        const user = req.user;
-        let query = {};
+  try {
+    const user = req.user;
+    const search = req.query.search || "";
+    const orderType = req.query.orderType || "";
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
 
-        console.log(user)
-        // Agar user ka role 'store' ya 'member' hai toh uske store ke orders fetch karo
-        if (user.role === "store" || user.role === "member") {
-            query.store = user.id;
-        }
+    const matchStage = {};
 
-        // Orders fetch karo
-        const orders = await orderModel
-            .find(query) // Ye ensure karega ki multiple orders aaye
-            .populate("store")
-            .sort({ createdAt: -1 }) // Latest orders first
-            .select("-__v"); // Hide unnecessary fields
-
-        console.log("Total Orders Fetched:", orders.length); // Debugging ke liye
-
-        return res.status(200).json({
-            success: true,
-            message: orders.length ? "Orders fetched successfully!" : "No orders found!",
-            orders,
-        });
-
-    } catch (error) {
-        console.error("Error fetching orders:", error.message, error.stack); // Detailed error logging
-        return res.status(500).json({
-            success: false,
-            message: "Error fetching orders!",
-            error: error.message, // Extra info for debugging
-        });
+    // Filter by user role
+    if (user.role === "store" || user.role === "member") {
+      matchStage.store = mongoose.Types.ObjectId(user.id);
     }
+
+    // Filter by order type
+    if (orderType && orderType !== "Regural") {
+      matchStage.orderType = orderType;
+    } else if (orderType === "Regural") {
+      matchStage.$or = [
+        { orderType: "Regural" },
+        { orderType: { $exists: false } },
+      ];
+    }
+
+    const searchRegex = new RegExp(search, "i");
+
+    const aggregateQuery = [
+      {
+        $lookup: {
+          from: "auths", // collection name (usually lowercase plural of model)
+          localField: "store",
+          foreignField: "_id",
+          as: "store",
+        },
+      },
+      {
+        $unwind: "$store",
+      },
+      {
+        $match: {
+          ...matchStage,
+          ...(search
+            ? {
+                $or: [
+                  { orderNumber: searchRegex },
+                  { "store.storeName": searchRegex },
+                ],
+              }
+            : {}),
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $facet: {
+          data: [{ $skip: skip }, { $limit: limit }],
+          totalCount: [{ $count: "count" }],
+        },
+      },
+    ];
+
+    const result = await orderModel.aggregate(aggregateQuery);
+
+    const orders = result[0].data;
+    const totalOrders = result[0].totalCount[0]?.count || 0;
+    const totalPages = Math.ceil(totalOrders / limit);
+
+    return res.status(200).json({
+      success: true,
+      message: orders.length ? "Orders fetched successfully!" : "No orders found!",
+      orders,
+      totalOrders,
+      currentPage: page,
+      totalPages,
+    });
+  } catch (error) {
+    console.error("Error fetching orders:", error.message, error.stack);
+    return res.status(500).json({
+      success: false,
+      message: "Error fetching orders!",
+      error: error.message,
+    });
+  }
 };
 
 

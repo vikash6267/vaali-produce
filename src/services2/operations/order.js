@@ -134,26 +134,42 @@ export const getPendingData = async (token) => {
 
 
 
-export const getAllOrderAPI = async (token) => {
+export const getAllOrderAPI = async (token, queryParams = "") => {
+  try {
+    console.log("Fetching orders with params:", queryParams)
 
-    try {
-        const response = await apiConnector("GET", GET_ALL_ORDER,{},{
-            Authorization: `Bearer ${token}`,
-        })
+    const response = await apiConnector(
+      "GET",
+      `${GET_ALL_ORDER}?${queryParams}`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      },
+    )
 
-
-        if (!response?.data?.success) {
-            throw new Error(response?.data?.message || "Something went wrong!");
-        }
-
-        return response?.data?.orders || [];
-    } catch (error) {
-        console.error("GET GET_ALL_ORDER API ERROR:", error);
-        toast.error(error?.response?.data?.message || "Failed to get GET_ALL_ORDER!");
-        return [];
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!")
     }
 
-};
+    console.log("API response:", response.data)
+
+    return {
+      orders: response?.data?.orders || [],
+      totalOrders: response?.data?.totalOrders || 0,
+      currentPage: response?.data?.currentPage || 1,
+      totalPages: response?.data?.totalPages || 1,
+    }
+  } catch (error) {
+    console.error("GET GET_ALL_ORDER API ERROR:", error)
+    toast.error(error?.response?.data?.message || "Failed to get orders!")
+    return {
+      orders: [],
+      totalOrders: 0,
+      currentPage: 1,
+      totalPages: 1,
+    }
+  }
+}
 
 export const updateOrderAPI = async (formData, token,id) => {
 
