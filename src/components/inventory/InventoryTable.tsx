@@ -147,19 +147,19 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             <TableHead className="text-right cursor-pointer" onClick={() => handleSort("quantity")}>
               <div className="flex items-center justify-end">Quantity {renderSortIcon("quantity")}</div>
             </TableHead>
-            <TableHead className="text-right cursor-pointer" onClick={() => handleSort("price")}>
+            {/* <TableHead className="text-right cursor-pointer" onClick={() => handleSort("price")}>
               <div className="flex items-center justify-end">Price {renderSortIcon("price")}</div>
-            </TableHead>
+            </TableHead> */}
             <TableHead className="text-right">
               <div className="flex items-center justify-end">Price/Box</div>
             </TableHead>
-            <TableHead className="cursor-pointer" onClick={() => handleSort("expiryDate")}>
+            {/* <TableHead className="cursor-pointer" onClick={() => handleSort("expiryDate")}>
               <div className="flex items-center">Expiry {renderSortIcon("expiryDate")}</div>
-            </TableHead>
+            </TableHead> */}
             <TableHead className="text-right cursor-pointer" onClick={() => handleSort("lastUpdated")}>
               <div className="flex items-center justify-end">Updated {renderSortIcon("lastUpdated")}</div>
             </TableHead>
-            <TableHead className="text-right ">Total Order</TableHead>
+            <TableHead className="text-right "> Order Actions</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -231,13 +231,13 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 </TableCell>
                 <TableCell className="text-right">
                   <div className={`font-medium ${product.quantity <= product.threshold ? "text-red-600" : ""}`}>
-                    {product.quantity} {product.unit}
+                    {product.quantity} 
                   </div>
-                  {product.weightVariation && product.weightVariation > 0 && (
+                  {/* {product.weightVariation && product.weightVariation > 0 && (
                     <div className="text-xs text-muted-foreground">±{product.weightVariation}%</div>
-                  )}
+                  )} */}
                 </TableCell>
-                <TableCell className="text-right">
+                {/* <TableCell className="text-right">
                   <div className="font-medium">
                     ${product.price.toFixed(2)}/{product.unit}
                   </div>
@@ -246,7 +246,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                       Volume Discount
                     </Badge>
                   )}
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-right">
                   {product.pricePerBox && product.boxSize ? (
                     <div className="flex items-center justify-end gap-1">
@@ -260,7 +260,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     <span className="text-sm text-muted-foreground">N/A</span>
                   )}
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                   {product.expiryDate ? (
                     <div className="flex items-center gap-1">
                       <Calendar className="h-3 w-3 text-muted-foreground" />
@@ -288,7 +288,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                       Expired
                     </Badge>
                   )}
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-right text-muted-foreground">
                   {new Date(product.lastUpdated).toLocaleDateString()}
                 </TableCell>
@@ -297,7 +297,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   className="text-right text-muted-foreground cursor-pointer underline text-blue-800"
                 >
                   {/* {product?.totalOrder} */}
-                  Tap To Check
+                 Total
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">

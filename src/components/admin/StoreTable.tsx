@@ -1,6 +1,6 @@
 "use client"
 
-import { Pencil, Trash2, ExternalLink } from "lucide-react"
+import { Pencil, Trash2, ExternalLink } from 'lucide-react'
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
 import { userWithOrderDetails } from "@/services2/operations/auth"
@@ -44,7 +44,7 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
   }
 
   return (
-    <div className="p-4 overflow-x-auto">
+    <div className="p-4 overflow-x-auto bg-white rounded-lg shadow-sm">
       <h2 className="text-xl font-bold mb-4">Store List</h2>
       {loading ? (
         <div className="flex justify-center items-center h-40">
