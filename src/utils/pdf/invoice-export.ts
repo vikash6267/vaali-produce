@@ -166,7 +166,8 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
     fillColor: [245, 245, 245],
     textColor: [70, 70, 70],
     fontStyle: 'bold' as 'bold',
-    lineWidth: 0.1,
+       lineWidth: 0.4,          
+  lineColor: [50, 50, 50],  
     fontSize: 8 // Smaller font size for table headers
   };
 
@@ -185,7 +186,8 @@ doc.text(`Phone: ${order?.shippingAddress?.phone  || 'N/A'}`, shipToX, shipToY +
     margin: { left: MARGIN, right: MARGIN },
     headStyles: headerStyles,
     bodyStyles: {
-      lineWidth: 0.1,
+      lineWidth: 0.4,          
+  lineColor: [50, 50, 50],  
       fontSize: 10, // Smaller font size for table body
       fontStyle: 'bold' // Make body text bold
     },

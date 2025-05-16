@@ -245,7 +245,12 @@ export const generateStatementPDF = async (data: StatementData) => {
         fillColor: [41, 98, 255],
         textColor: [255, 255, 255],
         fontStyle: "bold",
-      },
+      },  bodyStyles: {
+      lineWidth: 0.4,          
+  lineColor: [50, 50, 50],  
+      fontSize: 10, // Smaller font size for table body
+      fontStyle: 'bold' // Make body text bold
+    },
       columnStyles: {
         4: { halign: "right" },
         5: { halign: "right" },

@@ -268,11 +268,13 @@ export const exportWorkOrderToPDF = (order, options, isPreview = false) => {
       fontSize: 8,
     },
     bodyStyles: {
-      lineWidth: 0.1,
+         lineWidth: 0.4,          
+  lineColor: [50, 50, 50], 
       textColor: [0, 0, 0],
       fontSize: 8,
       fontStyle: "bold",
     },
+    
     columnStyles: columnStyles, // ← dynamically calculated
     alternateRowStyles: {
       fillColor: [250, 250, 250],

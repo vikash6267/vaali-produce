@@ -119,6 +119,12 @@ export default function OrderPdfDownload({ orders }: { orders: Order[] }) {
       head: [["Product ID", "Product Name", "Quantity", "Unit Price", "Total Price", "Pricing Type"]],
       body: tableData,
       startY: 40,
+        bodyStyles: {
+      lineWidth: 0.4,          
+  lineColor: [50, 50, 50],  
+      fontSize: 10, // Smaller font size for table body
+      fontStyle: 'bold' // Make body text bold
+    },
       foot: [["", "", "", "Grand Total:", `$${totalValue.toFixed(2)}`, ""]],
       theme: "striped",
       headStyles: { fillColor: [66, 66, 66] },
