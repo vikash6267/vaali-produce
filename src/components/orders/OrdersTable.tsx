@@ -97,6 +97,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize, setPageSize] = useState(50)
+  const [paymentFilter, setPaymentFilter] = useState("all")
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
   const [totalOrders, setTotalOrders] = useState(0)
@@ -125,6 +126,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       const params = new URLSearchParams()
       params.append("page", currentPage.toString())
       params.append("limit", pageSize.toString())
+      params.append("paymentStatus", paymentFilter.toString())
 
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery)
@@ -166,7 +168,7 @@ console.log(response)
   // Fetch orders when page, pageSize, search query or tab changes
   useEffect(() => {
     fetchOrders()
-  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token])
+  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token,paymentFilter])
 
   useEffect(() => {
     if (!open) {
@@ -566,6 +568,17 @@ const renderPaginationItems = () => {
         </div>
 
         <div className="flex gap-2">
+  <select 
+    value={paymentFilter} 
+    onChange={(e) => setPaymentFilter(e.target.value)}
+    className="h-10 px-3 rounded-md border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+  >
+    <option value="all">All Orders</option>
+    <option value="paid">Paid</option>
+    <option value="partial">Partial</option>
+    <option value="pending">Unpaid</option>
+  </select>
+
           <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders} disabled={loading}>
             {loading ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}
             Refresh

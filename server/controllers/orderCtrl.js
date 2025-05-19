@@ -139,6 +139,7 @@ const getAllOrderCtrl = async (req, res) => {
     const user = req.user;
     const search = req.query.search || "";
     const orderType = req.query.orderType || "";
+    const paymentStatus = req.query.paymentStatus || "";
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
     const skip = (page - 1) * limit;
@@ -148,6 +149,10 @@ const getAllOrderCtrl = async (req, res) => {
     // Filter by user role
     if (user.role === "store" || user.role === "member") {
       matchStage.store = mongoose.Types.ObjectId(user.id);
+    }
+    console.log(paymentStatus)
+    if(paymentStatus !== "all"){
+      matchStage.paymentStatus = paymentStatus
     }
 
     // Filter by order type
@@ -483,7 +488,9 @@ const updatePaymentDetails = async (req, res) => {
         method,
         ...(method === "creditcard" ? { transactionId } : {}),
         ...(method === "cash" ? { notes } : {}),
-        ...(method === "cheque" ? { notes } : {})
+        ...(method === "cheque" ? { notes } : {}),
+              paymentDate: new Date(),  // Yaha backend me hi current date daal do
+
       };
   
       const updatedOrder = await orderModel.findByIdAndUpdate(
@@ -849,17 +856,47 @@ const getDashboardData = async (req, res) => {
     // Total Stores
     const totalStores = await authModel.countDocuments({ role: "store" });
 
-    // Total Payment and Pending Payment
-    const paymentData = await orderModel.aggregate([
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: "$total" },
-          totalReceived: { $sum: { $cond: [{ $eq: ["$paymentStatus", "paid"] }, "$total", 0] } },
-          totalPending: { $sum: { $cond: [{ $eq: ["$paymentStatus", "pending"] }, "$total", 0] } }
-        }
-      }
-    ]);
+    // Total Payment and Pending Payment (including partial payments)
+const paymentData = await orderModel.aggregate([
+  {
+    $project: {
+      total: 1,
+      paymentStatus: 1,
+      paymentAmount: { $toDouble: { $ifNull: ["$paymentAmount", "0"] } },
+    },
+  },
+  {
+    $group: {
+      _id: null,
+      totalAmount: { $sum: "$total" },
+      totalReceived: {
+        $sum: {
+          $cond: [
+            { $eq: ["$paymentStatus", "paid"] },
+            "$total", // fully paid orders
+            {
+              $cond: [
+                { $eq: ["$paymentStatus", "partial"] },
+                "$paymentAmount", // partial payment amount
+                0,
+              ],
+            },
+          ],
+        },
+      },
+    },
+  },
+  {
+    $project: {
+      totalAmount: 1,
+      totalReceived: 1,
+      totalPending: { $subtract: ["$totalAmount", "$totalReceived"] },
+    },
+  },
+]);
+
+
+
 
     const totalAmount = paymentData[0]?.totalAmount || 0;
     const totalReceived = paymentData[0]?.totalReceived || 0;
@@ -911,6 +948,7 @@ const getDashboardData = async (req, res) => {
       }
     });
   } catch (error) {
+    console.log(error)
     res.status(500).json({
       success: false,
       message: "Error fetching dashboard data",
@@ -918,6 +956,13 @@ const getDashboardData = async (req, res) => {
     });
   }
 };
+
+
+
+
+
+
+
 
 const getPendingOrders = async (req, res) => {
   try {

@@ -40,7 +40,7 @@ const palletDataSchema = new mongoose.Schema({
 const paymentDetailsSchema = new mongoose.Schema({
   method: {
     type: String,
-    enum: ["cash", "creditcard","cheque"],
+    enum: ["cash", "creditcard", "cheque"],
     required: true,
   },
   transactionId: {
@@ -52,10 +52,15 @@ const paymentDetailsSchema = new mongoose.Schema({
   notes: {
     type: String,
     required: function () {
-      return this.method === "cash";
+      return this.method === "cash" || this.method === "cheque";
     }
+  },
+  paymentDate: {
+    type: Date,
+   
   }
 }, { _id: false });
+
 
 const orderSchema = new mongoose.Schema(
   {

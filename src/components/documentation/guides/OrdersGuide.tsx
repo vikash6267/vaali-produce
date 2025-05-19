@@ -12,7 +12,6 @@ import {
 const OrdersGuide = () => {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Order Management</h2>
       <p className="text-muted-foreground">
         The Order Management system allows you to create, track, and fulfill customer orders efficiently.
         It includes various tools for order processing, shipment tracking, and delivery optimization.
