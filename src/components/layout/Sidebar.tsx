@@ -16,6 +16,7 @@ import {
   Store,
   Settings,
   User2Icon,
+  LucideLayoutDashboard,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
@@ -27,6 +28,11 @@ interface SidebarProps {
 
 // Define navigation items for each role
 const adminNavigation = [
+  {
+    name: "Dashboard",
+    path: "/admin/dashboard",
+    icon: <LucideLayoutDashboard size={18} />,
+  },
   {
     name: "Inventory",
     path: "/admin/inventory",

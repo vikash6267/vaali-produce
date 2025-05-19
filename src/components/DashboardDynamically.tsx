@@ -8,6 +8,9 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Progress } from "@/components/ui/progress"
 import {getDashboardData,getPendingData} from "@/services2/operations/order"
 import { CSVLink } from 'react-csv';
+import { useToast } from "@/hooks/use-toast"
+import { userWithOrderDetails } from "@/services2/operations/auth"
+import UserDetailsModal from "./admin/user-details-modal"
 
 
 
@@ -16,7 +19,11 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [pendingData, setPendingData] = useState(null);
   const [pendingLoading, setPendingLoading] = useState(false);
-
+  const { toast } = useToast()
+const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
+  const [selectedUserData, setSelectedUserData] = useState(null)
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+ 
   useEffect(() => {
     // In a real application, you would fetch this data from your API
     const fetchDashboardData = async () => {
@@ -59,6 +66,22 @@ export default function DashboardPage() {
       setPendingLoading(false);
     }
   };
+
+
+   const fetchUserDetailsOrder = async (id: any) => {
+    try {
+      const res = await userWithOrderDetails(id)
+      console.log(res)
+      setSelectedUserData(res)
+      setUserDetailsOpen(true)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch user details",
+        variant: "destructive",
+      })
+    }
+  }
 
  const pendingHeaders = pendingData && pendingData.length > 0
     ? Object.keys(pendingData[0]).map((key) => ({ label: key, key: key }))
@@ -258,11 +281,16 @@ export default function DashboardPage() {
                             <div className="font-medium">{user.name}</div>
                             <div className="text-xs text-muted-foreground md:hidden truncate max-w-[180px]">
                               {user.email.toLowerCase()}
+                              
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground">
+                      <TableCell className="hidden md:table-cell text-muted-foreground"
+                      
+                       onClick={() => fetchUserDetailsOrder(user?.id || user?._id)}
+                      className="px-6 py-4 cursor-pointer flex items-center gap-1 text-primary hover:underline"
+                      >
                         {user.email.toLowerCase()}
                       </TableCell>
                       <TableCell className="text-right">{user.orderCount}</TableCell>
@@ -279,7 +307,16 @@ export default function DashboardPage() {
               </TableBody>
             </Table>
           </CardContent>
+
+
         </Card>
+
+         <UserDetailsModal
+        isOpen={userDetailsOpen}
+        onClose={() => setUserDetailsOpen(false)}
+        userData={selectedUserData}
+        fetchUserDetailsOrder={fetchUserDetailsOrder}
+      />
       </div>
     </div>
   )

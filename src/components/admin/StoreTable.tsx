@@ -9,9 +9,9 @@ import StoreEditModal from "./EditStoreModal"
 
 const StoreTable = ({ loading, groups, fetchStores }: any) => {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
+  const [selectedUserData, setSelectedUserData] = useState(null)
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
-  const [selectedUserData, setSelectedUserData] = useState(null)
   const { toast } = useToast()
 
   const handleEdit = async (group) => {
