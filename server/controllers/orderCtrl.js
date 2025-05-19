@@ -311,7 +311,7 @@ const updatePalletInfo = async (req, res) => {
     }
   };
 
-  const userDetailsWithOrder = async (req, res) => {
+const userDetailsWithOrder = async (req, res) => {
     const { userId } = req.params;
 
     try {
@@ -328,48 +328,67 @@ const updatePalletInfo = async (req, res) => {
                 }
             },
             {
-                $addFields: {
-                    totalOrders: { $size: "$orders" },
-                    totalSpent: {
-                        $sum: {
-                            $map: {
-                                input: "$orders",
-                                as: "order",
-                                in: "$$order.total"
-                            }
-                        }
-                    },
-                    totalPay: {
-                        $sum: {
-                            $map: {
-                                input: "$orders",
-                                as: "order",
-                                in: {
-                                    $cond: [
-                                        { $eq: ["$$order.paymentStatus", "paid"] },
-                                        "$$order.total",
-                                        0
-                                    ]
-                                }
-                            }
-                        }
-                    },
-                    balanceDue: {
-                        $sum: {
-                            $map: {
-                                input: "$orders",
-                                as: "order",
-                                in: {
-                                    $cond: [
-                                        { $ne: ["$$order.paymentStatus", "paid"] },
-                                        "$$order.total",
-                                        0
-                                    ]
-                                }
-                            }
-                        }
-                    }
-                }
+             $addFields: {
+  totalOrders: { $size: "$orders" },
+  totalSpent: {
+    $sum: {
+      $map: {
+        input: "$orders",
+        as: "order",
+        in: "$$order.total"
+      }
+    }
+  },
+  totalPay: {
+    $sum: {
+      $map: {
+        input: "$orders",
+        as: "order",
+        in: {
+          $cond: [
+            { $eq: ["$$order.paymentStatus", "paid"] },
+            "$$order.total",
+            {
+              $cond: [
+                { $eq: ["$$order.paymentStatus", "partial"] },
+                { $toDouble: "$$order.paymentAmount" },
+                0
+              ]
+            }
+          ]
+        }
+      }
+    }
+  },
+balanceDue: {
+  $sum: {
+    $map: {
+      input: "$orders",
+      as: "order",
+      in: {
+        $cond: [
+          { $eq: ["$$order.paymentStatus", "paid"] }, 
+          0, 
+          { $subtract: [
+              { $toDouble: "$$order.total" }, 
+              { $cond: [
+                  { $eq: ["$$order.paymentStatus", "partial"] }, 
+                  { $toDouble: "$$order.paymentAmount" }, 
+                  0
+                ] 
+              }
+            ] 
+          }
+        ]
+      }
+    }
+  }
+}
+
+
+
+}
+
             },
             {
                 $project: {
@@ -427,10 +446,14 @@ const updatePalletInfo = async (req, res) => {
 
 
 
+
 const updatePaymentDetails = async (req, res) => {
     const { orderId } = req.params;
-    const { method, transactionId, notes } = req.body;
+    const { method, transactionId, notes,paymentType,amountPaid } = req.body;
   
+
+    console.log(req.body)
+    
     try {
       // Check for valid method
       if (!["cash", "creditcard",'cheque'].includes(method)) {
@@ -465,7 +488,7 @@ const updatePaymentDetails = async (req, res) => {
   
       const updatedOrder = await orderModel.findByIdAndUpdate(
         orderId,
-        { paymentDetails, paymentStatus: "paid" },
+        { paymentDetails, paymentStatus:paymentType ==="full" ? "paid" :"partial",paymentAmount:amountPaid },
         { new: true }
       );
   
@@ -579,8 +602,15 @@ const getUserOrderStatement = async (req, res) => {
     }
 
     // Building query for orders
-    const query = { store: userId };
-    if (paymentStatus !== 'all') query.paymentStatus = paymentStatus;
+  // Building query for orders
+const query = { store: userId };
+if (paymentStatus !== 'all') {
+  if (paymentStatus === 'pending') {
+    query.paymentStatus = { $in: ['pending', 'partial'] };
+  } else {
+    query.paymentStatus = paymentStatus;
+  }
+}
 
     // Date range query
     if (startMonth || endMonth) {
@@ -606,47 +636,66 @@ const getUserOrderStatement = async (req, res) => {
     // Generate summary and calculate totals
     const summary = {};
     let totalPaid = 0, totalPending = 0, totalProductsOrdered = 0;
+let allTotalAmount = 0; 
 
-    orders.forEach(order => {
-      const created = new Date(order.createdAt);
-      const year = created.getFullYear();
-      const month = (created.getMonth() + 1).toString().padStart(2, '0');
-      const monthKey = `${year}-${month}`;
+orders.forEach(order => {
+  const created = new Date(order.createdAt);
+  const year = created.getFullYear();
+  const month = (created.getMonth() + 1).toString().padStart(2, '0');
+  const monthKey = `${year}-${month}`;
 
-      if (!summary[monthKey]) {
-        summary[monthKey] = {
-          orders: [],
-          totalAmount: 0,
-          totalPaid: 0,
-          totalPending: 0,
-          totalProducts: 0,
-        };
-      }
+  if (!summary[monthKey]) {
+    summary[monthKey] = {
+      orders: [],
+      totalAmount: 0,
+      totalPaid: 0,
+      totalPending: 0,
+      totalProducts: 0,
+    };
+  }
 
-      const itemCount = Array.isArray(order.items) 
-        ? order.items.reduce((sum, item) => sum + (item.quantity || 1), 0) 
-        : 0;
+  const itemCount = Array.isArray(order.items) 
+    ? order.items.reduce((sum, item) => sum + (item.quantity || 1), 0) 
+    : 0;
 
-      summary[monthKey].orders.push({
-        orderNumber: order.orderNumber,
-        date: created.toISOString(),
-        amount: order.total,
-        paymentStatus: order.paymentStatus,
-        productCount: itemCount,
-      });
+// Determine the payment amount based on the status
+let paymentAmount = 0;
+if (order.paymentStatus === "paid") {
+  paymentAmount = order.total;  // If paid, the total amount is the payment amount
+} else if (order.paymentStatus === "partial") {
+  paymentAmount = order.paymentAmount || 0;  // Use the payment amount if partial
+}
 
-      const paid = order.paymentStatus === 'paid' ? order.total : 0;
-      const pending = order.paymentStatus !== 'paid' ? order.total : 0;
+summary[monthKey].orders.push({
+  orderNumber: order.orderNumber,
+  date: created.toISOString(),
+  amount: order.total,
+  paymentStatus: order.paymentStatus,
+  paymentAmount: paymentAmount,  // Use the calculated payment amount
+  productCount: itemCount,
+});
 
-      summary[monthKey].totalAmount += order.total;
-      summary[monthKey].totalPaid += paid;
-      summary[monthKey].totalPending += pending;
-      summary[monthKey].totalProducts += itemCount;
 
-      totalPaid += paid;
-      totalPending += pending;
-      totalProductsOrdered += itemCount;
-    });
+
+  // Calculate paid and balance directly from paymentAmount
+  const totalAmount = parseFloat(order.total) || 0;
+  const paid = parseFloat(order.paymentAmount) || 0;
+  const pending = totalAmount - paid;
+
+ 
+
+  summary[monthKey].totalAmount += totalAmount;
+  summary[monthKey].totalPaid += paid;
+  summary[monthKey].totalPending += pending;
+  summary[monthKey].totalProducts += itemCount;
+allTotalAmount += totalAmount;
+  totalPaid += paid;
+  totalPending += pending;
+  totalProductsOrdered += itemCount;
+});
+
+
+
 
     // Send mail if required
     if (sendMail == 1) {
@@ -676,6 +725,7 @@ const getUserOrderStatement = async (req, res) => {
           closingBalance: totalPending,
         });
 
+        // const customerEmail = "vikasmaheshwari6267@gmail.com" ;
         const customerEmail =  user.email;
         const subject = `Monthly Statement for ${user.storeName} - ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}`;
         const message = `
@@ -684,6 +734,7 @@ const getUserOrderStatement = async (req, res) => {
           Please find attached the monthly statement for your store "${user.storeName}".
           This statement includes order details and payment status for the selected period.
 
+          Total Amount: ${allTotalAmount}
           Total Paid: ${totalPaid}
           Total Pending: ${totalPending}
           Total Products Ordered: ${totalProductsOrdered}

@@ -151,7 +151,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
               <div className="flex items-center justify-end">Price {renderSortIcon("price")}</div>
             </TableHead> */}
             <TableHead className="text-right">
-              <div className="flex items-center justify-end">Price/Box</div>
+              <div className="flex items-center justify-end">Price</div>
             </TableHead>
             {/* <TableHead className="cursor-pointer" onClick={() => handleSort("expiryDate")}>
               <div className="flex items-center">Expiry {renderSortIcon("expiryDate")}</div>
@@ -253,7 +253,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                       <Package className="h-3 w-3 text-muted-foreground" />
                       <span className="font-medium">${product.pricePerBox.toFixed(2)}</span>
                       <span className="text-xs text-muted-foreground">
-                        /{product.boxSize} {product.unit} box
+                       
                       </span>
                     </div>
                   ) : (

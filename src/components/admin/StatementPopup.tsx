@@ -57,6 +57,7 @@ const handleDownload = async (sendMail: boolean = false) => {
     }
 
     const response = await getStatement(url, token)
+    console.log(response)
     if (response) {
       await generateStatementPDF(response)
       onClose()

@@ -146,40 +146,45 @@ export const generateStatementPDF = async (data: StatementData) => {
         amount15to21 = 0,
         amount22to28 = 0,
         amount29plus = 0
-      let balanceDue = 0
+
+      // Calculate appliedAmount and balanceDue correctly
+      let balanceDue = order.amount
       let appliedAmount = "$0.00"
 
-      if (order.paymentStatus === "pending") {
-        balanceDue = order.amount
-      } else if (order.paymentStatus === "paid") {
+      if (order.paymentStatus === "paid") {
         appliedAmount = `$${order.amount.toFixed(2)}`
         balanceDue = 0
-      }
-
-      if (daysPastDue <= 7) {
-        amount0to7 = order.amount
-        total0to7 += order.amount
-      } else if (daysPastDue <= 14) {
-        amount8to14 = order.amount
-        total8to14 += order.amount
-      } else if (daysPastDue <= 21) {
-        amount15to21 = order.amount
-        total15to21 += order.amount
-      } else if (daysPastDue <= 28) {
-        amount22to28 = order.amount
-        total22to28 += order.amount
-      } else {
-        amount29plus = order.amount
-        total29plus += order.amount
-      }
-
-      totalAmount += order.amount
-      totalOriginalAmount += order.amount
-      if (order.paymentStatus === "paid") {
-        totalAppliedAmount += order.amount
+      } else if (order.paymentStatus === "partial") {
+        const paidAmount = Number(order.paymentAmount || 0)
+        appliedAmount = `$${paidAmount.toFixed(2)}`
+        balanceDue = order.amount - paidAmount
       } else if (order.paymentStatus === "pending") {
-        totalBalanceDue += order.amount
+        appliedAmount = "$0.00"
+        balanceDue = order.amount
       }
+
+      // Use balanceDue for aging buckets, not order.amount
+      if (daysPastDue <= 7) {
+        amount0to7 = balanceDue
+        total0to7 += balanceDue
+      } else if (daysPastDue <= 14) {
+        amount8to14 = balanceDue
+        total8to14 += balanceDue
+      } else if (daysPastDue <= 21) {
+        amount15to21 = balanceDue
+        total15to21 += balanceDue
+      } else if (daysPastDue <= 28) {
+        amount22to28 = balanceDue
+        total22to28 += balanceDue
+      } else {
+        amount29plus = balanceDue
+        total29plus += balanceDue
+      }
+
+      totalAmount += balanceDue          // total outstanding balance
+      totalOriginalAmount += order.amount // original sum of all orders
+      totalAppliedAmount += order.amount - balanceDue // sum of paid amounts
+      totalBalanceDue += balanceDue        // sum of outstanding balances
 
       tableData.push([
         format(orderDate, "MM/dd/yyyy"),
@@ -197,6 +202,7 @@ export const generateStatementPDF = async (data: StatementData) => {
         `$${amount29plus.toFixed(2)}`,
       ])
     })
+
 
     tableData.push(
       [
@@ -231,6 +237,7 @@ export const generateStatementPDF = async (data: StatementData) => {
       ],
     )
 
+
     autoTable(doc, {
       startY: MARGIN + 35,
       margin: { left: MARGIN, right: MARGIN },
@@ -245,12 +252,12 @@ export const generateStatementPDF = async (data: StatementData) => {
         fillColor: [41, 98, 255],
         textColor: [255, 255, 255],
         fontStyle: "bold",
-      },  bodyStyles: {
-      lineWidth: 0.4,          
-  lineColor: [50, 50, 50],  
-      fontSize: 10, // Smaller font size for table body
-      fontStyle: 'bold' // Make body text bold
-    },
+      }, bodyStyles: {
+        lineWidth: 0.4,
+        lineColor: [50, 50, 50],
+        fontSize: 10, // Smaller font size for table body
+        fontStyle: 'bold' // Make body text bold
+      },
       columnStyles: {
         4: { halign: "right" },
         5: { halign: "right" },

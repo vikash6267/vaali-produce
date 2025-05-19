@@ -134,7 +134,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       // Make API call with query parameters
       const response = await getAllOrderAPI(token, params.toString())
-
+console.log(response)
       if (response && Array.isArray(response.orders)) {
         setOrders(
           response.orders.map((order) => ({

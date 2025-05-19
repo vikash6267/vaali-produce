@@ -54,7 +54,10 @@ export interface Store {
 export interface PaymentDetails {
   method?: 'cash' | 'creditcard' | 'cheque';
   transactionId?: string;  // Only required if payment method is 'creditcard'
-  notes?: string;  // Only required if payment method is 'cash'
+  notes?: string;  
+  paymentType?:  "full" | "partial";  
+   
+  amountPaid?: number;  
 }
 
 export interface Order {
@@ -72,9 +75,10 @@ export interface Order {
   shippingAddress?: Address;
   billingAddress?: Address;
   paymentMethod?:  string;
-  paymentStatus: 'paid' | 'pending' | 'failed';
+  paymentStatus: 'paid' | 'pending' | 'failed' | "partial";
   subtotal: number;
   tax?: number;
+  paymentAmount?: number;
   shipping?: number;
   discount?: number;
   shippinCost?: number;

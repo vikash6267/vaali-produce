@@ -83,6 +83,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       default: "pending",
     },
+    paymentAmount:{
+      type: String,
+      default: 0,
+    },
     orderType:{
       type: String,
       default: "Regural",
