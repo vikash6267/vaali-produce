@@ -718,7 +718,16 @@ const renderPaginationItems = () => {
                     </div>
                   </TableCell>
                   <TableCell>{order.items.length} items</TableCell>
-                  <TableCell className="font-medium">{formatCurrency(order.total)}</TableCell>
+                  <TableCell className="font-medium">{formatCurrency(order.total)} 
+{
+  order.paymentStatus === "partial" && 
+  <p>
+    {formatCurrency(order.paymentAmount - order.total)}
+  </p>
+}
+
+
+                  </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
