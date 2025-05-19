@@ -286,7 +286,8 @@ const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="hidden md:table-cell text-muted-foreground"
+                      <TableCell 
+                      
                       
                        onClick={() => fetchUserDetailsOrder(user?.id || user?._id)}
                       className="px-6 py-4 cursor-pointer flex items-center gap-1 text-primary hover:underline"
