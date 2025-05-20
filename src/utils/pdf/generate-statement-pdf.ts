@@ -292,7 +292,7 @@ export const generateStatementPDF = async (data: StatementData) => {
 
     doc.setFontSize(9)
     doc.setFont("helvetica", "normal")
-    doc.text("Pay by Email: Send copy of check to accounting@valiproduce.shop", boxLeft + 4, boxTop + 16)
+    doc.text("Pay by Email: Send copy of cheque to order@valiproduce.shop", boxLeft + 4, boxTop + 16)
     doc.text("ACH: , Routing: 063114030, Account: 8010002074700", boxLeft + 4, boxTop + 24)
     doc.text("Bank: SouthState Bank", boxLeft + 4, boxTop + 32)
 
