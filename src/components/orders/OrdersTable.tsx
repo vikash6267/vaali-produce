@@ -345,10 +345,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     setLoading(true)
     try {
       // Fetch all orders for the selected type without pagination
-      const params = new URLSearchParams()
-      params.append("orderType", type)
-      params.append("limit", "1000") // Get a large number of orders
+        const params = new URLSearchParams()
+      params.append("page", currentPage.toString())
+      params.append("limit", pageSize.toString())
+      params.append("paymentStatus", paymentFilter.toString())
 
+      if (debouncedSearchQuery) {
+        params.append("search", debouncedSearchQuery)
+      }
+
+      params.append("orderType", activeTab)
       const response = await getAllOrderAPI(token, params.toString())
 
       if (!response || !Array.isArray(response.orders) || response.orders.length === 0) {
