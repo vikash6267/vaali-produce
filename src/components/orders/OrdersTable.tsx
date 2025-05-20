@@ -51,7 +51,7 @@ import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import WorkOrderForm from "./WorkOrder"
 import { PaymentStatusPopup } from "./PaymentUpdateModel"
-import { deleteOrderAPI, getAllOrderAPI } from "@/services2/operations/order"
+import { deleteOrderAPI, getAllOrderAPI, updateOrderAPI } from "@/services2/operations/order"
 import Swal from "sweetalert2"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -109,6 +109,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [orderIdDB, setOrderIdDB] = useState("")
   const [totalAmount, setTotalAmount] = useState(0)
 
+  const [statusOpen, setStatusOpen] = useState(false)
+  const [statusOrderId, setStatusOrderId] = useState("")
+  const [statusOrder, setStatusOrder] = useState<Order | null>(null)
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -136,7 +140,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
       // Make API call with query parameters
       const response = await getAllOrderAPI(token, params.toString())
-console.log(response)
+      console.log(response)
       if (response && Array.isArray(response.orders)) {
         setOrders(
           response.orders.map((order) => ({
@@ -168,7 +172,7 @@ console.log(response)
   // Fetch orders when page, pageSize, search query or tab changes
   useEffect(() => {
     fetchOrders()
-  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token,paymentFilter])
+  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter])
 
   useEffect(() => {
     if (!open) {
@@ -467,92 +471,82 @@ console.log(response)
   }
 
   // Generate pagination items
-const renderPaginationItems = () => {
-  const items = [];
+  const renderPaginationItems = () => {
+    const items = []
 
-  // Always show first page
-  items.push(
-    <PaginationItem key="first">
-      <PaginationLink
-        onClick={() => setCurrentPage(1)}
-        isActive={currentPage === 1}
-        className={cn(
-          "px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer",
-          currentPage === 1
-            ? "bg-primary text-white shadow"
-            : "text-muted-foreground hover:bg-muted"
-        )}
-      >
-        1
-      </PaginationLink>
-    </PaginationItem>
-  );
-
-  // Show ellipsis if needed (before current range)
-  if (currentPage > 3) {
+    // Always show first page
     items.push(
-      <PaginationItem key="ellipsis-1">
-        <PaginationEllipsis />
-      </PaginationItem>
-    );
-  }
-
-  // Show surrounding pages: currentPage - 1 to currentPage + 1
-  for (
-    let i = Math.max(2, currentPage - 1);
-    i <= Math.min(totalPages - 1, currentPage + 1);
-    i++
-  ) {
-    if (i === 1 || i === totalPages) continue; // Already rendered
-    items.push(
-      <PaginationItem key={i}>
+      <PaginationItem key="first">
         <PaginationLink
-          onClick={() => setCurrentPage(i)}
-          isActive={currentPage === i}
-          className={cn(
-            "px-3 py-1.5 text-sm rounded-md transition-colors",
-            currentPage === i
-              ? "bg-primary text-white shadow"
-              : "text-muted-foreground hover:bg-muted"
-          )}
-        >
-          {i}
-        </PaginationLink>
-      </PaginationItem>
-    );
-  }
-
-  // Show ellipsis if needed (after current range)
-  if (currentPage < totalPages - 2) {
-    items.push(
-      <PaginationItem key="ellipsis-2">
-        <PaginationEllipsis />
-      </PaginationItem>
-    );
-  }
-
-  // Always show last page (if more than one page)
-  if (totalPages > 1) {
-    items.push(
-      <PaginationItem key="last">
-        <PaginationLink
-          onClick={() => setCurrentPage(totalPages)}
-          isActive={currentPage === totalPages}
+          onClick={() => setCurrentPage(1)}
+          isActive={currentPage === 1}
           className={cn(
             "px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer",
-            currentPage === totalPages
-              ? "bg-primary text-white shadow"
-              : "text-muted-foreground hover:bg-muted"
+            currentPage === 1 ? "bg-primary text-white shadow" : "text-muted-foreground hover:bg-muted",
           )}
         >
-          {totalPages}
+          1
         </PaginationLink>
-      </PaginationItem>
-    );
-  }
+      </PaginationItem>,
+    )
 
-  return items;
-};
+    // Show ellipsis if needed (before current range)
+    if (currentPage > 3) {
+      items.push(
+        <PaginationItem key="ellipsis-1">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Show surrounding pages: currentPage - 1 to currentPage + 1
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+      if (i === 1 || i === totalPages) continue // Already rendered
+      items.push(
+        <PaginationItem key={i}>
+          <PaginationLink
+            onClick={() => setCurrentPage(i)}
+            isActive={currentPage === i}
+            className={cn(
+              "px-3 py-1.5 text-sm rounded-md transition-colors",
+              currentPage === i ? "bg-primary text-white shadow" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {i}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    // Show ellipsis if needed (after current range)
+    if (currentPage < totalPages - 2) {
+      items.push(
+        <PaginationItem key="ellipsis-2">
+          <PaginationEllipsis />
+        </PaginationItem>,
+      )
+    }
+
+    // Always show last page (if more than one page)
+    if (totalPages > 1) {
+      items.push(
+        <PaginationItem key="last">
+          <PaginationLink
+            onClick={() => setCurrentPage(totalPages)}
+            isActive={currentPage === totalPages}
+            className={cn(
+              "px-3 py-1.5 text-sm rounded-md transition-colors cursor-pointer",
+              currentPage === totalPages ? "bg-primary text-white shadow" : "text-muted-foreground hover:bg-muted",
+            )}
+          >
+            {totalPages}
+          </PaginationLink>
+        </PaginationItem>,
+      )
+    }
+
+    return items
+  }
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -568,16 +562,16 @@ const renderPaginationItems = () => {
         </div>
 
         <div className="flex gap-2">
-  <select 
-    value={paymentFilter} 
-    onChange={(e) => setPaymentFilter(e.target.value)}
-    className="h-10 px-3 rounded-md border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-  >
-    <option value="all">All Orders</option>
-    <option value="paid">Paid</option>
-    <option value="partial">Partial</option>
-    <option value="pending">Unpaid</option>
-  </select>
+          <select
+            value={paymentFilter}
+            onChange={(e) => setPaymentFilter(e.target.value)}
+            className="h-10 px-3 rounded-md border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="all">All Orders</option>
+            <option value="paid">Paid</option>
+            <option value="partial">Partial</option>
+            <option value="pending">Unpaid</option>
+          </select>
 
           <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders} disabled={loading}>
             {loading ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}
@@ -684,14 +678,28 @@ const renderPaginationItems = () => {
                   </TableCell>
                   <TableCell>{formatDate(order.date)}</TableCell>
                   <TableCell>
-                    <div
-                      className={cn(
-                        "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
-                        getStatusClass(order.status),
-                      )}
-                    >
-                      {getStatusIcon(order.status)}
-                      <span className="capitalize">{order.status}</span>
+                    <div className="flex flex-col items-start gap-1">
+                      <div
+                        className={cn(
+                          "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
+                          getStatusClass(order.status),
+                        )}
+                      >
+                        {getStatusIcon(order.status)}
+                        <span className="capitalize">{order.status}</span>
+                      </div>
+
+                     {order.status !== "delivered" && <button
+                        onClick={() => {
+                          setStatusOrderId(order.orderNumber)
+                          setStatusOpen(true)
+                          setStatusOrder(order)
+                          setOrderIdDB(order?._id || order?.id)
+                        }}
+                        className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                      >
+                        Change Status
+                      </button>}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -731,15 +739,9 @@ const renderPaginationItems = () => {
                     </div>
                   </TableCell>
                   <TableCell>{order.items.length} items</TableCell>
-                  <TableCell className="font-medium">{formatCurrency(order.total)} 
-{
-  order.paymentStatus === "partial" && 
-  <p>
-    {formatCurrency(order.paymentAmount - order.total)}
-  </p>
-}
-
-
+                  <TableCell className="font-medium">
+                    {formatCurrency(order.total)}
+                    {order.paymentStatus === "partial" && <p>{formatCurrency(order.paymentAmount - order.total)}</p>}
                   </TableCell>
                   <TableCell className="text-right">
                     <DropdownMenu>
@@ -822,70 +824,65 @@ const renderPaginationItems = () => {
       </div>
 
       {/* Pagination */}
-  <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2 bg-white rounded-xl shadow-sm border border-muted">
-  {/* Showing Results Text */}
-  <div className="text-sm text-muted-foreground">
-    Showing{" "}
-    <span className="font-medium text-foreground">
-      {orders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}
-    </span>{" "}
-    to{" "}
-    <span className="font-medium text-foreground">
-      {Math.min(currentPage * pageSize, totalOrders)}
-    </span>{" "}
-    of{" "}
-    <span className="font-medium text-foreground">{totalOrders}</span> orders
-  </div>
+      <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2 bg-white rounded-xl shadow-sm border border-muted">
+        {/* Showing Results Text */}
+        <div className="text-sm text-muted-foreground">
+          Showing{" "}
+          <span className="font-medium text-foreground">
+            {orders.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}
+          </span>{" "}
+          to <span className="font-medium text-foreground">{Math.min(currentPage * pageSize, totalOrders)}</span> of{" "}
+          <span className="font-medium text-foreground">{totalOrders}</span> orders
+        </div>
 
-  {/* Pagination Controls */}
-  <div className="flex items-center flex-wrap gap-4">
-    {/* Page Size Selector */}
-    <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground">Rows per page:</span>
-      <Select
-        value={pageSize.toString()}
-        onValueChange={(value) => {
-          setPageSize(Number(value));
-          setCurrentPage(1);
-        }}
-      >
-        <SelectTrigger className="w-[90px]">
-          <SelectValue placeholder="Per page" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="10">10</SelectItem>
-          <SelectItem value="25">25</SelectItem>
-          <SelectItem value="50">50</SelectItem>
-          <SelectItem value="100">100</SelectItem>
-        </SelectContent>
-      </Select>
-    </div>
+        {/* Pagination Controls */}
+        <div className="flex items-center flex-wrap gap-4">
+          {/* Page Size Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Rows per page:</span>
+            <Select
+              value={pageSize.toString()}
+              onValueChange={(value) => {
+                setPageSize(Number(value))
+                setCurrentPage(1)
+              }}
+            >
+              <SelectTrigger className="w-[90px]">
+                <SelectValue placeholder="Per page" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10</SelectItem>
+                <SelectItem value="25">25</SelectItem>
+                <SelectItem value="50">50</SelectItem>
+                <SelectItem value="100">100</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
 
-    {/* Page Navigation */}
-    <Pagination>
-      <PaginationContent>
-        <PaginationItem>
-          <PaginationPrevious
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1 || loading}
-            className="cursor-pointer"
-          />
-        </PaginationItem>
+          {/* Page Navigation */}
+          <Pagination>
+            <PaginationContent>
+              <PaginationItem>
+                <PaginationPrevious
+                  onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1 || loading}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
 
-        {renderPaginationItems()}
+              {renderPaginationItems()}
 
-        <PaginationItem>
-          <PaginationNext
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages || loading}
-            className="cursor-pointer"
-          />
-        </PaginationItem>
-      </PaginationContent>
-    </Pagination>
-  </div>
-</div>
-
+              <PaginationItem>
+                <PaginationNext
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages || loading}
+                  className="cursor-pointer"
+                />
+              </PaginationItem>
+            </PaginationContent>
+          </Pagination>
+        </div>
+      </div>
 
       {renderInvoiceGenerator()}
       {renderTransportationReceipt()}
@@ -921,7 +918,128 @@ const renderPaginationItems = () => {
         onPayment={onPayment}
         paymentOrder={paymentOrder}
       />
+      <StatusUpdatePopup
+        open={statusOpen}
+        onOpenChange={setStatusOpen}
+        orderId={statusOrderId}
+        id={orderIdDB}
+        fetchOrders={fetchOrders}
+        statusOrder={statusOrder}
+        setOrders={setOrders}
+        orders={orders}
+      />
     </div>
+  )
+}
+
+export const StatusUpdatePopup = ({
+  open,
+  onOpenChange,
+  orderId,
+  id,
+  fetchOrders,
+  statusOrder,
+  setOrders,
+  orders,
+}: {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  orderId: string
+  id: string
+  fetchOrders: () => void
+  statusOrder: Order | null
+  setOrders: React.Dispatch<React.SetStateAction<Order[]>>
+  orders: Order[]
+}) => {
+  const [status, setStatus] = useState(statusOrder?.status || "pending")
+  const { toast } = useToast()
+  const token = useSelector((state: RootState) => state.auth?.token ?? null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    try {
+      const finalData = {
+        status,
+      }
+
+      // Call the API to update the status
+      const updatedOrder = await updateOrderAPI(finalData, token, id)
+
+      if (updatedOrder) {
+        // Find the order in the orders array and update its status
+        const updatedOrders = orders.map((order) => {
+          if (order._id === id || order.id === id) {
+            return { ...order, status }
+          }
+          return order
+        })
+
+        // Update the orders state directly
+        setOrders(updatedOrders)
+
+        toast({
+          title: "Status Updated",
+          description: `Order ${orderId} status has been updated to ${status}`,
+        })
+
+        // Close the popup
+        onOpenChange(false)
+      }
+    } catch (error) {
+      console.error("Error updating status:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update order status",
+        variant: "destructive",
+      })
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <div className="space-y-4">
+          <div className="flex flex-col space-y-2 text-center sm:text-left">
+            <h3 className="text-lg font-semibold">Update Order Status</h3>
+            <p className="text-sm text-muted-foreground">Change the status for order {orderId}</p>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div
+                  className={`border rounded-md p-4 cursor-pointer ${status === "pending" ? "border-primary bg-primary/10" : "border-gray-200"}`}
+                  onClick={() => setStatus("pending")}
+                >
+                  <div className="flex items-center justify-center">
+                    <Clock className="h-6 w-6 text-amber-500 mr-2" />
+                    <span className="font-medium">PENDING</span>
+                  </div>
+                </div>
+
+                <div
+                  className={`border rounded-md p-4 cursor-pointer ${status === "delivered" ? "border-primary bg-primary/10" : "border-gray-200"}`}
+                  onClick={() => setStatus("delivered")}
+                >
+                  <div className="flex items-center justify-center">
+                    <CheckCircle2 className="h-6 w-6 text-green-500 mr-2" />
+                    <span className="font-medium">DELIVERED</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">Update Status</Button>
+            </div>
+          </form>
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 
