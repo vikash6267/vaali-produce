@@ -856,51 +856,101 @@ const getDashboardData = async (req, res) => {
     // Total Stores
     const totalStores = await authModel.countDocuments({ role: "store" });
 
-    // Total Payment and Pending Payment (including partial payments)
-const paymentData = await orderModel.aggregate([
-  {
-    $project: {
-      total: 1,
-      paymentStatus: 1,
-      paymentAmount: { $toDouble: { $ifNull: ["$paymentAmount", "0"] } },
-    },
-  },
-  {
-    $group: {
-      _id: null,
-      totalAmount: { $sum: "$total" },
-      totalReceived: {
+    // Aggregation for Payment Data
+    const paymentData = await orderModel.aggregate([
+      {
+        $project: {
+          total: 1,
+          paymentStatus: 1,
+          status: 1,
+          paymentAmount: { $toDouble: { $ifNull: ["$paymentAmount", "0"] } },
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: "$total" },
+          totalReceived: {
+            $sum: {
+              $cond: [
+                { $eq: ["$paymentStatus", "paid"] },
+                "$total", // fully paid orders
+                {
+                  $cond: [
+                    { $eq: ["$paymentStatus", "partial"] },
+                    "$paymentAmount", // partial payment amount
+                    0,
+                  ],
+                },
+              ],
+            },
+          },
+          // Pending Orders
+          pendingPaidAmount: {
         $sum: {
           $cond: [
-            { $eq: ["$paymentStatus", "paid"] },
-            "$total", // fully paid orders
+            { $and: [{ $eq: ["$status", "pending"] }, { $eq: ["$paymentStatus", "partial"] }] },
+            "$paymentAmount",
+            0,
+          ],
+        },
+      },
+      pendingDueAmount: {
+        $sum: {
+          $cond: [
+            { $and: [{ $eq: ["$status", "pending"] }, { $ne: ["$paymentStatus", "paid"] }] },
+            { $subtract: ["$total", "$paymentAmount"] },
+            0,
+          ],
+        },
+      },
+      // Delivered Orders
+      deliveredPaidAmount: {
+        $sum: {
+          $cond: [
+            { $and: [{ $eq: ["$status", "delivered"] }, { $eq: ["$paymentStatus", "partial"] }] },
+            "$paymentAmount",
             {
               $cond: [
-                { $eq: ["$paymentStatus", "partial"] },
-                "$paymentAmount", // partial payment amount
+                { $eq: ["$paymentStatus", "paid"] },
+                "$total",
                 0,
               ],
             },
           ],
         },
       },
-    },
-  },
-  {
-    $project: {
-      totalAmount: 1,
-      totalReceived: 1,
-      totalPending: { $subtract: ["$totalAmount", "$totalReceived"] },
-    },
-  },
-]);
-
-
-
+      deliveredDueAmount: {
+        $sum: {
+          $cond: [
+            { $and: [{ $eq: ["$status", "delivered"] }, { $ne: ["$paymentStatus", "paid"] }] },
+            { $subtract: ["$total", "$paymentAmount"] },
+            0,
+          ],
+        },
+      },
+        },
+      },
+      {
+        $project: {
+          totalAmount: 1,
+          totalReceived: 1,
+          totalPending: { $subtract: ["$totalAmount", "$totalReceived"] },
+          pendingPaidAmount: 1,
+          pendingDueAmount: 1,
+          deliveredPaidAmount: 1,
+          deliveredDueAmount: 1,
+        },
+      },
+    ]);
 
     const totalAmount = paymentData[0]?.totalAmount || 0;
     const totalReceived = paymentData[0]?.totalReceived || 0;
     const totalPending = paymentData[0]?.totalPending || 0;
+    const pendingPaidAmount = paymentData[0]?.pendingPaidAmount || 0;
+    const pendingDueAmount = paymentData[0]?.pendingDueAmount || 0;
+    const deliveredPaidAmount = paymentData[0]?.deliveredPaidAmount || 0;
+    const deliveredDueAmount = paymentData[0]?.deliveredDueAmount || 0;
 
     // Top 10 Users by Order Amount
     const topUsers = await orderModel.aggregate([
@@ -908,19 +958,19 @@ const paymentData = await orderModel.aggregate([
         $group: {
           _id: "$store",
           totalAmount: { $sum: "$total" },
-          orderCount: { $sum: 1 }
-        }
+          orderCount: { $sum: 1 },
+        },
       },
       {
         $lookup: {
           from: "auths",
           localField: "_id",
           foreignField: "_id",
-          as: "userDetails"
-        }
+          as: "userDetails",
+        },
       },
       {
-        $unwind: "$userDetails"
+        $unwind: "$userDetails",
       },
       { $sort: { totalAmount: -1 } },
       { $limit: 10 },
@@ -930,9 +980,9 @@ const paymentData = await orderModel.aggregate([
           storeName: "$userDetails.storeName",
           email: "$userDetails.email",
           orderCount: 1,
-          totalAmount: 1
-        }
-      }
+          totalAmount: 1,
+        },
+      },
     ]);
 
     res.status(200).json({
@@ -944,18 +994,28 @@ const paymentData = await orderModel.aggregate([
         totalAmount,
         totalReceived,
         totalPending,
-        topUsers
-      }
+        pendingOrders: {
+          paidAmount: pendingPaidAmount,
+          dueAmount: pendingDueAmount,
+        },
+        deliveredOrders: {
+          paidAmount: deliveredPaidAmount,
+          dueAmount: deliveredDueAmount,
+        },
+        topUsers,
+      },
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     res.status(500).json({
       success: false,
       message: "Error fetching dashboard data",
-      error: error.message
+      error: error.message,
     });
   }
 };
+
+
 
 
 

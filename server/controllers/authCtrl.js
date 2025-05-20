@@ -183,20 +183,22 @@ const addMemberCtrl = async (req, res) => {
 
 const getAllMemberCtrl = async (req, res) => {
   try {
-    const members = await authModel.find().sort({ createdAt: -1 });
+    // Store name ke hisab se ascending order me sort
+    const members = await authModel.find().sort({ storeName: 1 });
 
     return res.status(200).json({
       success: true,
       members
     });
   } catch (error) {
-    console.log(error)
+    console.log(error);
     return res.status(500).json({
       success: false,
       message: "Error in getting member API!",
     });
   }
 };
+
 
 
 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { BarChart, DollarSign, ShoppingBag, Store } from "lucide-react"
+import { BarChart, DollarSign, Hourglass, Package, ShoppingBag, Store } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -24,11 +24,13 @@ const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [selectedUserData, setSelectedUserData] = useState(null)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
  
+
   useEffect(() => {
     // In a real application, you would fetch this data from your API
     const fetchDashboardData = async () => {
       try {
         const response = await getDashboardData();
+        console.log(response)
         if (response?.success) {
           setDashboardData(response.data);
         } else {
@@ -123,7 +125,8 @@ const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
     { label: "Owner Name", key: "name" },
     { label: "Email", key: "email" },
     { label: "Orders", key: "orderCount" },
-    { label: "Total Amount", key: "totalAmount" }
+    { label: "Total Amount", key: "totalAmount" },
+  
   ];
 
   const summaryData = [{
@@ -173,76 +176,106 @@ const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
       </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalOrders.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">All time orders</p>
-          </CardContent>
-        </Card>
+   <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  {/* Total Orders */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+      <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{dashboardData.totalOrders.toLocaleString()}</div>
+      <p className="text-xs text-muted-foreground">All time orders</p>
+    </CardContent>
+  </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
-            <Store className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalStores.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">Active stores</p>
-          </CardContent>
-        </Card>
+  {/* Total Stores */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Stores</CardTitle>
+      <Store className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{dashboardData.totalStores.toLocaleString()}</div>
+      <p className="text-xs text-muted-foreground">Active stores</p>
+    </CardContent>
+  </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              $
-              {dashboardData.totalAmount.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">All time sales</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Received Amount</CardTitle>
-            <BarChart className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              $
-              {dashboardData.totalReceived.toLocaleString(undefined, {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </div>
-            <div className="mt-2 space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">{receivedPercentage}% of total</span>
-                <span className="text-muted-foreground">
-                  $
-                  {dashboardData.totalPending.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}{" "}
-                  pending
-                </span>
-              </div>
-              <Progress value={receivedPercentage} className="h-1" />
-            </div>
-          </CardContent>
-        </Card>
+  {/* Total Amount */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+      <DollarSign className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">
+        ${dashboardData.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
       </div>
+      <p className="text-xs text-muted-foreground">All time sales</p>
+    </CardContent>
+  </Card>
+
+  {/* Received Amount */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Received Amount</CardTitle>
+      <BarChart className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">
+        ${dashboardData.totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <div className="mt-2 space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{receivedPercentage}% of total</span>
+          <span className="text-muted-foreground">
+            ${dashboardData.totalPending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pending
+          </span>
+        </div>
+        <Progress value={receivedPercentage} className="h-1" />
+      </div>
+    </CardContent>
+  </Card>
+
+  {/* Pending Orders */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+      <Hourglass className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-lg font-semibold">
+        Paid: $
+        {dashboardData.pendingOrders.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <div className="text-lg font-semibold">
+        Due: $
+        {dashboardData.pendingOrders.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <p className="text-xs text-muted-foreground">Pending orders amount</p>
+    </CardContent>
+  </Card>
+
+  {/* Delivered Orders */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Delivered Orders</CardTitle>
+      <Package className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-lg font-semibold">
+        Paid: $
+        {dashboardData.deliveredOrders.paidAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <div className="text-lg font-semibold">
+        Due: $
+        {dashboardData.deliveredOrders.dueAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <p className="text-xs text-muted-foreground">Delivered orders amount</p>
+    </CardContent>
+  </Card>
+</div>
+
 
       <div>
         <Card>
