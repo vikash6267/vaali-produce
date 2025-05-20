@@ -346,8 +346,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     try {
       // Fetch all orders for the selected type without pagination
         const params = new URLSearchParams()
-      params.append("page", currentPage.toString())
-      params.append("limit", pageSize.toString())
+
+      params.append("limit", "5000000")
       params.append("paymentStatus", paymentFilter.toString())
 
       if (debouncedSearchQuery) {
