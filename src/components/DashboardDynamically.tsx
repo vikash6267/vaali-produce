@@ -11,6 +11,7 @@ import { CSVLink } from 'react-csv';
 import { useToast } from "@/hooks/use-toast"
 import { userWithOrderDetails } from "@/services2/operations/auth"
 import UserDetailsModal from "./admin/user-details-modal"
+import { LoaderCircle } from "lucide-react";
 
 
 
@@ -88,27 +89,27 @@ const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
  const pendingHeaders = pendingData && pendingData.length > 0
     ? Object.keys(pendingData[0]).map((key) => ({ label: key, key: key }))
     : [];
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-lg font-medium">Loading dashboard data...</p>
-        </div>
+if (loading) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <LoaderCircle className="w-16 h-16 text-primary animate-spin mx-auto" />
+        <p className="mt-4 text-lg font-medium">Loading dashboard data...</p>
       </div>
-    )
-  }
+    </div>
+  );
+}
 
-  if (!dashboardData) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <p className="text-lg font-medium text-destructive">Failed to load dashboard data</p>
-          <p className="mt-2 text-muted-foreground">Please try again later</p>
-        </div>
+if (!dashboardData) {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+              <LoaderCircle className="w-16 h-16 text-primary animate-spin mx-auto" />
+
       </div>
-    )
-  }
+    </div>
+  );
+}
 
   // Calculate the percentage of received amount
   const receivedPercentage = Math.round((dashboardData.totalReceived / dashboardData.totalAmount) * 100)

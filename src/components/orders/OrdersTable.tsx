@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -38,6 +38,9 @@ import {
   PencilRuler,
   Wrench,
   Download,
+  ShoppingBag,
+  DollarSign,
+  BarChart,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -67,6 +70,12 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CalendarDays } from "lucide-react";
 import DateFilterDialog from "./DateFilterPopup"
+import { userWithOrderDetails } from "@/services2/operations/auth"
+import UserDetailsModal from "../admin/user-details-modal"
+import { CSVLink } from "react-csv";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Progress } from "@radix-ui/react-progress"
+
 
 interface OrdersTableProps {
   orders: Order[]
@@ -114,13 +123,26 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusOrderId, setStatusOrderId] = useState("")
   const [statusOrder, setStatusOrder] = useState<Order | null>(null)
-const [startDate, setStartDate] = useState("");
-const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [selectedUserData, setSelectedUserData] = useState(null)
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+  const [exportData, setExportData] = useState([])
+  const [isPreparing, setIsPreparing] = useState(false)
+  const [csvReady, setCsvReady] = useState(false)
+  const [summary, setSummary] = useState(null)
+  const csvLinkRef = useRef(null)
 
-const handleResetDates = () => {
-  setStartDate("");
-  setEndDate("");
-};
+
+
+
+  
+
+
+  const handleResetDates = () => {
+    setStartDate("");
+    setEndDate("");
+  };
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,12 +165,12 @@ const handleResetDates = () => {
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery)
       }
-if (startDate) {
-  params.append("startDate", startDate)
-}
-if (endDate) {
-  params.append("endDate", endDate)
-}
+      if (startDate) {
+        params.append("startDate", startDate)
+      }
+      if (endDate) {
+        params.append("endDate", endDate)
+      }
       params.append("orderType", activeTab)
 
       // Make API call with query parameters
@@ -163,7 +185,7 @@ if (endDate) {
             ...order,
           })),
         )
-
+setSummary(response.summary)
         setTotalOrders(response.totalOrders || response.orders.length)
         setTotalPages(Math.ceil((response.totalOrders || response.orders.length) / pageSize))
       } else {
@@ -185,7 +207,8 @@ if (endDate) {
   // Fetch orders when page, pageSize, search query or tab changes
   useEffect(() => {
     fetchOrders()
-  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter,endDate,startDate])
+
+  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter, endDate, startDate])
 
   useEffect(() => {
     if (!open) {
@@ -358,7 +381,7 @@ if (endDate) {
     setLoading(true)
     try {
       // Fetch all orders for the selected type without pagination
-        const params = new URLSearchParams()
+      const params = new URLSearchParams()
 
       params.append("limit", "5000000")
       params.append("paymentStatus", paymentFilter.toString())
@@ -366,12 +389,12 @@ if (endDate) {
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery)
       }
-if (startDate) {
-  params.append("startDate", startDate)
-}
-if (endDate) {
-  params.append("endDate", endDate)
-}
+      if (startDate) {
+        params.append("startDate", startDate)
+      }
+      if (endDate) {
+        params.append("endDate", endDate)
+      }
       params.append("orderType", activeTab)
       const response = await getAllOrderAPI(token, params.toString())
 
@@ -572,6 +595,77 @@ if (endDate) {
     return items
   }
 
+  const fetchUserDetailsOrder = async (id: any) => {
+    try {
+      const res = await userWithOrderDetails(id)
+      console.log(res)
+      setSelectedUserData(res)
+      setUserDetailsOpen(true)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch user details",
+        variant: "destructive",
+      })
+    }
+  }
+
+
+  const handleExportClick = async () => {
+    if (csvReady) {
+      csvLinkRef.current.link.click() // Auto trigger CSV download
+      return
+    }
+
+    setIsPreparing(true)
+
+    try {
+      const params = new URLSearchParams()
+      params.append("limit", "1000000")
+      params.append("page", "1")
+      params.append("paymentStatus", paymentFilter.toString())
+      if (debouncedSearchQuery) params.append("search", debouncedSearchQuery)
+      if (startDate) params.append("startDate", startDate)
+      if (endDate) params.append("endDate", endDate)
+      params.append("orderType", activeTab)
+
+      const response = await getAllOrderAPI(token, params.toString())
+
+      if (response && Array.isArray(response.orders)) {
+        const formatted = response.orders.map((order) => ({
+          "Order ID": order?.orderNumber || `#${order._id.toString().slice(-5)}`,
+          Date: new Date(order.createdAt).toLocaleDateString(),
+          Client: order.store?.storeName || "Unknown",
+          Status: order.status,
+          "Payment Status": order.paymentStatus,
+          Items: order.items.length,
+          Total: order.total,
+        }))
+
+        setExportData(formatted)
+        setCsvReady(true)
+
+        setTimeout(() => {
+          csvLinkRef.current.link.click() // Trigger download
+          setCsvReady(false)
+        }, 500)
+      }
+    } catch (err) {
+      console.error("CSV Export Error:", err)
+      toast({
+        title: "Error",
+        description: "Failed to prepare CSV",
+        variant: "destructive",
+      })
+    } finally {
+      setIsPreparing(false)
+    }
+  }
+const receivedPercentage =
+  summary && summary.totalAmount > 0
+    ? Math.round((summary.totalReceived / summary.totalAmount) * 100)
+    : 0;
+
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -585,6 +679,9 @@ if (endDate) {
           />
         </div>
 
+
+
+
         <div className="flex gap-2">
           <select
             value={paymentFilter}
@@ -596,14 +693,14 @@ if (endDate) {
             <option value="partial">Partial</option>
             <option value="pending">Unpaid</option>
           </select>
-{/* Custom Date Range Filters */}
-<DateFilterDialog
-  startDate={startDate}
-  endDate={endDate}
-  setStartDate={setStartDate}
-  setEndDate={setEndDate}
-  handleResetDates={handleResetDates}
-/>
+          {/* Custom Date Range Filters */}
+          <DateFilterDialog
+            startDate={startDate}
+            endDate={endDate}
+            setStartDate={setStartDate}
+            setEndDate={setEndDate}
+            handleResetDates={handleResetDates}
+          />
 
           <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders} disabled={loading}>
             {loading ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}
@@ -617,12 +714,68 @@ if (endDate) {
           )}
         </div>
       </div>
+
+
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+  {/* Total Orders */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+      <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">{summary?.totalOrders.toLocaleString()}</div>
+      <p className="text-xs text-muted-foreground">All time orders</p>
+    </CardContent>
+  </Card>
+
+
+
+  {/* Total Amount */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+      <DollarSign className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">
+        ${summary?.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <p className="text-xs text-muted-foreground">All time sales</p>
+    </CardContent>
+  </Card>
+
+  {/* Received Amount */}
+  <Card>
+    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+      <CardTitle className="text-sm font-medium">Received Amount</CardTitle>
+      <BarChart className="h-4 w-4 text-muted-foreground" />
+    </CardHeader>
+    <CardContent>
+      <div className="text-2xl font-bold">
+        ${summary?.totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+      </div>
+      <div className="mt-2 space-y-1">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground">{receivedPercentage}% of total</span>
+          <span className="text-muted-foreground">
+            ${summary?.totalPending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pending
+          </span>
+        </div>
+        <Progress value={receivedPercentage} className="h-1" />
+      </div>
+    </CardContent>
+  </Card>
+
+
+</div>
+
+
       <div className="flex justify-between items-center border-b">
         <div className="flex gap-2">
           <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-            }`}
+            className={`px-4 py-2 font-medium ${activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+              }`}
             onClick={() => {
               setActiveTab("Regural")
               setCurrentPage(1)
@@ -631,9 +784,8 @@ if (endDate) {
             Regular Orders
           </button>
           <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-            }`}
+            className={`px-4 py-2 font-medium ${activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+              }`}
             onClick={() => {
               setActiveTab("NextWeek")
               setCurrentPage(1)
@@ -642,16 +794,36 @@ if (endDate) {
             Next Week Orders
           </button>
         </div>
-        <Button
-          size="sm"
-          variant="outline"
-          className="mb-2 mr-2"
-          onClick={() => handleDownloadAllOrders(activeTab)}
-          disabled={loading}
-        >
-          <Download size={16} className="mr-2" />
-          All Orders
-        </Button>
+        <div className="flex gap-2 mb-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => handleDownloadAllOrders(activeTab)}
+            disabled={loading}
+          >
+            <Download size={16} className="mr-2" />
+            All Orders
+          </Button>
+
+          <button
+            onClick={handleExportClick}
+            disabled={isPreparing}
+            className={`px-4 py-2 rounded text-white text-sm ${isPreparing ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              } transition`}
+          >
+            {isPreparing ? "Preparing..." : "Download CSV"}
+          </button>
+
+          <CSVLink
+            data={exportData}
+            filename={`orders-${new Date().toISOString()}.csv`}
+            className="hidden"
+            ref={csvLinkRef}
+          />
+        </div>
+
+
+
       </div>
       <OrderDetailsModal
         order={selectedOrder}
@@ -699,13 +871,15 @@ if (endDate) {
                   <TableCell className="font-medium">{order.id}</TableCell>
                   <TableCell>
                     <div className="flex items-center">
-                      <Link
-                        to={"/admin/store"}
-                        className="cursor-pointer hover:text-primary hover:underline"
-                        onClick={() => order.clientId && handleViewClientProfile(order.clientId)}
+                      <button
+
+                        className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline"
+                        onClick={() => { order.clientId && handleViewClientProfile(order.clientId); fetchUserDetailsOrder(order?.store?._id) }}
+
+
                       >
                         {order.clientName}
-                      </Link>
+                      </button>
                     </div>
                   </TableCell>
                   <TableCell>{formatDate(order.date)}</TableCell>
@@ -721,7 +895,7 @@ if (endDate) {
                         <span className="capitalize">{order.status}</span>
                       </div>
 
-                     {order.status !== "delivered" && <button
+                      {order.status !== "delivered" && <button
                         onClick={() => {
                           setStatusOrderId(order.orderNumber)
                           setStatusOpen(true)
@@ -960,6 +1134,12 @@ if (endDate) {
         setOrders={setOrders}
         orders={orders}
       />
+      <UserDetailsModal
+        isOpen={userDetailsOpen}
+        onClose={() => setUserDetailsOpen(false)}
+        userData={selectedUserData}
+        fetchUserDetailsOrder={fetchUserDetailsOrder}
+      />
     </div>
   )
 }
@@ -1071,6 +1251,7 @@ export const StatusUpdatePopup = ({
           </form>
         </div>
       </DialogContent>
+
     </Dialog>
   )
 }

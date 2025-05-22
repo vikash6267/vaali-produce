@@ -158,6 +158,7 @@ export const getAllOrderAPI = async (token, queryParams = "") => {
       totalOrders: response?.data?.totalOrders || 0,
       currentPage: response?.data?.currentPage || 1,
       totalPages: response?.data?.totalPages || 1,
+      summary: response?.data?.summary || {},
     }
   } catch (error) {
     console.error("GET GET_ALL_ORDER API ERROR:", error)

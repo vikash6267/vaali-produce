@@ -150,12 +150,11 @@ const getAllOrderCtrl = async (req, res) => {
     if (user.role === "store") {
       matchStage.store = mongoose.Types.ObjectId(user.id);
     }
-    console.log(paymentStatus)
-    if(paymentStatus !== "all"){
-      matchStage.paymentStatus = paymentStatus
+
+    if (paymentStatus !== "all") {
+      matchStage.paymentStatus = paymentStatus;
     }
 
-    // Filter by order type
     if (orderType && orderType !== "Regural") {
       matchStage.orderType = orderType;
     } else if (orderType === "Regural") {
@@ -164,33 +163,32 @@ const getAllOrderCtrl = async (req, res) => {
         { orderType: { $exists: false } },
       ];
     }
-const startDate = req.query.startDate;
-const endDate = req.query.endDate;
 
-if (startDate || endDate) {
-  matchStage.createdAt = {};
-  if (startDate) {
-    matchStage.createdAt.$gte = new Date(startDate);
-  }
-  if (endDate) {
-    matchStage.createdAt.$lte = new Date(endDate + "T23:59:59.999Z"); // ensure full day included
-  }
-}
+    const startDate = req.query.startDate;
+    const endDate = req.query.endDate;
+
+    if (startDate || endDate) {
+      matchStage.createdAt = {};
+      if (startDate) {
+        matchStage.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        matchStage.createdAt.$lte = new Date(endDate + "T23:59:59.999Z");
+      }
+    }
 
     const searchRegex = new RegExp(search, "i");
 
     const aggregateQuery = [
       {
         $lookup: {
-          from: "auths", // collection name (usually lowercase plural of model)
+          from: "auths",
           localField: "store",
           foreignField: "_id",
           as: "store",
         },
       },
-      {
-        $unwind: "$store",
-      },
+      { $unwind: "$store" },
       {
         $match: {
           ...matchStage,
@@ -204,13 +202,44 @@ if (startDate || endDate) {
             : {}),
         },
       },
-      {
-        $sort: { createdAt: -1 },
-      },
+      { $sort: { createdAt: -1 } },
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],
           totalCount: [{ $count: "count" }],
+          summary: [
+            {
+              $group: {
+                _id: null,
+                totalOrders: { $sum: 1 },
+                totalAmount: { $sum: "$total" },
+                totalReceived: {
+                  $sum: {
+                    $cond: [
+                      { $eq: ["$paymentStatus", "paid"] },
+                      "$total",
+                      {
+                        $cond: [
+                          { $eq: ["$paymentStatus", "partial"] },
+                          { $toDouble: { $ifNull: ["$paymentAmount", 0] } },
+                          0,
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            },
+            {
+              $project: {
+                _id: 0,
+                totalOrders: 1,
+                totalAmount: 1,
+                totalReceived: 1,
+                totalPending: { $subtract: ["$totalAmount", "$totalReceived"] },
+              },
+            },
+          ],
         },
       },
     ];
@@ -221,13 +250,21 @@ if (startDate || endDate) {
     const totalOrders = result[0].totalCount[0]?.count || 0;
     const totalPages = Math.ceil(totalOrders / limit);
 
+    const summary = result[0].summary[0] || {
+      totalOrders: 0,
+      totalAmount: 0,
+      totalReceived: 0,
+      totalPending: 0,
+    };
+
     return res.status(200).json({
       success: true,
       message: orders.length ? "Orders fetched successfully!" : "No orders found!",
       orders,
       totalOrders,
-      currentPage: page,
       totalPages,
+      currentPage: page,
+      summary,
     });
   } catch (error) {
     console.error("Error fetching orders:", error.message, error.stack);
@@ -238,6 +275,7 @@ if (startDate || endDate) {
     });
   }
 };
+
 
 
 
