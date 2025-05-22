@@ -14,7 +14,7 @@ router.put("/update/:id", updatePermitionCtrl)
 router.put("/update-store/:id", updateStoreCtrl)
 
 router.put("/update-password",auth, changePasswordCtrl)
-router.get("/fetchMy",auth,fetchMyProfile )
+router.get("/fetchMyProfile",auth,fetchMyProfile )
 
 
 

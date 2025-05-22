@@ -65,6 +65,8 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { CalendarDays } from "lucide-react";
+import DateFilterDialog from "./DateFilterPopup"
 
 interface OrdersTableProps {
   orders: Order[]
@@ -112,7 +114,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusOrderId, setStatusOrderId] = useState("")
   const [statusOrder, setStatusOrder] = useState<Order | null>(null)
+const [startDate, setStartDate] = useState("");
+const [endDate, setEndDate] = useState("");
 
+const handleResetDates = () => {
+  setStartDate("");
+  setEndDate("");
+};
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -135,7 +143,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery)
       }
-
+if (startDate) {
+  params.append("startDate", startDate)
+}
+if (endDate) {
+  params.append("endDate", endDate)
+}
       params.append("orderType", activeTab)
 
       // Make API call with query parameters
@@ -172,7 +185,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   // Fetch orders when page, pageSize, search query or tab changes
   useEffect(() => {
     fetchOrders()
-  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter])
+  }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter,endDate,startDate])
 
   useEffect(() => {
     if (!open) {
@@ -578,6 +591,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             <option value="partial">Partial</option>
             <option value="pending">Unpaid</option>
           </select>
+{/* Custom Date Range Filters */}
+<DateFilterDialog
+  startDate={startDate}
+  endDate={endDate}
+  setStartDate={setStartDate}
+  setEndDate={setEndDate}
+  handleResetDates={handleResetDates}
+/>
 
           <Button size="sm" variant="outline" className="h-10" onClick={fetchOrders} disabled={loading}>
             {loading ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}

@@ -27,7 +27,23 @@ interface SidebarProps {
 }
 
 // Define navigation items for each role
-const adminNavigation = [
+
+const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const location = useLocation();
+  const [collapsed, setCollapsed] = useState(false);
+  const [hovering, setHovering] = useState(false);
+  const user = useSelector((state: RootState) => state.auth?.user ?? null);
+
+  // Get user role from Redux state
+  const userRole = user?.role || "member"; // Default to member if role is not available
+
+
+
+
+
+
+
+  const adminNavigation = [
   {
     name: "Dashboard",
     path: "/admin/dashboard",
@@ -66,17 +82,28 @@ const adminNavigation = [
 ];
 
 const memberNavigation = [
-  {
-    name: "Orders",
-    path: "/member/orders",
-    icon: <ShoppingCart size={18} />,
-  },
+  // Conditionally add "Orders" only if user is member and isOrder is true
+  ...(user?.role === "member" && user?.isOrder
+    ? [
+        {
+          name: "Orders",
+          path: "/admin/orders",
+          icon: <ShoppingCart size={18} />,
+        },
+      ]
+    : []),
   {
     name: "Products",
-    path: "/member/products",
+    path: "/admin/inventory",
     icon: <Package size={18} />,
   },
+  {
+    name: "Vendors",
+    path: "/vendors",
+    icon: <User2Icon size={18} />,
+  },
 ];
+
 
 const storeNavigation = [
   {
@@ -96,15 +123,9 @@ const storeNavigation = [
   },
 ];
 
-const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
-  const [hovering, setHovering] = useState(false);
-  const user = useSelector((state: RootState) => state.auth?.user ?? null);
 
-  // Get user role from Redux state
-  const userRole = user?.role || "member"; // Default to member if role is not available
 
+  
   // Select navigation items based on user role
   const getNavigationForRole = () => {
     switch (userRole) {

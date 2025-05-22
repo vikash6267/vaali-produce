@@ -12,9 +12,11 @@ export const endpoints = {
   GET_ALL_STORES_API: BASE_URL + "/auth/all-stores",
   UPDATE_MEMBER_PERMISSION_API: BASE_URL + "/auth/update",
   UPDATE_STORE: BASE_URL + "/auth/update-store",
-  FETCH_MY_PROFILE_API : BASE_URL + "/auth/fetchMy",
+  FETCH_MY_PROFILE_API : BASE_URL + "/auth/fetchMyProfile",
   UPDATE_PASSWORD_API : BASE_URL + "/auth/update-password",
-  USER_WITH_ORDER :BASE_URL + "/order/user"
+  USER_WITH_ORDER :BASE_URL + "/order/user",
+  
+
 
 
 }

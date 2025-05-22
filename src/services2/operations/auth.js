@@ -364,32 +364,49 @@ export const updatePasswordSetting = async (formData, token) => {
 
 };
 
-export function fetchMyProfile(token){
- 
+
+
+
+export function fetchMyProfile(token,navigate) {
+
   return async (dispatch) => {
- 
+  
     try {
-      const response = await apiConnector("GET", FETCH_MY_PROFILE_API, null ,{
+      const response = await apiConnector("GET", FETCH_MY_PROFILE_API, null, {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
       })
 
-      // console.log("LOGIN API RESPONSE............", response)
+      console.log("APP JS RESPONSE............", response)
 
-      if (!response.data.success) {
-        throw new Error(response.data.message)
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message)
       }
-    
-      dispatch(setUser(response.data.user))
+      // console.log(response.data)
 
-      localStorage.setItem("user", JSON.stringify(response.data.user))
+      dispatch(setUser(response?.data?.user))
+
+
+
+      localStorage.setItem("user", JSON.stringify(response?.data?.user))
 
     } catch (error) {
-      // console.log("LOGIN API ERROR............", error)
+      console.log("LOGIN API ERROR............", error)
+
+      if (error?.response?.data?.message === 'Token expired' || error?.response?.data?.message === 'token is invalid') {
+        Swal.fire({
+          title: "Session Expired",
+          text: "Please log in again for security purposes.",
+          icon: "warning",
+          button: "Login",
+        }).then(() => {
+          dispatch(logout(navigate));
+          navigate('/login'); // Redirect to login page
+        });
+      }
     }
-
-  } 
+    
+  }
 }
-
 
 

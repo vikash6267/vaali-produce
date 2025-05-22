@@ -147,7 +147,7 @@ const getAllOrderCtrl = async (req, res) => {
     const matchStage = {};
 
     // Filter by user role
-    if (user.role === "store" || user.role === "member") {
+    if (user.role === "store") {
       matchStage.store = mongoose.Types.ObjectId(user.id);
     }
     console.log(paymentStatus)
@@ -164,6 +164,18 @@ const getAllOrderCtrl = async (req, res) => {
         { orderType: { $exists: false } },
       ];
     }
+const startDate = req.query.startDate;
+const endDate = req.query.endDate;
+
+if (startDate || endDate) {
+  matchStage.createdAt = {};
+  if (startDate) {
+    matchStage.createdAt.$gte = new Date(startDate);
+  }
+  if (endDate) {
+    matchStage.createdAt.$lte = new Date(endDate + "T23:59:59.999Z"); // ensure full day included
+  }
+}
 
     const searchRegex = new RegExp(search, "i");
 

@@ -16,6 +16,7 @@ import {
   ListFilter,
   Tags,
   Store,
+  Loader,
 } from "lucide-react";
 import {
   getLowStockProducts,
@@ -60,8 +61,12 @@ const Inventory = () => {
   const [isBulkDiscountOpen, setIsBulkDiscountOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [loading, setLoading] = useState(false);
+
+
 
   const fetchProducts = async () => {
+    setLoading(true); // Start loading
     try {
       const response = await getAllProductAPI();
       console.log(response);
@@ -69,14 +74,17 @@ const Inventory = () => {
         const updatedProducts = response.map((product) => ({
           ...product,
           id: product._id,
-          lastUpdated:product?.updatedAt
+          lastUpdated: product?.updatedAt
         }));
         setProducts(updatedProducts);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
+    } finally {
+      setLoading(false); // Stop loading
     }
   };
+
 
   useEffect(() => {
     fetchProducts();
@@ -345,19 +353,30 @@ const Inventory = () => {
                 </div>
               </div>
 
-              <TabsContent value="products" className="space-y-4">
-                <Card>
-                  <CardContent className="p-1 sm:p-6">
-                    <InventoryTable
-                      products={products}
-                      onProductsSelect={handleProductsSelect}
-                      selectedProducts={selectedProducts}
-                      onReorderProduct={handleOpenReorderDialog}
-                      fetchProducts={fetchProducts}
-                    />
-                  </CardContent>
-                </Card>
-              </TabsContent>
+
+              {loading ? (
+                <div className="flex justify-center items-center py-4">
+                  <Loader className="animate-spin text-gray-600" size={32} />
+                </div>
+              ) : (
+                <div>
+
+                  <TabsContent value="products" className="space-y-4">
+                    <Card>
+                      <CardContent className="p-1 sm:p-6">
+                        <InventoryTable
+                          products={products}
+                          onProductsSelect={handleProductsSelect}
+                          selectedProducts={selectedProducts}
+                          onReorderProduct={handleOpenReorderDialog}
+                          fetchProducts={fetchProducts}
+                        />
+                      </CardContent>
+                    </Card>
+                  </TabsContent>
+                </div>
+              )}
+
 
               <TabsContent value="analytics">
                 <InventoryStats products={products} />
@@ -419,26 +438,22 @@ const Inventory = () => {
                                 <td className="p-3">
                                   <Badge
                                     className={`
-                                    ${
-                                      reorder.status === "pending"
+                                    ${reorder.status === "pending"
                                         ? "bg-amber-100 text-amber-700 border-amber-300"
                                         : ""
-                                    }
-                                    ${
-                                      reorder.status === "ordered"
+                                      }
+                                    ${reorder.status === "ordered"
                                         ? "bg-blue-100 text-blue-700 border-blue-300"
                                         : ""
-                                    }
-                                    ${
-                                      reorder.status === "received"
+                                      }
+                                    ${reorder.status === "received"
                                         ? "bg-green-100 text-green-700 border-green-300"
                                         : ""
-                                    }
-                                    ${
-                                      reorder.status === "cancelled"
+                                      }
+                                    ${reorder.status === "cancelled"
                                         ? "bg-red-100 text-red-700 border-red-300"
                                         : ""
-                                    }
+                                      }
                                   `}
                                   >
                                     {reorder.status.charAt(0).toUpperCase() +
@@ -464,7 +479,7 @@ const Inventory = () => {
                   </DialogTitle>
                 </DialogHeader>
                 <AddProductForm
-                  onSuccess={() => {setIsAddProductOpen(false) ; fetchProducts()}}
+                  onSuccess={() => { setIsAddProductOpen(false); fetchProducts() }}
                   onAddProduct={handleAddProduct}
                 />
               </DialogContent>

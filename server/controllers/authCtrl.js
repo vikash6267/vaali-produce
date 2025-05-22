@@ -81,14 +81,18 @@ const loginCtrl = async (req, res) => {
     if (await bcrypt.compare(password, user.password)) {
       const token = jwt.sign(
         { email: user.email, id: user._id, role: user.role },
-        process.env.JWT_SECRET
+        process.env.JWT_SECRET,
+        { expiresIn: "2d" }
       );
+
 
       user.token = token;
       user.password = undefined;
       const options = {
+        expires: new Date(Date.now() + 2 * 1000), // 2 seconds
         httpOnly: true,
       };
+
       res.cookie("token", token, options).status(200).json({
         success: true,
         token,
@@ -279,9 +283,9 @@ const updateStoreCtrl = async (req, res) => {
 
     } = req.body;
 
-  
+
     const { id } = req.params;
- 
+
 
     if (!id) {
       return res.status(400).json({
@@ -365,7 +369,7 @@ const changePasswordCtrl = async (req, res) => {
   try {
     const userId = req.user.id;
     const { currentPassword, newPassword } = req.body;
-console.log(req.body)
+    console.log(req.body)
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
         success: false,
