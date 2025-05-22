@@ -366,7 +366,12 @@ if (endDate) {
       if (debouncedSearchQuery) {
         params.append("search", debouncedSearchQuery)
       }
-
+if (startDate) {
+  params.append("startDate", startDate)
+}
+if (endDate) {
+  params.append("endDate", endDate)
+}
       params.append("orderType", activeTab)
       const response = await getAllOrderAPI(token, params.toString())
 
