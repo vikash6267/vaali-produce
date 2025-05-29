@@ -15,7 +15,8 @@ const { CREATE_PRODUCT,
     GET_USERSTATEMENT,
     UPDATE_SHIPPING_COST,
     DASHBOARD_DATA,
-    PENDING_ORDER_DATA
+    PENDING_ORDER_DATA,
+    SEND_INVOICE_MAIL
 } = order
 
 
@@ -67,6 +68,44 @@ export const getOrderAPI = async (id,token) => {
         return [];
     }
 
+};
+export const senInvoiceAPI = async (id, token) => {
+    const toastId = toast.loading("Sending invoice...");
+
+    try {
+        const response = await apiConnector(
+            "POST",
+            `${SEND_INVOICE_MAIL}/${id}`,
+            {},
+            {
+                Authorization: `Bearer ${token}`,
+            }
+        );
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        toast.update(toastId, {
+            render: "Invoice sent successfully!",
+            type: "success",
+            isLoading: false,
+            autoClose: 3000,
+        });
+
+        return response?.data?.order || [];
+    } catch (error) {
+        console.error("POST SEND_INVOICE_MAIL API ERROR:", error);
+
+        toast.update(toastId, {
+            render: error?.response?.data?.message || "Failed to send invoice!",
+            type: "error",
+            isLoading: false,
+            autoClose: 3000,
+        });
+
+        return [];
+    }
 };
 
 export const getStatement = async (id,token) => {

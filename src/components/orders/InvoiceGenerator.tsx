@@ -41,7 +41,7 @@ import { Input } from "@/components/ui/input";
 import { exportInvoiceToPDF } from "@/utils/pdf";
 import { Badge } from "../ui/badge";
 // import { CreditCard, Cash } from 'lucide-react';  // Import icons from lucide-react
-import {updateOrderShippingAPI} from "@/services2/operations/order"
+import {updateOrderShippingAPI,senInvoiceAPI} from "@/services2/operations/order"
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 
@@ -155,11 +155,12 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
     // In a real app, this would generate and download a PDF
   };
 
-  const handleEmail = () => {
-    toast({
-      title: "Email sent",
-      description: `Invoice has been emailed to the client.`,
-    });
+  const handleEmail = async() => {
+    await senInvoiceAPI(order._id,token)
+    // toast({
+    //   title: "Email sent",
+    //   description: `Invoice has been emailed to the client.`,
+    // });
     // In a real app, this would send an email with the invoice
   };
 
@@ -624,7 +625,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
           )}
         </div>}
 
-        <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
+     { !showShipping &&  <DialogFooter className="flex flex-col sm:flex-row gap-2 mt-4">
           <div className="flex gap-2 flex-1">
             <Popover>
               <PopoverTrigger asChild>
@@ -698,7 +699,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
               <Share2 className="h-4 w-4" />
             </Button>
           </div>
-        </DialogFooter>
+        </DialogFooter>}
       </DialogContent>
     </Dialog>
   );

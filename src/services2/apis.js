@@ -74,6 +74,7 @@ export const order = {
   GET_USERSTATEMENT: BASE_URL + "/order/statement",
   DASHBOARD_DATA: BASE_URL + "/order/dashboard",
   PENDING_ORDER_DATA: BASE_URL + "/order/pending",
+  SEND_INVOICE_MAIL: BASE_URL + "/order/invoiceMail",
 
 }
 export const crm = {

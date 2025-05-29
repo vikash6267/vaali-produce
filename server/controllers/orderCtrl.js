@@ -3,8 +3,9 @@ const mongoose = require("mongoose");
 const authModel = require("../models/authModel");  // Ensure the correct path for your Auth model
 const { generateStatementPDF } = require("../utils/generateOrder");
 const nodemailer = require("nodemailer");
+const { exportInvoiceToPDFBackend } = require("../templates/exportInvoice");
 
-const mailSender = async (to, subject, text, pdfBase64) => {
+const mailSender = async (to, subject, text, pdfBase64,filename="Customer_Statement.pdf") => {
   try {
      let transporter = nodemailer.createTransport({
          host: process.env.MAIL_HOST,
@@ -22,7 +23,7 @@ const mailSender = async (to, subject, text, pdfBase64) => {
       text,
       attachments: [
         {
-          filename: "Customer_Statement.pdf",
+          filename: filename,
           content: Buffer.from(pdfBase64, "base64"),
           contentType: "application/pdf",
         },
@@ -1069,7 +1070,68 @@ const getDashboardData = async (req, res) => {
 
 
 
+const invoiceMailCtrl = async (req, res) => {
+    try {
+      const { id } = req.params;
+      const order = await orderModel.findById(id).populate("store");
 
+      console.log(order)
+    const responsePDF =   await exportInvoiceToPDFBackend({
+      id: order.orderNumber ,
+      clientId: order.store._id,
+      clientName: order.store.storeName,
+      shippinCost: order.shippinCost || 0,
+      date: order.createdAt,
+      shippingAddress: order?.shippingAddress,
+      billingAddress: order?.billingAddress,
+      status: order.status,
+      items: order.items,
+      total: order.total,
+      paymentStatus: order.paymentStatus || "pending",
+      subtotal: order.total,
+      store: order.store,
+      paymentDetails:order.paymentDetails || {}
+    }
+
+    )
+
+
+
+      // const customerEmail = "vikasmaheshwari6267@gmail.com" ;
+        const customerEmail =  order.store.email;
+        const subject = `Invoice #${order.orderNumber}`;
+        const message = `
+      Hi ,
+
+      Thank you for your order! Please find your invoice attached for your recent purchase with us.
+
+      🧾 Invoice Number: ${order.orderNumber}
+      📅 Date: ${new Date(order.createdAt).toLocaleDateString()}
+
+      We're awaiting the cheque/payment. Kindly update us on the status at your earliest convenience. If you have any questions or need assistance, feel free to reach out. We appreciate your business and look forward to serving you again!
+
+    Best regards,
+
+    Nada Saiyed
+    Sales Manager
+    Vali Produce LLC, Atlanta, GA
+    501-559-0123
+        `;
+
+        await mailSender(customerEmail, subject, message, responsePDF,'TEST');
+        console.log("Email sent successfully to:", customerEmail);
+
+
+      res.status(200).json({
+        success: true,
+        message: "Order type updated successfully",
+       
+      });
+    } catch (error) {
+      console.error("Error updating orderType:", error);
+      res.status(500).json({ success: false, message: "Internal Server Error" });
+    }
+  };
 
 
 
@@ -1147,7 +1209,8 @@ module.exports = {
     getUserOrderStatement,
     updateShippingController,
     getDashboardData,
-    getPendingOrders
+    getPendingOrders,
+    invoiceMailCtrl
      };
 
 
