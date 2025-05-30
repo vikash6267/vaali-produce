@@ -1118,7 +1118,7 @@ const invoiceMailCtrl = async (req, res) => {
     501-559-0123
         `;
 
-        await mailSender(customerEmail, subject, message, responsePDF,'TEST');
+        await mailSender(customerEmail, subject, message, responsePDF,`INVOICE- #${order.orderNumber}`)
         console.log("Email sent successfully to:", customerEmail);
 
 
