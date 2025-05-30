@@ -1,6 +1,7 @@
 const bcrypt = require("bcryptjs");
 const authModel = require("../models/authModel");
 const jwt = require("jsonwebtoken");
+const Order = require("../models/orderModle");
 
 
 
@@ -410,6 +411,43 @@ const changePasswordCtrl = async (req, res) => {
   }
 };
 
+const deleteStoreIfNoOrders = async (req, res) => {
+  try {
+    const storeId = req.params.id;
+console.log(storeId)
+    // Check if any order is associated with this store
+    const ordersCount = await Order.countDocuments({ store: storeId });
+
+    if (ordersCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete store. Orders are associated with this store.",
+      });
+    }
+
+    // Delete the store
+    const deletedStore = await authModel.findByIdAndDelete(storeId);
+
+    if (!deletedStore) {
+      return res.status(404).json({
+        success: false,
+        message: "Store not found.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Store deleted successfully.",
+    });
+  } catch (error) {
+    console.error("Error deleting store:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error while deleting store.",
+    });
+  }
+};
+
 
 module.exports = {
   registerCtrl,
@@ -421,5 +459,6 @@ module.exports = {
   updateStoreCtrl,
   getAllStoreCtrl,
   fetchMyProfile,
-  changePasswordCtrl
+  changePasswordCtrl,
+  deleteStoreIfNoOrders
 };

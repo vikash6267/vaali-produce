@@ -3,9 +3,11 @@
 import { Pencil, Trash2, ExternalLink } from 'lucide-react'
 import { useState } from "react"
 import { useToast } from "@/hooks/use-toast"
-import { userWithOrderDetails } from "@/services2/operations/auth"
+import { userWithOrderDetails ,deleteStoreAPI} from "@/services2/operations/auth"
 import UserDetailsModal from "./user-details-modal"
 import StoreEditModal from "./EditStoreModal"
+import { useSelector } from 'react-redux'
+import { RootState } from '@/redux/store'
 
 const StoreTable = ({ loading, groups, fetchStores }: any) => {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
@@ -13,19 +15,20 @@ const StoreTable = ({ loading, groups, fetchStores }: any) => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
   const { toast } = useToast()
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   const handleEdit = async (group) => {
     setSelectedStoreId(group?.id || group?._id)
     setIsEditModalOpen(true)
   }
 
-  const handleDelete = (id: any) => {
+  const handleDelete = async(id: any) => {
     // Implement delete functionality
-    toast({
-      title: "Delete functionality",
-      description: "This feature is not yet implemented",
-      variant: "destructive",
-    })
+const res = await deleteStoreAPI(id,token)
+if(res){
+
+  fetchStores()
+}
   }
 
   const fetchUserDetailsOrder = async (id: any) => {

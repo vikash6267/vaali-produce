@@ -14,7 +14,8 @@ const {
   GET_USER_API,
   FETCH_MY_PROFILE_API,
   UPDATE_PASSWORD_API,
-  USER_WITH_ORDER
+  USER_WITH_ORDER,
+  DELETE_STORE_API
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -334,6 +335,29 @@ console.log(response)
     toast.dismiss(toastId);
   }
 
+};
+
+export const deleteStoreAPI = async (id, token) => {
+  const toastId = toast.loading("Loading...");
+
+  try {
+    const response = await apiConnector("DELETE", `${DELETE_STORE_API}/${id}`, {}, {
+      Authorization: `Bearer ${token}`,
+    });
+
+    console.log(response);
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+    toast.success(response?.data?.message);
+    return true;
+  } catch (error) {
+    console.error("DELETE store API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to delete store!");
+    return false;
+  } finally {
+    toast.dismiss(toastId);
+  }
 };
 
 

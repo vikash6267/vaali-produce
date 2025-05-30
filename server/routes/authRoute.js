@@ -1,5 +1,5 @@
 const express = require("express")
-const { registerCtrl, loginCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl, getUserByEmailCtrl, fetchMyProfile, changePasswordCtrl } = require("../controllers/authCtrl")
+const { registerCtrl, loginCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl, getUserByEmailCtrl, fetchMyProfile, changePasswordCtrl, deleteStoreIfNoOrders } = require("../controllers/authCtrl")
 const { auth } = require("../middleware/auth")
 const router = express.Router()
 
@@ -12,6 +12,7 @@ router.get("/all-stores", getAllStoreCtrl)
 router.post("/user", getUserByEmailCtrl)
 router.put("/update/:id", updatePermitionCtrl)
 router.put("/update-store/:id", updateStoreCtrl)
+router.delete("/delete-store/:id", deleteStoreIfNoOrders)
 
 router.put("/update-password",auth, changePasswordCtrl)
 router.get("/fetchMyProfile",auth,fetchMyProfile )
