@@ -320,7 +320,7 @@ doc.text(formatCurrency(allTotal), PAGE_WIDTH - MARGIN, yPos + 4, { align: 'righ
   doc.setTextColor(150, 150, 150);
   doc.text('This is a computer-generated document. No signature is required.', PAGE_WIDTH / 2, footerY, { align: 'center' });
 
-  doc.save(`invoice-${order.id}.pdf`);
+  doc.save(`invoice-${order.id} ${order.billingAddress.name}.pdf`);
 
   return doc;
 };

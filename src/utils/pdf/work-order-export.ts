@@ -371,7 +371,7 @@ export const exportWorkOrderToPDF = (order, options, isPreview = false) => {
     return doc;
   }
 
-  doc.save(`work-order-${options.workOrderNumber}.pdf`);
+  doc.save(`${options.workOrderNumber} ${order.clientName}.pdf`);
 
   return doc;
 };
