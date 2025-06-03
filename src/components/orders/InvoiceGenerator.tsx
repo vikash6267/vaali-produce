@@ -131,6 +131,7 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
   
  
   const handleDownload = () => {
+    console.log(order)
     exportInvoiceToPDF({
       id: order.orderNumber as any,
       clientId: (order.store as any)._id,
