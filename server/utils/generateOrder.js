@@ -261,8 +261,14 @@ exports.generateStatementPDF = async (data) => {
 });
 
  
-     const finalY = (doc).lastAutoTable.finalY + 10
-     const boxHeight = 40
+let finalY = (doc).lastAutoTable.finalY + 10
+const boxHeight = 40
+
+// If not enough space for the box, add a new page
+if (finalY + boxHeight > PAGE_HEIGHT - MARGIN) {
+  doc.addPage()
+  finalY = MARGIN
+}
      const boxTop = PAGE_HEIGHT - boxHeight - MARGIN
      const boxLeft = MARGIN
      const boxWidth = PAGE_WIDTH - 2 * MARGIN
@@ -282,7 +288,7 @@ exports.generateStatementPDF = async (data) => {
      doc.text("Bank: SouthState Bank", boxLeft + 4, boxTop + 32)
  
      const fileName = `Statement_${customerName.replace(/\s+/g, "_")}_${agingDate.replace(/\//g, "-")}.pdf`
-     doc.save(fileName)
+    //  doc.save(fileName)
  
      const pdfBase64 = doc.output("datauristring").split(",")[1]
      return pdfBase64

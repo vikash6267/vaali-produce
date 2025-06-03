@@ -276,8 +276,14 @@ export const generateStatementPDF = async (data: StatementData) => {
       },
     })
 
-    const finalY = (doc as any).lastAutoTable.finalY + 10
-    const boxHeight = 40
+  let finalY = (doc as any).lastAutoTable.finalY + 10
+const boxHeight = 40
+
+// If not enough space for the box, add a new page
+if (finalY + boxHeight > PAGE_HEIGHT - MARGIN) {
+  doc.addPage()
+  finalY = MARGIN
+}
     const boxTop = PAGE_HEIGHT - boxHeight - MARGIN
     const boxLeft = MARGIN
     const boxWidth = PAGE_WIDTH - 2 * MARGIN
