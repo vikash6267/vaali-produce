@@ -9,7 +9,9 @@ const {
   GET_ALL_PURCHASE_ORDERS,
   GET_PURCHASE_ORDER,
   UPDATE_PURCHASE_ORDER,
-  DELETE_PURCHASE_ORDER,UPDATE_PURCHASE_QAULITY_ORDER
+  DELETE_PURCHASE_ORDER,
+  UPDATE_PURCHASE_QAULITY_ORDER,
+  PAYMENT_PURCHASE_ORDER
 } = purchaseOrder;
 
 // Create Purchase Order
@@ -140,3 +142,32 @@ export const deletePurchaseOrderAPI = async (id, token) => {
     toast.dismiss(toastId);
   }
 };
+
+export const updatePurchaseOrderPaymentAPI = async (formData, token, id) => {
+    const toastId = toast.loading("Updating payment...");
+  
+    try {
+      const response = await apiConnector(
+        "PUT",
+        `${PAYMENT_PURCHASE_ORDER}/${id}`,
+        formData, // ✅ Send formData directly, not wrapped inside an object
+        {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json", // 👈 Only if formData is a plain JS object
+        }
+      );
+  
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Something went wrong!");
+      }
+  
+      toast.success(response?.data?.message || "Payment updated successfully");
+      return response;
+    } catch (error) {
+      console.error("updateOrderPaymentAPI ERROR:", error);
+      toast.error(error?.response?.data?.message || "Payment update failed!");
+      return null;
+    } finally {
+      toast.dismiss(toastId);
+    }
+  };

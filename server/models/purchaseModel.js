@@ -1,5 +1,41 @@
 const mongoose = require('mongoose');
 
+
+
+
+
+
+
+
+const paymentDetailsSchema = new mongoose.Schema({
+  method: {
+    type: String,
+    enum: ["cash", "creditcard", "cheque"],
+    required: true,
+  },
+  transactionId: {
+    type: String,
+    required: function () {
+      return this.method === "creditcard";
+    }
+  },
+  notes: {
+    type: String,
+    required: function () {
+      return this.method === "cash" || this.method === "cheque";
+    }
+  },
+  paymentDate: {
+    type: Date,
+
+  }
+}, { _id: false });
+
+
+
+
+
+
 const purchaseItemSchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -20,24 +56,24 @@ const purchaseItemSchema = new mongoose.Schema({
   },
   qualityStatus: {
     type: String,
-    enum: ['approved', 'rejected',"pending"],
+    enum: ['approved', 'rejected', "pending"],
     default: 'pending',
   },
-  
+
   qualityNotes: {
     type: String,
     default: '',
   },
   batchNumber: {
     type: String,
-    
+
   },
   mediaUrls: {
     type: [String], // Array of strings
     default: []
   }
-  
-  
+
+
 });
 
 
@@ -51,8 +87,20 @@ const purchaseOrderSchema = new mongoose.Schema({
   purchaseDate: { type: Date, required: true },
   deliveryDate: { type: Date },
   notes: { type: String },
-  paymentStatus: { type: String },
-  status: { type: String ,default:"quality-check"},
+
+  paymentAmount: {
+    type: String,
+    default: 0,
+  },
+  paymentStatus: {
+    type: String,
+    default: "pending",
+  },
+  paymentDetails: {
+    type: paymentDetailsSchema,
+
+  },
+  status: { type: String, default: "quality-check" },
   totalAmount: { type: Number },
   items: [purchaseItemSchema],
 }, { timestamps: true });

@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/use-toast"
 import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import { updateOrderPaymentAPI } from "@/services2/operations/order"
+import { updatePurchaseOrderPaymentAPI } from "@/services2/operations/purchaseOrder"
 import type { Order } from "@/lib/data"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -33,6 +34,8 @@ interface PaymentStatusPopupProps {
   paymentOrder: Order
   orderId: string
   id: string
+  purchase?: boolean
+
   totalAmount: number
 }
 
@@ -50,6 +53,7 @@ export function PaymentStatusPopup({
   open,
   onOpenChange,
   orderId,
+  purchase=false,
   totalAmount,
   id,
   fetchOrders,
@@ -160,8 +164,13 @@ export function PaymentStatusPopup({
       }
 
       console.log(paymentData)
+if(purchase){
 
-      await updateOrderPaymentAPI(paymentData, token, id)
+  await updatePurchaseOrderPaymentAPI(paymentData, token, id)
+}else{
+
+  await updateOrderPaymentAPI(paymentData, token, id)
+}
 
       toast({
         title: "Payment status updated",
@@ -227,7 +236,7 @@ export function PaymentStatusPopup({
           </Card>
 
           {/* Payment Type Selection */}
-          <div className="space-y-2">
+       { !purchase &&   <div className="space-y-2">
             <Label className="text-sm font-medium">Payment Type</Label>
             <RadioGroup
               value={paymentType}
@@ -243,10 +252,10 @@ export function PaymentStatusPopup({
                 <Label htmlFor="partial">Partial Payment</Label>
               </div>
             </RadioGroup>
-          </div>
+          </div>}
 
           {/* Payment Amount */}
-          <div className="space-y-2">
+       {!purchase &&    <div className="space-y-2">
             <Label htmlFor="amount-paid" className="text-sm font-medium">
               Amount Paid
             </Label>
@@ -268,7 +277,7 @@ export function PaymentStatusPopup({
             {paymentType === "partial" && (
               <p className="text-xs text-muted-foreground">Amount must be less than ${totalAmount.toFixed(2)}</p>
             )}
-          </div>
+          </div>}
 
           {/* Payment Method */}
           <div className="space-y-2">

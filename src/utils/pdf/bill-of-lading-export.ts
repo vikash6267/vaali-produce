@@ -288,7 +288,7 @@ doc.addImage(logoUrl, "PNG", xCenter, 0, 0, 23);
     });
   }
 
-  doc.save(`bill-of-lading-${order.id}.pdf`);
+  doc.save(`bill-of-lading-${order.id} ${data.consigneeName}.pdf`);
 
   return doc;
 };

@@ -27,129 +27,8 @@ import {
 import { formatCurrency } from '@/utils/formatters';
 import { getReorders } from '@/data/reorderData';
 import {getAllPurchaseOrdersAPI} from "@/services2/operations/purchaseOrder"
+import { PaymentStatusPopup } from '../orders/PaymentUpdateModel';
 
-// Mock vendor data - would come from API in real implementation
-const mockVendors = [
-  {
-    id: 'v1',
-    name: 'Green Valley Farms',
-    type: 'farmer',
-    contactName: 'John Smith',
-    email: 'john@greenvalley.com',
-    phone: '555-123-4567',
-    products: ['Apples', 'Pears', 'Cherries'],
-    rating: 4,
-    activeStatus: 'active',
-    createdAt: '2025-01-15',
-  },
-  {
-    id: 'v2',
-    name: 'Organic Supply Co.',
-    type: 'distributor',
-    contactName: 'Mary Johnson',
-    email: 'mary@organicsupply.com',
-    phone: '555-987-6543',
-    products: ['Various Vegetables', 'Fruits'],
-    rating: 5,
-    activeStatus: 'active',
-    createdAt: '2025-02-10',
-  },
-  {
-    id: 'v3',
-    name: 'Fresh Produce Distributors',
-    type: 'supplier',
-    contactName: 'Robert Lee',
-    email: 'robert@fpd.com',
-    phone: '555-567-8901',
-    products: ['Tomatoes', 'Lettuce', 'Cucumbers'],
-    rating: 3,
-    activeStatus: 'inactive',
-    createdAt: '2024-11-20',
-  }
-];
-
-// // Mock data - would come from API in real implementation
-// const purchaseOrders = [
-//   {
-//     id: 'p1',
-//     vendorId: 'v1',
-//     vendorName: 'Green Valley Farms',
-//     date: '2025-04-01',
-//     status: 'quality-check',
-//     items: [
-//       {
-//         productId: 'prod1',
-//         productName: 'Organic Apples',
-//         quantity: 200,
-//         unit: 'lb',
-//         unitPrice: 1.25,
-//         totalPrice: 250,
-//         qualityStatus: 'pending'
-//       },
-//       {
-//         productId: 'prod2',
-//         productName: 'Pears',
-//         quantity: 150,
-//         unit: 'lb',
-//         unitPrice: 1.50,
-//         totalPrice: 225,
-//         qualityStatus: 'pending'
-//       }
-//     ],
-//     totalAmount: 475,
-//     purchaseOrderNumber: 'PO-2025-001',
-//     deliveryDate: '2025-04-03',
-//     invoiceUploaded: false,
-//     paymentStatus: 'pending'
-//   },
-//   {
-//     id: 'p2',
-//     vendorId: 'v2',
-//     vendorName: 'Organic Supply Co.',
-//     date: '2025-03-28',
-//     status: 'approved',
-//     items: [
-//       {
-//         productId: 'prod3',
-//         productName: 'Organic Tomatoes',
-//         quantity: 100,
-//         unit: 'lb',
-//         unitPrice: 2.00,
-//         totalPrice: 200,
-//         qualityStatus: 'approved'
-//       }
-//     ],
-//     totalAmount: 200,
-//     purchaseOrderNumber: 'PO-2025-002',
-//     deliveryDate: '2025-03-30',
-//     invoiceUploaded: true,
-//     paymentStatus: 'pending'
-//   },
-//   {
-//     id: 'p3',
-//     vendorId: 'v3',
-//     vendorName: 'Fresh Produce Distributors',
-//     date: '2025-03-25',
-//     status: 'rejected',
-//     items: [
-//       {
-//         productId: 'prod4',
-//         productName: 'Lettuce',
-//         quantity: 50,
-//         unit: 'boxes',
-//         unitPrice: 5.00,
-//         totalPrice: 250,
-//         qualityStatus: 'rejected',
-//         qualityNotes: 'Excessive wilting, poor quality'
-//       }
-//     ],
-//     totalAmount: 250,
-//     purchaseOrderNumber: 'PO-2025-003',
-//     deliveryDate: '2025-03-27',
-//     invoiceUploaded: false,
-//     paymentStatus: 'not-required'
-//   }
-// ];
 
 // Get reorder suggestions based on low inventory
 const getReorderSuggestions = () => {
@@ -167,6 +46,12 @@ const PurchasesList = () => {
   const [showReorderSuggestions, setShowReorderSuggestions] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
 
+  // PAYMENT MODEL
+  const [open, setOpen] = useState(false)
+  const [orderId, setOrderId] = useState("")
+  const [paymentOrder, setpaymentOrder] = useState<any>(null)
+  const [orderIdDB, setOrderIdDB] = useState("")
+  const [totalAmount, setTotalAmount] = useState(0)
 
   const fetchPurchase = async () => {
   
@@ -319,13 +204,26 @@ const PurchasesList = () => {
                       {purchase.purchaseOrderNumber}
                     </TableCell>
                     <TableCell>{purchase.vendorName}</TableCell>
-                    <TableCell>{new Date(purchase.date).toLocaleDateString()}</TableCell>
+                    <TableCell>{new Date(purchase.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{formatCurrency(purchase.totalAmount)}</TableCell>
                     <TableCell>
                       {getStatusBadge(purchase.status)}
                     </TableCell>
                     <TableCell>
                       {getPaymentStatusBadge(purchase.paymentStatus)}
+                      <button
+                          onClick={() => {
+                            setOrderId(purchase.purchaseOrderNumber)
+                            setOpen(true)
+                            setTotalAmount(purchase.totalAmount)
+                            setOrderIdDB(purchase?._id || purchase?.id)
+                            setpaymentOrder(purchase)
+                          }}
+                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                        >
+                          {purchase.paymentStatus === "pending" ? "Pay Now" : "Edit"}
+                        </button>
+
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
@@ -394,47 +292,7 @@ const PurchasesList = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {reorderSuggestions.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No reorder suggestions at this time.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  reorderSuggestions.map((product) => {
-                    const suggestedVendorNames = product.suggestedVendors.map(
-                      vendorId => mockVendors.find(v => v.id === vendorId)?.name || 'Unknown'
-                    ).join(', ');
-                    
-                    return (
-                      <TableRow key={product.id} className="bg-yellow-50">
-                        <TableCell className="font-medium">
-                          <div className="flex items-center">
-                            <AlertTriangle className="h-4 w-4 text-amber-500 mr-2" />
-                            {product.name}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-white">
-                            {product.quantity} {product.unit}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="bg-white">
-                            {product.threshold} {product.unit}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{suggestedVendorNames}</TableCell>
-                        <TableCell>
-                          <Button size="sm" onClick={() => handleCreateReorder(product)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            Reorder
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
+            
               </TableBody>
             </Table>
           </CardContent>
@@ -506,6 +364,17 @@ const PurchasesList = () => {
           </Table>
         </CardContent>
       </Card>
+      <PaymentStatusPopup
+              open={open}
+              onOpenChange={setOpen}
+              orderId={orderId}
+              totalAmount={totalAmount}
+              id={orderIdDB}
+              fetchOrders={fetchPurchase}
+              onPayment={()=>console.log("ONPAYMENT")}
+              paymentOrder={paymentOrder}
+              purchase={true}
+            />
     </div>
   );
 };

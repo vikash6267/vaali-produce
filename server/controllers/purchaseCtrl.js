@@ -45,6 +45,7 @@ exports.getAllPurchaseOrders = async (req, res) => {
 };
 
 
+
 exports.getSinglePurchaseOrder = async (req, res) => {
     try {
         const { id } = req.params;
@@ -152,5 +153,77 @@ exports.updateItemQualityStatus = async (req, res) => {
     } catch (error) {
       console.error("Error in bulk quality update:", error);
       res.status(500).json({ success: false, message: "Internal server error", error });
+    }
+  };
+
+
+exports.updatePaymentDetailsPurchase = async (req, res) => {
+    const { orderId } = req.params;
+    const { method, transactionId, notes, paymentType, amountPaid } = req.body;
+  
+    console.log(req.body);
+  
+    try {
+      // Check for valid method
+      if (!["cash", "creditcard", "cheque"].includes(method)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid payment method. Allowed: 'cash' or 'creditcard'",
+        });
+      }
+  
+      // Validate based on method
+      if (method === "creditcard" && !transactionId) {
+        return res.status(400).json({
+          success: false,
+          message: "Transaction ID is required for credit card payments",
+        });
+      }
+  
+      if (method === "cash" && !notes) {
+        return res.status(400).json({
+          success: false,
+          message: "Notes are required for cash payments",
+        });
+      }
+  
+      // Prepare paymentDetails object
+      const paymentDetails = {
+        method,
+        ...(method === "creditcard" ? { transactionId } : {}),
+        ...(method === "cash" ? { notes } : {}),
+        ...(method === "cheque" ? { notes } : {}),
+        paymentDate: new Date(), // Yaha backend me hi current date daal do
+      };
+  
+      const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
+        orderId,
+        {
+          paymentDetails,
+          paymentStatus: paymentType === "full" ? "paid" : "partial",
+          paymentAmount: amountPaid,
+        },
+        { new: true }
+      );
+  
+      if (!updatedOrder) {
+        return res.status(404).json({
+          success: false,
+          message: "Order not found",
+        });
+      }
+  
+      return res.status(200).json({
+        success: true,
+        message: "Payment details updated successfully",
+        data: updatedOrder,
+      });
+    } catch (error) {
+      console.error("Error updating payment details:", error);
+      return res.status(500).json({
+        success: false,
+        message: "Internal server error",
+        error: error.message,
+      });
     }
   };

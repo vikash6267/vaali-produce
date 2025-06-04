@@ -5,7 +5,8 @@ const {
   getAllPurchaseOrders,
   getSinglePurchaseOrder,
   updatePurchaseOrder,
-  deletePurchaseOrder,updateItemQualityStatus
+  deletePurchaseOrder,updateItemQualityStatus,
+  updatePaymentDetailsPurchase
 } = require("../controllers/purchaseCtrl");
 
 const router = express.Router();
@@ -16,5 +17,6 @@ router.get("/get/:id", getSinglePurchaseOrder);
 router.put("/update/:id", updatePurchaseOrder);
 router.delete("/delete/:id", deletePurchaseOrder);
 router.put("/update-quality/:purchaseOrderId", updateItemQualityStatus);
+router.put("/update-payment/:orderId", updatePaymentDetailsPurchase);
 
 module.exports = router;
