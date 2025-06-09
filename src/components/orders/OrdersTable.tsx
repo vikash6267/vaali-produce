@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DropdownMenu,
@@ -41,6 +41,7 @@ import {
   ShoppingBag,
   DollarSign,
   BarChart,
+  CreditCard,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -68,14 +69,13 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarDays } from "lucide-react";
 import DateFilterDialog from "./DateFilterPopup"
 import { userWithOrderDetails } from "@/services2/operations/auth"
 import UserDetailsModal from "../admin/user-details-modal"
-import { CSVLink } from "react-csv";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { CSVLink } from "react-csv"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@radix-ui/react-progress"
-
+import CreditMemoForm from "./credit-memo-form" // Import the new component
 
 interface OrdersTableProps {
   orders: Order[]
@@ -98,6 +98,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [isInvoiceOpen, setIsInvoiceOpen] = useState(false)
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false)
   const [isTransportReceiptOpen, setIsTransportReceiptOpen] = useState(false)
+  const [isCreditMemoOpen, setIsCreditMemoOpen] = useState(false) // Added state for Credit Memo
   const navigate = useNavigate()
   const user = useSelector((state: RootState) => state.auth?.user ?? null)
   const [workOrderDialogOrder, setWorkOrderDialogOrder] = useState<Order | null>(null)
@@ -123,8 +124,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusOrderId, setStatusOrderId] = useState("")
   const [statusOrder, setStatusOrder] = useState<Order | null>(null)
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
   const [selectedUserData, setSelectedUserData] = useState(null)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
   const [exportData, setExportData] = useState([])
@@ -133,16 +134,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [summary, setSummary] = useState(null)
   const csvLinkRef = useRef(null)
 
-
-
-
-  
-
-
   const handleResetDates = () => {
-    setStartDate("");
-    setEndDate("");
-  };
+    setStartDate("")
+    setEndDate("")
+  }
+
   // Debounce search query
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,7 +181,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             ...order,
           })),
         )
-setSummary(response.summary)
+        setSummary(response.summary)
         setTotalOrders(response.totalOrders || response.orders.length)
         setTotalPages(Math.ceil((response.totalOrders || response.orders.length) / pageSize))
       } else {
@@ -207,7 +203,6 @@ setSummary(response.summary)
   // Fetch orders when page, pageSize, search query or tab changes
   useEffect(() => {
     fetchOrders()
-
   }, [currentPage, pageSize, debouncedSearchQuery, activeTab, token, paymentFilter, endDate, startDate])
 
   useEffect(() => {
@@ -270,6 +265,12 @@ setSummary(response.summary)
     setIsTransportReceiptOpen(true)
   }
 
+  // Added Credit Memo handler
+  const handleCreateCreditMemo = (order: Order) => {
+    setSelectedOrder(order)
+    setIsCreditMemoOpen(true)
+  }
+
   const handleCreateDocument = (order: Order, docType: string) => {
     setSelectedOrder(order)
 
@@ -279,6 +280,9 @@ setSummary(response.summary)
         break
       case "transport":
         setIsTransportReceiptOpen(true)
+        break
+      case "credit_memo": // Added credit memo case
+        setIsCreditMemoOpen(true)
         break
       default:
         toast({
@@ -373,6 +377,30 @@ setSummary(response.summary)
           setTimeout(() => setSelectedOrder(null), 300)
         }}
         onViewClientProfile={() => selectedOrder.clientId && handleViewClientProfile(selectedOrder.clientId)}
+      />
+    )
+  }
+
+  // Added Credit Memo renderer
+  const renderCreditMemoForm = () => {
+    if (!selectedOrder) return null
+
+    return (
+      <CreditMemoForm
+        open={isCreditMemoOpen}
+        onClose={() => {
+          setIsCreditMemoOpen(false)
+          setTimeout(() => setSelectedOrder(null), 300)
+        }}
+        order={selectedOrder}
+        token={token}
+        onSuccess={() => {
+          fetchOrders()
+          toast({
+            title: "Success",
+            description: "Credit memo created successfully",
+          })
+        }}
       />
     )
   }
@@ -610,7 +638,6 @@ setSummary(response.summary)
     }
   }
 
-
   const handleExportClick = async () => {
     if (csvReady) {
       csvLinkRef.current.link.click() // Auto trigger CSV download
@@ -661,10 +688,9 @@ setSummary(response.summary)
       setIsPreparing(false)
     }
   }
-const receivedPercentage =
-  summary && summary.totalAmount > 0
-    ? Math.round((summary.totalReceived / summary.totalAmount) * 100)
-    : 0;
+
+  const receivedPercentage =
+    summary && summary.totalAmount > 0 ? Math.round((summary.totalReceived / summary.totalAmount) * 100) : 0
 
   return (
     <div className="space-y-4 animate-slide-up">
@@ -678,9 +704,6 @@ const receivedPercentage =
             className="pl-9"
           />
         </div>
-
-
-
 
         <div className="flex gap-2">
           <select
@@ -714,68 +737,67 @@ const receivedPercentage =
           )}
         </div>
       </div>
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        {/* Total Orders */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+            <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{summary?.totalOrders.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">All time orders</p>
+          </CardContent>
+        </Card>
 
+        {/* Total Amount */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              ${summary?.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <p className="text-xs text-muted-foreground">All time sales</p>
+          </CardContent>
+        </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-  {/* Total Orders */}
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
-      <ShoppingBag className="h-4 w-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">{summary?.totalOrders.toLocaleString()}</div>
-      <p className="text-xs text-muted-foreground">All time orders</p>
-    </CardContent>
-  </Card>
-
-
-
-  {/* Total Amount */}
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
-      <DollarSign className="h-4 w-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">
-        ${summary?.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        {/* Received Amount */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Received Amount</CardTitle>
+            <BarChart className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              $
+              {summary?.totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            </div>
+            <div className="mt-2 space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">{receivedPercentage}% of total</span>
+                <span className="text-muted-foreground">
+                  $
+                  {summary?.totalPending.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}{" "}
+                  pending
+                </span>
+              </div>
+              <Progress value={receivedPercentage} className="h-1" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
-      <p className="text-xs text-muted-foreground">All time sales</p>
-    </CardContent>
-  </Card>
-
-  {/* Received Amount */}
-  <Card>
-    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">Received Amount</CardTitle>
-      <BarChart className="h-4 w-4 text-muted-foreground" />
-    </CardHeader>
-    <CardContent>
-      <div className="text-2xl font-bold">
-        ${summary?.totalReceived.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-      </div>
-      <div className="mt-2 space-y-1">
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-muted-foreground">{receivedPercentage}% of total</span>
-          <span className="text-muted-foreground">
-            ${summary?.totalPending.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} pending
-          </span>
-        </div>
-        <Progress value={receivedPercentage} className="h-1" />
-      </div>
-    </CardContent>
-  </Card>
-
-
-</div>
-
-
       <div className="flex justify-between items-center border-b">
         <div className="flex gap-2">
           <button
-            className={`px-4 py-2 font-medium ${activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-              }`}
+            className={`px-4 py-2 font-medium ${
+              activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+            }`}
             onClick={() => {
               setActiveTab("Regural")
               setCurrentPage(1)
@@ -784,8 +806,9 @@ const receivedPercentage =
             Regular Orders
           </button>
           <button
-            className={`px-4 py-2 font-medium ${activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-              }`}
+            className={`px-4 py-2 font-medium ${
+              activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+            }`}
             onClick={() => {
               setActiveTab("NextWeek")
               setCurrentPage(1)
@@ -795,12 +818,7 @@ const receivedPercentage =
           </button>
         </div>
         <div className="flex gap-2 mb-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => handleDownloadAllOrders(activeTab)}
-            disabled={loading}
-          >
+          <Button size="sm" variant="outline" onClick={() => handleDownloadAllOrders(activeTab)} disabled={loading}>
             <Download size={16} className="mr-2" />
             All Orders
           </Button>
@@ -808,8 +826,9 @@ const receivedPercentage =
           <button
             onClick={handleExportClick}
             disabled={isPreparing}
-            className={`px-4 py-2 rounded text-white text-sm ${isPreparing ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-              } transition`}
+            className={`px-4 py-2 rounded text-white text-sm ${
+              isPreparing ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+            } transition`}
           >
             {isPreparing ? "Preparing..." : "Download CSV"}
           </button>
@@ -821,9 +840,6 @@ const receivedPercentage =
             ref={csvLinkRef}
           />
         </div>
-
-
-
       </div>
       <OrderDetailsModal
         order={selectedOrder}
@@ -831,7 +847,6 @@ const receivedPercentage =
         onClose={() => setIsDetailsModalOpen(false)}
         userRole={user.role}
       />
-
       <div className="rounded-md border bg-white">
         <Table>
           <TableHeader>
@@ -872,11 +887,11 @@ const receivedPercentage =
                   <TableCell>
                     <div className="flex items-center">
                       <button
-
                         className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline"
-                        onClick={() => { order.clientId && handleViewClientProfile(order.clientId); fetchUserDetailsOrder(order?.store?._id) }}
-
-
+                        onClick={() => {
+                          order.clientId && handleViewClientProfile(order.clientId)
+                          fetchUserDetailsOrder(order?.store?._id)
+                        }}
                       >
                         {order.clientName}
                       </button>
@@ -895,17 +910,19 @@ const receivedPercentage =
                         <span className="capitalize">{order.status}</span>
                       </div>
 
-                      {order.status !== "delivered" && <button
-                        onClick={() => {
-                          setStatusOrderId(order.orderNumber)
-                          setStatusOpen(true)
-                          setStatusOrder(order)
-                          setOrderIdDB(order?._id || order?.id)
-                        }}
-                        className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                      >
-                        Change Status
-                      </button>}
+                      {order.status !== "delivered" && (
+                        <button
+                          onClick={() => {
+                            setStatusOrderId(order.orderNumber)
+                            setStatusOpen(true)
+                            setStatusOrder(order)
+                            setOrderIdDB(order?._id || order?.id)
+                          }}
+                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                        >
+                          Change Status
+                        </button>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -986,6 +1003,11 @@ const receivedPercentage =
                               <FileSpreadsheet size={14} className="mr-2" />
                               Invoice
                             </DropdownMenuItem>
+                            {/* Added Credit Memo option */}
+                            {/* <DropdownMenuItem onClick={() => handleCreateDocument(order, "credit_memo")}>
+                              <CreditCard size={14} className="mr-2" />
+                              Credit Memo
+                            </DropdownMenuItem> */}
                             {(!order.orderType || order.orderType === "Regural") && (
                               <>
                                 <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
@@ -1028,7 +1050,6 @@ const receivedPercentage =
           </TableBody>
         </Table>
       </div>
-
       {/* Pagination */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-4 py-4 px-2 bg-white rounded-xl shadow-sm border border-muted">
         {/* Showing Results Text */}
@@ -1089,10 +1110,9 @@ const receivedPercentage =
           </Pagination>
         </div>
       </div>
-
       {renderInvoiceGenerator()}
       {renderTransportationReceipt()}
-
+      {renderCreditMemoForm()} {/* Added Credit Memo renderer */}
       {selectedOrder && isEditDialogOpen && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent className="max-w-4xl">
@@ -1105,7 +1125,6 @@ const receivedPercentage =
           </DialogContent>
         </Dialog>
       )}
-
       <Dialog open={!!workOrderDialogOrder} onOpenChange={(open) => !open && setWorkOrderDialogOrder(null)}>
         <DialogContent className="max-w-4xl p-0">
           {workOrderDialogOrder && (
@@ -1113,7 +1132,6 @@ const receivedPercentage =
           )}
         </DialogContent>
       </Dialog>
-
       <PaymentStatusPopup
         open={open}
         onOpenChange={setOpen}
@@ -1251,7 +1269,6 @@ export const StatusUpdatePopup = ({
           </form>
         </div>
       </DialogContent>
-
     </Dialog>
   )
 }

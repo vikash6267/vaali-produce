@@ -303,7 +303,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       shippinCost: calculateShipping(),
       store: selectedStore.value,
       billingAddress,
-      orderNumber :ONo,
+      // orderNumber :ONo,
 
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
     }

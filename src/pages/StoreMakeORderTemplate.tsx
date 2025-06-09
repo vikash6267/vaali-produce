@@ -337,7 +337,7 @@ console.log(ONo)
       store: selectedStore.value,
       billingAddress,
       orderType:nextWeek ? "NextWeek" :"Regural",
-      orderNumber :ONo,
+      // orderNumber :ONo,
 
       shippingAddress: nextWeek ? billingAddress : sameAsBilling ? billingAddress : shippingAddress,
     }

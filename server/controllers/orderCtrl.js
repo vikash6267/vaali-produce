@@ -4,6 +4,7 @@ const authModel = require("../models/authModel"); // Ensure the correct path for
 const { generateStatementPDF } = require("../utils/generateOrder");
 const nodemailer = require("nodemailer");
 const { exportInvoiceToPDFBackend } = require("../templates/exportInvoice");
+const Counter = require("../models/counterModel");
 
 const mailSender = async (
   to,
@@ -41,6 +42,18 @@ const mailSender = async (
   } catch (err) {
     console.error("Email sending failed:", err);
   }
+};
+
+
+const getNextOrderNumber = async () => {
+  const counter = await Counter.findByIdAndUpdate(
+    { _id: "order" },
+    { $inc: { seq: 1 } },
+    { new: true, upsert: true }
+  );
+
+  const paddedSeq = String(counter.seq).padStart(5, "0"); // 00101, 00102...
+  return `N-${paddedSeq}`;
 };
 
 const createOrderCtrl = async (req, res) => {
@@ -117,7 +130,7 @@ const createOrderCtrl = async (req, res) => {
     }
 
     const newOrder = new orderModel({
-      orderNumber: orderNumber ? orderNumber : generateOrderNumber(),
+      orderNumber: orderNumber ? orderNumber : await getNextOrderNumber(),
       items,
       store: clientId.value,
       status,

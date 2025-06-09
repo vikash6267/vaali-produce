@@ -145,7 +145,7 @@ const NewOrder = () => {
     console.log(calculateTotal()); // Call the function to get the result
 
     const order = {
-      orderNumber: orderNumber || `${Math.floor(Math.random() * 10000).toString().padStart(4, "0")}`,
+      orderNumber: orderNumber || null,
       createdAt: createdAt ? new Date(createdAt).toISOString() : new Date().toISOString(),
       date: createdAt ? new Date(createdAt).toISOString() : new Date().toISOString(),
       clientId: { value: data?.store },
