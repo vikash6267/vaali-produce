@@ -91,6 +91,8 @@ const getPaymentStatusClass = (status: string) => {
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onClose, userRole }) => {
   if (!order) return null;
 
+  const totalQuantity = order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+
   console.log(order)
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -215,10 +217,15 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
 
         {/* Order Summary */}
         <div className="mt-4 space-y-2">
+           <div className="flex justify-between">
+            <span className="text-muted-foreground">Total Quantity</span>
+            <span>{totalQuantity}</span>
+          </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Subtotal</span>
             <span>{formatCurrency((order.subtotal || order.total) - order.shippinCost)}</span>
           </div>
+         
           <div className="flex justify-between">
             <span className="text-muted-foreground">Shipping Cost</span>
             <span>{formatCurrency( order.shippinCost)}</span>
