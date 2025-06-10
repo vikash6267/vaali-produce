@@ -141,5 +141,6 @@ export const purchaseOrder = {
 
 export const creditmemos = {
   CREATE_CREDIT_MEMO: BASE_URL + "/credit-memo/create",
+  GET_CREDIT_MEMO_BY_ID: BASE_URL + "/credit-memo/by-order",
 
 }

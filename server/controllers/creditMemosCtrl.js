@@ -14,7 +14,7 @@ const cloudinary = require("cloudinary").v2
 exports.createCreditMemo = async (req, res) => {
   try {
     const { files, body } = req;
-
+console.log(files)
     // Parse credit memo data
     const creditMemoData = JSON.parse(body.creditMemoData);
     const creditItems = [];
@@ -47,8 +47,9 @@ exports.createCreditMemo = async (req, res) => {
 
       creditItems.push({
         ...itemData,
-        files: uploadedFiles,
+        uploadedFiles: uploadedFiles,
       });
+      console.log(uploadedFiles)
     }
 
     // Save credit memo
@@ -76,7 +77,7 @@ exports.createCreditMemo = async (req, res) => {
       if (!Array.isArray(order.creditMemos)) {
         order.creditMemos = [];
       }
-      order.creditMemos.push(newCreditMemo._id);
+      order.creditMemos = newCreditMemo._id;
       await order.save();
     }
 
@@ -194,5 +195,42 @@ exports.deleteCreditMemo = async (req, res) => {
   } catch (error) {
     console.error("Error deleting credit memo:", error);
     return res.status(500).json({ error: "Server error" });
+  }
+};
+
+exports.getCreditMemosByOrderId = async (req, res) => {
+  const { orderId } = req.params;
+
+  if (!orderId) {
+    return res.status(400).json({
+      success: false,
+      message: "Order ID is required",
+    });
+  }
+
+  try {
+    const creditMemos = await CreditMemo.find({ orderId })
+      .populate("customerId", "name email phone") // optional: include customer info
+      .sort({ createdAt: -1 });
+
+    if (!creditMemos.length) {
+      return res.status(404).json({
+        success: false,
+        message: "No credit memos found for this order ID",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Credit memos fetched successfully!",
+      creditMemos,
+    });
+  } catch (error) {
+    console.error("Error fetching credit memos by orderId:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching credit memos",
+      error: error.message,
+    });
   }
 };

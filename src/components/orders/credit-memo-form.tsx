@@ -67,13 +67,19 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
     const existingItem = creditItems.find((ci) => ci.productId === item.product)
 
     if (existingItem) {
-      setCreditItems(
-        creditItems.map((ci) =>
+      setCreditItems((prevItems) => {
+        const updatedItems = prevItems.map((ci) =>
           ci.productId === item.product
             ? { ...ci, quantity: ci.quantity + 1, total: (ci.quantity + 1) * ci.unitPrice }
             : ci,
-        ),
-      )
+        )
+
+        // Calculate total immediately with updated items
+        const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
+        setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
+
+        return updatedItems
+      })
     } else {
       const newItem: CreditMemoItem = {
         productId: item.product || item.productId,
@@ -85,10 +91,17 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         uploadedFiles: [],
         notes: "",
       }
-      setCreditItems([...creditItems, newItem])
-    }
 
-    updateTotalAmount()
+      setCreditItems((prevItems) => {
+        const updatedItems = [...prevItems, newItem]
+
+        // Calculate total immediately with updated items
+        const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
+        setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
+
+        return updatedItems
+      })
+    }
   }
 
   // Remove item from credit memo
@@ -101,18 +114,30 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
       })
     }
 
-    setCreditItems(creditItems.filter((item) => item.productId !== productId))
-    updateTotalAmount()
+    setCreditItems((prevItems) => {
+      const updatedItems = prevItems.filter((item) => item.productId !== productId)
+
+      // Calculate total immediately with updated items
+      const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
+      setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
+
+      return updatedItems
+    })
   }
 
   // Update item quantity
   const updateItemQuantity = (productId: string, quantity: number) => {
-    setCreditItems(
-      creditItems.map((item) =>
+    setCreditItems((prevItems) => {
+      const updatedItems = prevItems.map((item) =>
         item.productId === productId ? { ...item, quantity, total: quantity * item.unitPrice } : item,
-      ),
-    )
-    updateTotalAmount()
+      )
+
+      // Calculate total immediately with updated items
+      const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
+      setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
+
+      return updatedItems
+    })
   }
 
   // Update item reason
@@ -205,11 +230,11 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
     setPreviewOpen(true)
   }
 
-  // Calculate total amount
-  const updateTotalAmount = () => {
-    const total = creditItems.reduce((sum, item) => sum + item.total, 0)
-    setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
-  }
+  // Remove this function entirely as it's no longer needed
+  // const updateTotalAmount = () => {
+  //   const total = creditItems.reduce((sum, item) => sum + item.total, 0)
+  //   setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
+  // }
 
   // Check if reason requires file upload
   const reasonRequiresUpload = (reason: string) => {
@@ -316,9 +341,9 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         })
       })
 
-
-const response = await createCreditMemoAPI(formData)
       // API call to save credit memo with files
+      const response = await createCreditMemoAPI(formData)
+
       // const response = await fetch("/api/credit-memos", {
       //   method: "POST",
       //   headers: {
@@ -353,8 +378,8 @@ const response = await createCreditMemoAPI(formData)
       exportCreditMemoToPDF(creditMemoForPDF)
       setPdfGenerated(true)
 
-      // onSuccess?.()
-      // onClose()
+      onSuccess?.()
+      onClose()
 
       // Clean up file URLs
       creditItems.forEach((item) => {
@@ -364,15 +389,15 @@ const response = await createCreditMemoAPI(formData)
       })
 
       // Reset form
-      // setCreditMemoData({
-      //   creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
-      //   date: new Date().toISOString().split("T")[0],
-      //   reason: "",
-      //   notes: "",
-      //   refundMethod: "store_credit",
-      //   totalAmount: 0,
-      // })
-      // setCreditItems([])
+      setCreditMemoData({
+        creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
+        date: new Date().toISOString().split("T")[0],
+        reason: "",
+        notes: "",
+        refundMethod: "store_credit",
+        totalAmount: 0,
+      })
+      setCreditItems([])
     } catch (error) {
       console.error("Error creating credit memo:", error)
       toast({

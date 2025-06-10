@@ -42,6 +42,8 @@ import {
   DollarSign,
   BarChart,
   CreditCard,
+  Badge,
+  Eye,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -76,6 +78,7 @@ import { CSVLink } from "react-csv"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Progress } from "@radix-ui/react-progress"
 import CreditMemoForm from "./credit-memo-form" // Import the new component
+import CreditMemoList from "./CreditMemoList"
 
 interface OrdersTableProps {
   orders: Order[]
@@ -141,6 +144,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [csvReady, setCsvReady] = useState(false)
   const [summary, setSummary] = useState(null)
   const csvLinkRef = useRef(null)
+
+
+
+  // CREDIT MEMO
+  const [isCreditMemoListOpen, setIsCreditMemoListOpen] = useState(false) 
 
   const handleResetDates = () => {
     setStartDate("")
@@ -413,6 +421,27 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     )
   }
 
+   const renderCreditMemoList = () => {
+    if (!selectedOrder) return null
+
+    return (
+      <CreditMemoList
+        open={isCreditMemoListOpen}
+        onClose={() => {
+          setIsCreditMemoListOpen(false)
+          setTimeout(() => setSelectedOrder(null), 300)
+        }}
+        order={selectedOrder}
+        token={token}
+      />
+    )
+  }
+ const handleViewCreditMemos = (order: Order) => {
+    setSelectedOrder(order)
+    setIsCreditMemoListOpen(true)
+  }
+
+  
   const handleDownloadAllOrders = async (type: string) => {
     setLoading(true)
     try {
@@ -700,6 +729,16 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const receivedPercentage =
     summary && summary.totalAmount > 0 ? Math.round((summary.totalReceived / summary.totalAmount) * 100) : 0
 
+
+
+  const [orderCreditMemos, setOrderCreditMemos] = useState<{ [orderId: string]: number }>({})
+
+     const getCreditMemoCount = (orderId: string) => {
+    return orderCreditMemos[orderId] || 0
+  }
+
+
+  
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -874,78 +913,80 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+       <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-10">
+                <TableCell colSpan={9} className="text-center py-10">
                   <RefreshCw size={24} className="animate-spin mx-auto" />
                   <p className="mt-2 text-muted-foreground">Loading orders...</p>
                 </TableCell>
               </TableRow>
             ) : orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                   No orders found
                 </TableCell>
               </TableRow>
             ) : (
-              orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-medium">{order.id}</TableCell>
-                  <TableCell>
-                    <div className="flex items-center">
-                      <button
-                        className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline"
-                        onClick={() => {
-                          order.clientId && handleViewClientProfile(order.clientId)
-                          fetchUserDetailsOrder(order?.store?._id)
-                        }}
-                      >
-                        {order.clientName}
-                      </button>
-                    </div>
-                  </TableCell>
-                  <TableCell>{formatDate(order.date)}</TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                      <div
-                        className={cn(
-                          "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
-                          getStatusClass(order.status),
-                        )}
-                      >
-                        {getStatusIcon(order.status)}
-                        <span className="capitalize">{order.status}</span>
-                      </div>
+              orders.map((order) => {
+                const creditMemoCount = getCreditMemoCount(order._id || order.id)
 
-                      {order.status !== "delivered" && (
+                return (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">{order.id}</TableCell>
+                    <TableCell>
+                      <div className="flex items-center">
                         <button
+                          className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline"
                           onClick={() => {
-                            setStatusOrderId(order.orderNumber)
-                            setStatusOpen(true)
-                            setStatusOrder(order)
-                            setOrderIdDB(order?._id || order?.id)
+                            order.clientId && handleViewClientProfile(order.clientId)
+                            fetchUserDetailsOrder(order?.store?._id)
                           }}
-                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
                         >
-                          Change Status
+                          {order.clientName}
                         </button>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col items-start gap-1">
-                      <div
-                        className={cn(
-                          "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
-                          getStatusClass(order.paymentStatus),
-                        )}
-                      >
-                        {getStatusIcon(order.paymentStatus)}
-                        <span className="capitalize">{order.paymentStatus}</span>
                       </div>
+                    </TableCell>
+                    <TableCell>{formatDate(order.date)}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-start gap-1">
+                        <div
+                          className={cn(
+                            "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
+                            getStatusClass(order.status),
+                          )}
+                        >
+                          {getStatusIcon(order.status)}
+                          <span className="capitalize">{order.status}</span>
+                        </div>
 
-                      {
+                        {order.status !== "delivered" && (
+                          <button
+                            onClick={() => {
+                              setStatusOrderId(order.orderNumber)
+                              setStatusOpen(true)
+                              setStatusOrder(order)
+                              setOrderIdDB(order?._id || order?.id)
+                            }}
+                            className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                          >
+                            Change Status
+                          </button>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-col items-start gap-1">
+                        <div
+                          className={cn(
+                            "flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs w-fit",
+                            getStatusClass(order.paymentStatus),
+                          )}
+                        >
+                          {getStatusIcon(order.paymentStatus)}
+                          <span className="capitalize">{order.paymentStatus}</span>
+                        </div>
+
                         <button
                           onClick={() => {
                             setOrderId(order.orderNumber)
@@ -958,102 +999,138 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                         >
                           {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
                         </button>
-                      }
-                      {activeTab === "NextWeek" && (
-                        <button
-                          onClick={() => handleConvertToRegular(order)}
-                          className="mt-1 text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition"
-                        >
-                          Convert to Regular
-                        </button>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{order.items.length} items</TableCell>
-                  <TableCell className="font-medium">
-                    {formatCurrency(order.total)}
-                    {order.paymentStatus === "partial" && <p>{formatCurrency(order.paymentAmount - order.total)}</p>}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal size={16} />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => handleViewDetails(order)}>
-                          <FileText size={14} className="mr-2" />
-                          View Details
-                        </DropdownMenuItem>
-                        {order.clientId && (
-                          <DropdownMenuItem onClick={() => handleViewClientProfile(order.clientId!)}>
-                            <User size={14} className="mr-2" />
-                            View Client Profile
-                          </DropdownMenuItem>
-                        )}
-                        {user.role === "admin" && (
-                          <DropdownMenuItem onClick={() => handleEdit(order)}>
-                            <Edit size={14} className="mr-2" />
-                            Edit
-                          </DropdownMenuItem>
-                        )}
 
-                        <DropdownMenuSeparator />
-
-                        <DropdownMenuSub>
-                          <DropdownMenuSubTrigger>
-                            <FilePlus2 size={14} className="mr-2" />
-                            Generate Documents
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent className="min-w-[220px]">
-                            <DropdownMenuItem onClick={() => handleCreateDocument(order, "invoice")}>
-                              <FileSpreadsheet size={14} className="mr-2" />
-                              Invoice
-                            </DropdownMenuItem>
-                            {/* Added Credit Memo option */}
-                            {/* <DropdownMenuItem onClick={() => handleCreateDocument(order, "credit_memo")}>
-                              <CreditCard size={14} className="mr-2" />
-                              Credit Memo
-                            </DropdownMenuItem> */}
-                            {(!order.orderType || order.orderType === "Regural") && (
-                              <>
-                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
-                                  <Receipt size={14} className="mr-2" />
-                                  Transportation Receipt
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "delivery")}>
-                                  <ReceiptText size={14} className="mr-2" />
-                                  Delivery Note
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "custom")}>
-                                  <PencilRuler size={14} className="mr-2" />
-                                  Custom Document
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
-                                  <Wrench className="mr-2 h-4 w-4" /> Create Work Order
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-
-                        <DropdownMenuSeparator />
-
-                        {user.role === "admin" && (
-                          <DropdownMenuItem
-                            onClick={() => handleDelete(order?._id, order?.id)}
-                            className="text-red-600 hover:text-red-700 focus:text-red-700"
+                        {activeTab === "NextWeek" && (
+                          <button
+                            onClick={() => handleConvertToRegular(order)}
+                            className="mt-1 text-xs bg-green-600 text-white px-3 py-1 rounded hover:bg-green-700 transition"
                           >
-                            <Trash size={14} className="mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                            Convert to Regular
+                          </button>
                         )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))
+                      </div>
+                    </TableCell>
+                    <TableCell>{order.items.length} items</TableCell>
+                    <TableCell className="font-medium">
+                      {formatCurrency(order.total)}
+                      {order.paymentStatus === "partial" && <p>{formatCurrency(order.paymentAmount - order.total)}</p>}
+                    </TableCell>
+
+                    {/* Credit Memo Column */}
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        {order.creditMemos  ? (
+                          <button
+                            onClick={() => handleViewCreditMemos(order)}
+                            className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                              <Receipt size={12} className="mr-1" />
+                            Credit Mem
+                            </Badge>
+                          </button>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">None</span>
+                        )}
+                      </div>
+                    </TableCell>
+
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal size={16} />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleViewDetails(order)}>
+                            <FileText size={14} className="mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          {order.clientId && (
+                            <DropdownMenuItem onClick={() => handleViewClientProfile(order.clientId!)}>
+                              <User size={14} className="mr-2" />
+                              View Client Profile
+                            </DropdownMenuItem>
+                          )}
+                          {user.role === "admin" && (
+                            <DropdownMenuItem onClick={() => handleEdit(order)}>
+                              <Edit size={14} className="mr-2" />
+                              Edit
+                            </DropdownMenuItem>
+                          )}
+
+                          <DropdownMenuSeparator />
+
+                          {/* Credit Memo Section */}
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <CreditCard size={14} className="mr-2" />
+                              Credit Memos
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="min-w-[200px]">
+                              <DropdownMenuItem onClick={() => handleCreateCreditMemo(order)}>
+                                <Plus size={14} className="mr-2" />
+                                Create New
+                              </DropdownMenuItem>
+                              {creditMemoCount > 0 && (
+                                <DropdownMenuItem onClick={() => handleViewCreditMemos(order)}>
+                                  <Eye size={14} className="mr-2" />
+                                  View Existing ({creditMemoCount})
+                                </DropdownMenuItem>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>
+                              <FilePlus2 size={14} className="mr-2" />
+                              Generate Documents
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="min-w-[220px]">
+                              <DropdownMenuItem onClick={() => handleCreateDocument(order, "invoice")}>
+                                <FileSpreadsheet size={14} className="mr-2" />
+                                Invoice
+                              </DropdownMenuItem>
+                              {(!order.orderType || order.orderType === "Regural") && (
+                                <>
+                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
+                                    <Receipt size={14} className="mr-2" />
+                                    Transportation Receipt
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "delivery")}>
+                                    <ReceiptText size={14} className="mr-2" />
+                                    Delivery Note
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "custom")}>
+                                    <PencilRuler size={14} className="mr-2" />
+                                    Custom Document
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
+                                    <Wrench className="mr-2 h-4 w-4" /> Create Work Order
+                                  </DropdownMenuItem>
+                                </>
+                              )}
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+
+                          <DropdownMenuSeparator />
+
+                          {user.role === "admin" && (
+                            <DropdownMenuItem
+                              onClick={() => handleDelete(order?._id, order?.id)}
+                              className="text-red-600 hover:text-red-700 focus:text-red-700"
+                            >
+                              <Trash size={14} className="mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                )
+              })
             )}
           </TableBody>
         </Table>
@@ -1166,6 +1243,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         userData={selectedUserData}
         fetchUserDetailsOrder={fetchUserDetailsOrder}
       />
+
+      {renderCreditMemoList()}
+
     </div>
   )
 }

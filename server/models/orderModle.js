@@ -107,6 +107,8 @@ const orderSchema = new mongoose.Schema(
       type: addressSchema,
       required: true,
     },
+    creditMemos: { type: mongoose.Schema.Types.ObjectId, ref: "CreditMemo", required: true },
+
     shippingAddress: {
       type: addressSchema,
       required: true,

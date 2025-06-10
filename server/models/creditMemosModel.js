@@ -2,9 +2,11 @@ const mongoose = require("mongoose");
 
 const UploadedFileSchema = new mongoose.Schema(
   {
-    fileName: { type: String, required: true },
-    filePath: { type: String, required: true },
+    fileName: { type: String,  },
+    filePath: { type: String,  },
     fileType: { type: String },
+    url: { type: String },
+    type: { type: String },
     fileSize: { type: Number },
     uploadedAt: { type: Date, default: Date.now },
   },
@@ -29,7 +31,7 @@ const CreditMemoSchema = new mongoose.Schema(
     creditMemoNumber: { type: String, required: true, unique: true },
 
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order", required: true },
-    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "Auth", required: true },
+    customerId: { type: mongoose.Schema.Types.ObjectId, ref: "auth", required: true },
 
     items: { type: [CreditMemoItemSchema], required: true },
 

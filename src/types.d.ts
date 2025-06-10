@@ -70,6 +70,7 @@ export interface Order {
   customer?: string;
   date: string;
   createdAt?: string;
+  creditMemos?: string;
   items: OrderItem[];
   status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   shippingAddress?: Address;
