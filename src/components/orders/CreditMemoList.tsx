@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, memo } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -16,15 +16,14 @@ import {
   CheckCircle,
   Clock,
   XCircle,
+  Edit,
+  Plus,
 } from "lucide-react"
 import { formatCurrency, formatDate } from "@/lib/data"
-import { getCreditMemosByOrderId} from "@/services2/operations/creditMemo"
+import { getCreditMemosByOrderId } from "@/services2/operations/creditMemo"
 import { useToast } from "@/hooks/use-toast"
 import { exportCreditMemoToPDF } from "@/utils/pdf/export-credit-memo-to-pdf"
-
-
-
-
+import CreditMemoForm from "./credit-memo-form"
 
 interface CreditMemo {
   id?: string
@@ -56,7 +55,6 @@ interface CreditMemo {
   updatedAt: string
 }
 
-
 interface CreditMemoListProps {
   open: boolean
   onClose: () => void
@@ -70,6 +68,9 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
   const [loading, setLoading] = useState(false)
   const [selectedMemo, setSelectedMemo] = useState<CreditMemo | null>(null)
   const [detailsOpen, setDetailsOpen] = useState(false)
+  const [editingMemo, setEditingMemo] = useState<CreditMemo | null>(null)
+  const [editFormOpen, setEditFormOpen] = useState(false)
+  const [createFormOpen, setCreateFormOpen] = useState(false)
 
   // Fetch credit memos when dialog opens
   useEffect(() => {
@@ -131,6 +132,15 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
     setDetailsOpen(true)
   }
 
+  const handleEditMemo = (memo: CreditMemo) => {
+    setEditingMemo(memo)
+    setEditFormOpen(true)
+  }
+
+  const handleCreateNew = () => {
+    setCreateFormOpen(true)
+  }
+
   const handleDownloadPDF = (memo: CreditMemo) => {
     const creditMemoForPDF = {
       ...memo,
@@ -149,7 +159,35 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
     })
   }
 
+  const handleFormSuccess = () => {
+    fetchCreditMemos() // Refresh the list
+    toast({
+      title: "Success",
+      description: "Credit memo updated successfully",
+    })
+  }
+
   const totalCreditAmount = creditMemos.reduce((sum, memo) => sum + memo.totalAmount, 0)
+
+  // If no credit memos exist, show create form directly
+  if (!loading && creditMemos.length === 0 && open) {
+    return (
+      <CreditMemoForm
+        open={open}
+        onClose={onClose}
+        order={order}
+        token={token}
+        onSuccess={() => {
+          fetchCreditMemos()
+          toast({
+            title: "Success",
+            description: "Credit memo created successfully",
+          })
+        }}
+        mode="create"
+      />
+    )
+  }
 
   return (
     <>
@@ -166,9 +204,15 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
             {/* Summary Card */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Credit Memo Summary
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="h-5 w-5" />
+                    Credit Memo Summary
+                  </div>
+                  <Button onClick={handleCreateNew} size="sm" className="flex items-center gap-2">
+                    <Plus className="h-4 w-4" />
+                    Create New
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -197,14 +241,6 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                 <p className="mt-2 text-muted-foreground">Loading credit memos...</p>
               </div>
-            ) : creditMemos.length === 0 ? (
-              <Card>
-                <CardContent className="text-center py-8">
-                  <Receipt className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">No Credit Memos Found</h3>
-                  <p className="text-muted-foreground">This order doesn't have any credit memos yet.</p>
-                </CardContent>
-              </Card>
             ) : (
               <div className="space-y-4">
                 {creditMemos.map((memo) => (
@@ -253,6 +289,15 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                         </div>
 
                         <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditMemo(memo)}
+                            className="flex items-center gap-1"
+                          >
+                            <Edit className="h-4 w-4" />
+                            Edit
+                          </Button>
                           <Button
                             variant="outline"
                             size="sm"
@@ -344,22 +389,21 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                           <span>Price: {formatCurrency(item.unitPrice)}</span>
                           <span>Reason: {item.reason.replace("_", " ")}</span>
                         </div>
-                       {item.uploadedFiles && item.uploadedFiles.length > 0 && (
-  <div className="mt-2">
-    <p className="text-sm font-medium">Evidence Files:</p>
-    <div className="flex gap-2 mt-1 flex-wrap">
-      {item.uploadedFiles.map((file, fileIndex) => (
-        <Badge key={fileIndex} variant="outline" className="text-xs">
-          {file.type === "image" ? "📷" : "🎥"}{" "}
-          <a href={file.url} target="_blank" rel="noopener noreferrer" className="underline">
-            {file.url.split("/").pop()}
-          </a>
-        </Badge>
-      ))}
-    </div>
-  </div>
-)}
-
+                        {item.uploadedFiles && item.uploadedFiles.length > 0 && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium">Evidence Files:</p>
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              {item.uploadedFiles.map((file, fileIndex) => (
+                                <Badge key={fileIndex} variant="outline" className="text-xs">
+                                  {file.type === "image" ? "📷" : "🎥"}{" "}
+                                  <a href={file.url} target="_blank" rel="noopener noreferrer" className="underline">
+                                    {file.url.split("/").pop()}
+                                  </a>
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -376,12 +420,57 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                   <Download className="h-4 w-4" />
                   Download PDF
                 </Button>
-                <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDetailsOpen(false)
+                      handleEditMemo(selectedMemo)
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
+                  <Button onClick={() => setDetailsOpen(false)}>Close</Button>
+                </div>
               </div>
             </div>
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Edit Credit Memo Form */}
+      {editingMemo && (
+        <CreditMemoForm
+          open={editFormOpen}
+          onClose={() => {
+            setEditFormOpen(false)
+            setEditingMemo(null)
+          }}
+          order={order}
+          token={token}
+          onSuccess={handleFormSuccess}
+          editingMemo={editingMemo}
+          mode="edit"
+        />
+      )}
+
+      {/* Create New Credit Memo Form */}
+      <CreditMemoForm
+        open={createFormOpen}
+        onClose={() => setCreateFormOpen(false)}
+        order={order}
+        token={token}
+        onSuccess={() => {
+          fetchCreditMemos()
+          toast({
+            title: "Success",
+            description: "Credit memo created successfully",
+          })
+        }}
+        mode="create"
+      />
     </>
   )
 }

@@ -5,7 +5,7 @@ import { toast } from 'react-toastify';
 
 const { 
    CREATE_CREDIT_MEMO,
-   GET_CREDIT_MEMO_BY_ID
+   GET_CREDIT_MEMO_BY_ID,UPDATE_CREDIT_MEMO_BY_ID
 } = creditmemos
 
 
@@ -35,6 +35,34 @@ console.log(result)
     toast.dismiss(toastId);
   }
 };
+export const updateCreditMemoAPI = async (id, formData, token) => {
+  const toastId = toast.loading("Updating credit memo...");
+
+  try {
+    const response = await apiConnector("PUT", `${UPDATE_CREDIT_MEMO_BY_ID}/${id}`, formData, {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "multipart/form-data",
+    });
+
+    const result = response?.data;
+    console.log("UPDATE_CREDIT_MEMO result:", result);
+
+    if (!result?.success) {
+      throw new Error(result?.message || "Credit memo update failed.");
+    }
+
+    toast.success(result.message || "Credit memo updated successfully!");
+
+    return result.creditMemo || null;
+  } catch (error) {
+    console.error("UPDATE_CREDIT_MEMO API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to update credit memo.");
+    return null;
+  } finally {
+    toast.dismiss(toastId);
+  }
+};
+
 
 
 

@@ -234,3 +234,99 @@ exports.getCreditMemosByOrderId = async (req, res) => {
     });
   }
 };
+
+
+
+exports.updateCreditMemo = async (req, res) => {
+  try {
+    const { creditMemoId } = req.params;
+    const { files, body } = req;
+
+    const creditMemoData = JSON.parse(body.creditMemoData);
+    const updatedItems = [];
+
+    console.log("BODY", req.body);
+    console.log("FILES", req.files);
+
+    for (let i = 0; ; i++) {
+      const itemKey = `items[${i}]`;
+      if (!body[itemKey]) break;
+
+      const itemData = JSON.parse(body[itemKey]);
+      const fileCount = Number(itemData.fileCount || 0);
+      const uploadedFiles = [];
+
+      for (let j = 0; j < fileCount; j++) {
+        const fileField = `item_${i}_file_${j}`;
+        const file = files[fileField];
+
+        if (file) {
+          const result = await cloudinary.uploader.upload(file.tempFilePath, {
+            resource_type: "auto",
+            folder: "credit-memos",
+          });
+
+          uploadedFiles.push({
+            url: result.secure_url,
+            type: result.resource_type,
+          });
+        }
+      }
+
+      const existingFiles = itemData.existingFiles || [];
+
+      updatedItems.push({
+        ...itemData,
+        uploadedFiles: [...existingFiles, ...uploadedFiles],
+      });
+    }
+
+    const updatedCreditMemo = await CreditMemo.findByIdAndUpdate(
+      creditMemoId,
+      {
+        creditMemoNumber: creditMemoData.creditMemoNumber,
+        date: creditMemoData.date,
+        reason: creditMemoData.reason,
+        notes: creditMemoData.notes,
+        refundMethod: creditMemoData.refundMethod,
+        totalAmount: creditMemoData.totalAmount,
+        orderId: new mongoose.Types.ObjectId(creditMemoData.orderId),
+        customerId: new mongoose.Types.ObjectId(creditMemoData.customerId),
+        orderNumber: creditMemoData.orderNumber,
+        customerName: creditMemoData.customerName,
+        status: creditMemoData.status || "pending",
+        createdAt: creditMemoData.createdAt || new Date(),
+        items: updatedItems,
+        updatedAt: new Date(),
+      },
+      { new: true }
+    );
+
+    if (!updatedCreditMemo) {
+      return res.status(404).json({ message: "Credit memo not found", success: false });
+    }
+
+    // Optional: update creditMemo reference in order
+    const order = await Order.findById(creditMemoData.orderId);
+    if (order) {
+      order.creditMemos = updatedCreditMemo._id;
+      await order.save();
+    }
+
+    return res.status(200).json({
+      message: "Credit memo updated successfully",
+      success: true,
+      creditMemo: updatedCreditMemo,
+    });
+
+  } catch (error) {
+    console.error("Error updating credit memo:", error);
+    return res.status(500).json({
+      message: "Failed to update credit memo",
+      error: error.message,
+      success: false,
+    });
+  }
+};
+
+

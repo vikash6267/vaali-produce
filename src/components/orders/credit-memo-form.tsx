@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,11 +10,11 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Receipt, Download, Upload, X, Play, Eye, FileImage, FileVideo, Trash2 } from "lucide-react"
+import { Receipt, Download, Upload, X, Play, Eye, FileImage, FileVideo, Trash2, Edit } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/data"
 import { exportCreditMemoToPDF } from "@/utils/pdf/export-credit-memo-to-pdf"
-import {createCreditMemoAPI} from "@/services2/operations/creditMemo"
+import { createCreditMemoAPI, updateCreditMemoAPI } from "@/services2/operations/creditMemo"
 
 interface CreditMemoFormProps {
   open: boolean
@@ -22,14 +22,17 @@ interface CreditMemoFormProps {
   order: any
   token: string
   onSuccess?: () => void
+  editingMemo?: any // Add editing memo prop
+  mode?: "create" | "edit" // Add mode prop
 }
 
 interface UploadedFile {
   id: string
-  file: File
+  file?: File
   url: string
   type: "image" | "video"
   name: string
+  existing?: boolean // Flag for existing files
 }
 
 interface CreditMemoItem {
@@ -43,7 +46,15 @@ interface CreditMemoItem {
   notes: string
 }
 
-export default function CreditMemoForm({ open, onClose, order, token, onSuccess }: CreditMemoFormProps) {
+export default function CreditMemoForm({
+  open,
+  onClose,
+  order,
+  token,
+  onSuccess,
+  editingMemo = null,
+  mode = "create",
+}: CreditMemoFormProps) {
   const { toast } = useToast()
   const [loading, setLoading] = useState(false)
   const [pdfGenerated, setPdfGenerated] = useState(false)
@@ -62,6 +73,55 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
   const [previewFile, setPreviewFile] = useState<UploadedFile | null>(null)
   const [previewOpen, setPreviewOpen] = useState(false)
 
+  // Initialize form with editing data
+  useEffect(() => {
+    if (mode === "edit" && editingMemo) {
+      setCreditMemoData({
+        creditMemoNumber: editingMemo.creditMemoNumber,
+        date: editingMemo.date
+          ? new Date(editingMemo.date).toISOString().split("T")[0]
+          : new Date().toISOString().split("T")[0],
+        reason: editingMemo.reason || "",
+        notes: editingMemo.notes || "",
+        refundMethod: editingMemo.refundMethod || "store_credit",
+        totalAmount: editingMemo.totalAmount || 0,
+      })
+
+      // Convert existing items to the format expected by the form
+      const existingItems: CreditMemoItem[] =
+        editingMemo.items?.map((item: any) => ({
+          productId: item.productId,
+          productName: item.productName,
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: item.total,
+          reason: item.reason,
+          notes: item.notes || "",
+          uploadedFiles:
+            item.uploadedFiles?.map((file: any) => ({
+              id: file.id || `existing-${Date.now()}-${Math.random()}`,
+              url: file.url || file.filePath,
+              type: file.type === "image" ? "image" : "video",
+              name: file.fileName,
+              existing: true,
+            })) || [],
+        })) || []
+
+      setCreditItems(existingItems)
+    } else {
+      // Reset form for create mode
+      setCreditMemoData({
+        creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
+        date: new Date().toISOString().split("T")[0],
+        reason: "",
+        notes: "",
+        refundMethod: "store_credit",
+        totalAmount: 0,
+      })
+      setCreditItems([])
+    }
+  }, [mode, editingMemo, open])
+
   // Add item to credit memo
   const addCreditItem = (item: any) => {
     const existingItem = creditItems.find((ci) => ci.productId === item.product)
@@ -74,7 +134,6 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
             : ci,
         )
 
-        // Calculate total immediately with updated items
         const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
         setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
 
@@ -94,11 +153,8 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
 
       setCreditItems((prevItems) => {
         const updatedItems = [...prevItems, newItem]
-
-        // Calculate total immediately with updated items
         const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
         setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
-
         return updatedItems
       })
     }
@@ -106,21 +162,19 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
 
   // Remove item from credit memo
   const removeCreditItem = (productId: string) => {
-    // Clean up file URLs to prevent memory leaks
     const itemToRemove = creditItems.find((item) => item.productId === productId)
     if (itemToRemove) {
       itemToRemove.uploadedFiles.forEach((file) => {
-        URL.revokeObjectURL(file.url)
+        if (!file.existing && file.url) {
+          URL.revokeObjectURL(file.url)
+        }
       })
     }
 
     setCreditItems((prevItems) => {
       const updatedItems = prevItems.filter((item) => item.productId !== productId)
-
-      // Calculate total immediately with updated items
       const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
       setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
-
       return updatedItems
     })
   }
@@ -132,7 +186,6 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         item.productId === productId ? { ...item, quantity, total: quantity * item.unitPrice } : item,
       )
 
-      // Calculate total immediately with updated items
       const total = updatedItems.reduce((sum, item) => sum + item.total, 0)
       setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
 
@@ -157,7 +210,6 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
     const newFiles: UploadedFile[] = []
 
     Array.from(files).forEach((file) => {
-      // Check file type
       const isImage = file.type.startsWith("image/")
       const isVideo = file.type.startsWith("video/")
 
@@ -170,7 +222,6 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         return
       }
 
-      // Check file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
         toast({
           title: "File Too Large",
@@ -187,12 +238,12 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         url: fileUrl,
         type: isImage ? "image" : "video",
         name: file.name,
+        existing: false,
       }
 
       newFiles.push(uploadedFile)
     })
 
-    // Update the specific item's uploaded files
     setCreditItems(
       creditItems.map((item) =>
         item.productId === productId ? { ...item, uploadedFiles: [...item.uploadedFiles, ...newFiles] } : item,
@@ -211,7 +262,7 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
       creditItems.map((item) => {
         if (item.productId === productId) {
           const fileToRemove = item.uploadedFiles.find((f) => f.id === fileId)
-          if (fileToRemove) {
+          if (fileToRemove && !fileToRemove.existing && fileToRemove.url) {
             URL.revokeObjectURL(fileToRemove.url)
           }
           return {
@@ -229,12 +280,6 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
     setPreviewFile(file)
     setPreviewOpen(true)
   }
-
-  // Remove this function entirely as it's no longer needed
-  // const updateTotalAmount = () => {
-  //   const total = creditItems.reduce((sum, item) => sum + item.total, 0)
-  //   setCreditMemoData((prev) => ({ ...prev, totalAmount: total }))
-  // }
 
   // Check if reason requires file upload
   const reasonRequiresUpload = (reason: string) => {
@@ -302,22 +347,21 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
     setLoading(true)
 
     try {
-      // Prepare form data for file uploads
       const formData = new FormData()
 
       // Add credit memo data
-      formData.append(
-        "creditMemoData",
-        JSON.stringify({
-          ...creditMemoData,
-          orderId: order._id,
-          orderNumber: order.orderNumber || order.id,
-          customerId: order.store?._id,
-          customerName: order.store?.storeName,
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        }),
-      )
+      const memoData = {
+        ...creditMemoData,
+        orderId: order._id,
+        orderNumber: order.orderNumber || order.id,
+        customerId: order.store?._id,
+        customerName: order.store?.storeName,
+        status: mode === "edit" ? editingMemo.status : "pending",
+        createdAt: mode === "edit" ? editingMemo.createdAt : new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      }
+
+      formData.append("creditMemoData", JSON.stringify(memoData))
 
       // Add items data and files
       creditItems.forEach((item, itemIndex) => {
@@ -331,39 +375,43 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
             total: item.total,
             reason: item.reason,
             notes: item.notes,
-            fileCount: item.uploadedFiles.length,
+            fileCount: item.uploadedFiles.filter((f) => !f.existing).length,
+            existingFiles: item.uploadedFiles
+              .filter((f) => f.existing)
+              .map((f) => ({
+                id: f.id,
+                url: f.url,
+                type: f.type,
+                name: f.name,
+              })),
           }),
         )
 
-        // Add files for this item
-        item.uploadedFiles.forEach((uploadedFile, fileIndex) => {
-          formData.append(`item_${itemIndex}_file_${fileIndex}`, uploadedFile.file)
-        })
+        // Add only new files for this item
+        item.uploadedFiles
+          .filter((f) => !f.existing && f.file)
+          .forEach((uploadedFile, fileIndex) => {
+            formData.append(`item_${itemIndex}_file_${fileIndex}`, uploadedFile.file!)
+          })
       })
 
-      // API call to save credit memo with files
-      const response = await createCreditMemoAPI(formData)
-
-      // const response = await fetch("/api/credit-memos", {
-      //   method: "POST",
-      //   headers: {
-      //     Authorization: `Bearer ${token}`,
-      //   },
-      //   body: formData,
-      // })
-
-      if (!response.ok) {
-        throw new Error("Failed to create credit memo")
+      let response
+      if (mode === "edit") {
+        response = await updateCreditMemoAPI(editingMemo._id || editingMemo.id, formData)
+      } else {
+        response = await createCreditMemoAPI(formData)
       }
 
-      const result = await response.json()
+      if (!response.ok) {
+        throw new Error(`Failed to ${mode} credit memo`)
+      }
 
       toast({
-        title: "Credit Memo Created",
-        description: `Credit memo ${creditMemoData.creditMemoNumber} has been created successfully`,
+        title: `Credit Memo ${mode === "edit" ? "Updated" : "Created"}`,
+        description: `Credit memo ${creditMemoData.creditMemoNumber} has been ${mode === "edit" ? "updated" : "created"} successfully`,
       })
 
-      // Generate PDF automatically after successful creation
+      // Generate PDF automatically after successful creation/update
       const creditMemoForPDF = {
         ...creditMemoData,
         id: creditMemoData.creditMemoNumber,
@@ -384,25 +432,29 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
       // Clean up file URLs
       creditItems.forEach((item) => {
         item.uploadedFiles.forEach((file) => {
-          URL.revokeObjectURL(file.url)
+          if (!file.existing && file.url) {
+            URL.revokeObjectURL(file.url)
+          }
         })
       })
 
-      // Reset form
-      setCreditMemoData({
-        creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
-        date: new Date().toISOString().split("T")[0],
-        reason: "",
-        notes: "",
-        refundMethod: "store_credit",
-        totalAmount: 0,
-      })
-      setCreditItems([])
+      // Reset form only if creating new
+      if (mode === "create") {
+        setCreditMemoData({
+          creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
+          date: new Date().toISOString().split("T")[0],
+          reason: "",
+          notes: "",
+          refundMethod: "store_credit",
+          totalAmount: 0,
+        })
+        setCreditItems([])
+      }
     } catch (error) {
-      console.error("Error creating credit memo:", error)
+      console.error(`Error ${mode === "edit" ? "updating" : "creating"} credit memo:`, error)
       toast({
         title: "Error",
-        description: "Failed to create credit memo. Please try again.",
+        description: `Failed to ${mode} credit memo. Please try again.`,
         variant: "destructive",
       })
     } finally {
@@ -416,8 +468,8 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Receipt className="h-5 w-5" />
-              Create Credit Memo - Order {order?.orderNumber || order?.id}
+              {mode === "edit" ? <Edit className="h-5 w-5" /> : <Receipt className="h-5 w-5" />}
+              {mode === "edit" ? "Edit" : "Create"} Credit Memo - Order {order?.orderNumber || order?.id}
             </DialogTitle>
           </DialogHeader>
 
@@ -435,6 +487,7 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
                     value={creditMemoData.creditMemoNumber}
                     onChange={(e) => setCreditMemoData((prev) => ({ ...prev, creditMemoNumber: e.target.value }))}
                     required
+                    disabled={mode === "edit"} // Disable editing memo number
                   />
                 </div>
 
@@ -479,40 +532,42 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
               </CardContent>
             </Card>
 
-            {/* Order Items Selection */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-lg">Select Items for Credit</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {order?.items?.map((item: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-4 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{item.name || item.productName}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              Qty: {item.quantity} × {formatCurrency(item.price || item.unitPrice)}
-                            </p>
+            {/* Order Items Selection - Only show in create mode */}
+            {mode === "create" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Select Items for Credit</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {order?.items?.map((item: any, index: number) => (
+                        <div key={index} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{item.name || item.productName}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                Qty: {item.quantity} × {formatCurrency(item.price || item.unitPrice)}
+                              </p>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              onClick={() => addCreditItem(item)}
+                              disabled={creditItems.some((ci) => ci.productId === (item.product || item.productId))}
+                            >
+                              {creditItems.some((ci) => ci.productId === (item.product || item.productId))
+                                ? "Added"
+                                : "Add"}
+                            </Button>
                           </div>
-                          <Button
-                            type="button"
-                            size="sm"
-                            onClick={() => addCreditItem(item)}
-                            disabled={creditItems.some((ci) => ci.productId === (item.product || item.productId))}
-                          >
-                            {creditItems.some((ci) => ci.productId === (item.product || item.productId))
-                              ? "Added"
-                              : "Add"}
-                          </Button>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            )}
 
             {/* Credit Items */}
             {creditItems.length > 0 && (
@@ -566,14 +621,16 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
                               <Label>Total</Label>
                               <p className="font-medium">{formatCurrency(item.total)}</p>
                             </div>
-                            <Button
-                              type="button"
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => removeCreditItem(item.productId)}
-                            >
-                              Remove
-                            </Button>
+                            {mode === "create" && (
+                              <Button
+                                type="button"
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => removeCreditItem(item.productId)}
+                              >
+                                Remove
+                              </Button>
+                            )}
                           </div>
                         </div>
 
@@ -647,6 +704,11 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
                                         <span className="text-xs truncate max-w-[80px]" title={file.name}>
                                           {file.name}
                                         </span>
+                                        {file.existing && (
+                                          <span className="text-xs text-blue-600 bg-blue-100 px-1 rounded">
+                                            existing
+                                          </span>
+                                        )}
                                       </div>
 
                                       <div className="flex gap-1">
@@ -730,7 +792,9 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
                   Cancel
                 </Button>
                 <Button type="submit" disabled={loading || creditItems.length === 0}>
-                  {loading ? "Creating..." : "Create Credit Memo"}
+                  {loading
+                    ? `${mode === "edit" ? "Updating" : "Creating"}...`
+                    : `${mode === "edit" ? "Update" : "Create"} Credit Memo`}
                 </Button>
               </div>
             </div>
