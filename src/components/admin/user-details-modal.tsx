@@ -33,6 +33,7 @@ interface OrderItem {
 
 interface UserDetailsProps {
   isOpen: boolean
+  vendor?: boolean
   onClose: () => void
   fetchUserDetailsOrder: (id: string) => void
   userData: {
@@ -59,7 +60,7 @@ interface UserDetailsProps {
   } | null
 }
 
-const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: UserDetailsProps) => {
+const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,vendor=false }: UserDetailsProps) => {
   const [open, setOpen] = useState(false)
   const [orderId, setOrderId] = useState("")
   const [paymentOrder, setpaymentOrder] = useState<Order | null>(null)
@@ -68,6 +69,8 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
   const [isStatementFilterOpen, setIsStatementFilterOpen] = useState(false)
 
+
+  console.log(userData)
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
   if (!userData) return null
@@ -153,19 +156,19 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Store Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{vendor ? "Vendor" : "Store"} Details</DialogTitle>
           </DialogHeader>
 
           <Button variant="link" onClick={() => fetchUserDetailsOrder(userData._id)}>
             Refresh
           </Button>
-          <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
+         {!vendor && <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
             {isGeneratingPDF ? "Generating PDF..." : "Download Statement"}
-          </Button>
+          </Button>}
 
           <Tabs defaultValue="info" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="info">Store Information</TabsTrigger>
+              <TabsTrigger value="info">{vendor ? "Vendor" : "Store"} Information</TabsTrigger>
               <TabsTrigger value="orders">Orders ({totalOrders})</TabsTrigger>
             </TabsList>
 
@@ -179,14 +182,14 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
                   <CardHeader className="pb-2">
                     <CardTitle className="flex items-center gap-2">
                       <Store className="h-5 w-5 text-primary" />
-                      <span>Store Information</span>
+                      <span>{vendor ? "Vendor" : "Store"} Information</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
                         <Store className="h-4 w-4" />
-                        <span>Store Name</span>
+                        <span>{vendor ? "Vendor" : "Store"} Name</span>
                       </div>
                       <p className="font-medium">{user?.storeName || "N/A"}</p>
                     </div>
@@ -475,6 +478,7 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder }: 
         fetchOrders={() => fetchUserDetailsOrder(userData._id)}
         onPayment={() => console.log("hello")}
         paymentOrder={paymentOrder}
+        purchase={vendor}
       />
 
       <StatementFilterPopup

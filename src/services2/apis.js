@@ -16,6 +16,7 @@ export const endpoints = {
   FETCH_MY_PROFILE_API : BASE_URL + "/auth/fetchMyProfile",
   UPDATE_PASSWORD_API : BASE_URL + "/auth/update-password",
   USER_WITH_ORDER :BASE_URL + "/order/user",
+  VENDOR_WITH_ORDER :BASE_URL + "/purchase-orders/user",
   
 
 
@@ -135,3 +136,10 @@ export const purchaseOrder = {
   DELETE_PURCHASE_ORDER: BASE_URL + "/purchase-orders/delete", // append /:id when using
   PAYMENT_PURCHASE_ORDER: BASE_URL + "/purchase-orders/update-payment", // append /:id when using
 };
+
+
+
+export const creditmemos = {
+  CREATE_CREDIT_MEMO: BASE_URL + "/credit-memo/create",
+
+}

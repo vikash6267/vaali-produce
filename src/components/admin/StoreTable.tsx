@@ -12,8 +12,8 @@ import { RootState } from '@/redux/store'
 const StoreTable = ({ loading, groups, fetchStores }: any) => {
   const [selectedStoreId, setSelectedStoreId] = useState<string | null>(null)
   const [selectedUserData, setSelectedUserData] = useState(null)
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false)
   const { toast } = useToast()
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 

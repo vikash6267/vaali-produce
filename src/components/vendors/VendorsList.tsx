@@ -8,12 +8,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { getAllVendorsAPI } from '@/services2/operations/vendor';
+import { useToast } from '@/hooks/use-toast';
+import { vendorWithOrderDetails} from "@/services2/operations/auth"
+import UserDetailsModal from '../admin/user-details-modal';
 
 const VendorsList = () => {
   const navigate = useNavigate();
   const [vendors, setVendors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [vendorTypeFilter, setVendorTypeFilter] = useState('all');
+  const { toast } = useToast()
+
+ //DETAILS
+  const [selectedUserData, setSelectedUserData] = useState(null)
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+
+
 
   useEffect(() => {
     const fetchVendors = async () => {
@@ -34,6 +44,75 @@ const VendorsList = () => {
 
     return matchesSearch && matchesType;
   });
+
+
+
+  const transformVendorWithOrders = (data: any)=> {
+  return {
+    _id: data._id,
+    totalOrders: data.totalOrders,
+    totalSpent: data.totalSpent,
+    balanceDue: data.balanceDue,
+    totalPay: data.totalPay,
+    orders: data.purchaseOrders.map((order: any) => ({
+      _id: order._id,
+      purchaseOrderNumber: order.purchaseOrderNumber,
+      purchaseDate: order.purchaseDate,
+      deliveryDate: order.deliveryDate,
+      totalAmount: order.totalAmount,
+      total: order.totalAmount,
+      paymentStatus: order.paymentStatus,
+      paymentDetails: order.paymentDetails,
+      paymentAmount: order.paymentAmount,
+      notes: order.notes,
+      status: order.status,
+      createdAt: order.createdAt,
+      updatedAt: order.updatedAt,
+      items: order.items.map((item: any) => ({
+        productId: item.productId,
+        product: item.productId, // same as productId
+        name: item.productName, // Placeholder if you don't populate product name
+        price: item.totalPrice, // fallback
+        quantity: item.quantity,
+        total: item.totalPrice,
+        unitPrice: item.unitPrice,
+        productName: '', // Placeholder
+        pricingType: '', // Placeholder
+      })),
+    })),
+    user: {
+      _id: data._id,
+      email: data.email || '',
+      phone: data.phone || '',
+      storeName: data.name || '', // vendor.name mapped as storeName
+      ownerName: data.contactName || '', // optional
+      address: data.address || '',
+      city: '', // if available, otherwise blank
+      state: '', // if available
+      zipCode: '', // if available
+      businessDescription: data.productsSupplied || '',
+      role: 'vendor',
+      createdAt: data.createdAt,
+    },
+  }
+}
+
+
+   const fetchUserDetailsOrder = async (id: any) => {
+      try {
+        const res = await vendorWithOrderDetails(id)
+        console.log(res)
+        const transformed = transformVendorWithOrders(res)
+    setSelectedUserData(transformed)
+        setUserDetailsOpen(true)
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to fetch user details",
+          variant: "destructive",
+        })
+      }
+    }
 
   return (
     <Card>
@@ -92,7 +171,9 @@ const VendorsList = () => {
             ) : (
               filteredVendors.map((vendor) => (
                 <TableRow key={vendor._id}>
-                  <TableCell className="font-medium">{vendor.name}</TableCell>
+                  <TableCell className="font-medium text-blue-700 underline cursor-pointer " 
+                    onClick={() => fetchUserDetailsOrder(vendor?.id || vendor?._id)}
+                  >{vendor.name}</TableCell>
                   <TableCell>
                     <Badge variant="outline" className="capitalize">{vendor.type}</Badge>
                   </TableCell>
@@ -126,6 +207,13 @@ const VendorsList = () => {
           </TableBody>
         </Table>
       </CardContent>
+        <UserDetailsModal
+        isOpen={userDetailsOpen}
+        onClose={() => setUserDetailsOpen(false)}
+        userData={selectedUserData}
+        fetchUserDetailsOrder={fetchUserDetailsOrder}
+        vendor={true}
+      />
     </Card>
   );
 };

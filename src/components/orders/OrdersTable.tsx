@@ -91,7 +91,10 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   onPayment,
 }) => {
   const [searchQuery, setSearchQuery] = useState("")
-  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  
+
+
+
   const { toast } = useToast()
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
@@ -109,10 +112,17 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [currentPage, setCurrentPage] = useState(1)
   const [totalPages, setTotalPages] = useState(1)
   const [pageSize, setPageSize] = useState(50)
-  const [paymentFilter, setPaymentFilter] = useState("all")
   const [orders, setOrders] = useState<Order[]>([])
   const [loading, setLoading] = useState(false)
   const [totalOrders, setTotalOrders] = useState(0)
+
+    // REFETCH
+  const [startDate, setStartDate] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [paymentFilter, setPaymentFilter] = useState("all")
+  const [endDate, setEndDate] = useState("")
+
+
 
   // PAYMENT MODEL
   const [open, setOpen] = useState(false)
@@ -124,8 +134,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [statusOpen, setStatusOpen] = useState(false)
   const [statusOrderId, setStatusOrderId] = useState("")
   const [statusOrder, setStatusOrder] = useState<Order | null>(null)
-  const [startDate, setStartDate] = useState("")
-  const [endDate, setEndDate] = useState("")
   const [selectedUserData, setSelectedUserData] = useState(null)
   const [userDetailsOpen, setUserDetailsOpen] = useState(false)
   const [exportData, setExportData] = useState([])

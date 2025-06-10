@@ -1,21 +1,24 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
+import {
   Search, Filter, Eye, FileCheck, FileX, Calendar, ShoppingCart,
-  FileUp, DollarSign, Package, AlertTriangle
+  FileUp, DollarSign, Package, AlertTriangle,
+  ShoppingBag,
+  BarChart,
+  RefreshCw
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import {
+  Table, TableBody, TableCell, TableHead,
+  TableHeader, TableRow
 } from '@/components/ui/table';
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue
 } from '@/components/ui/select';
-import { 
-  Card, CardContent, CardDescription, CardHeader, CardTitle 
+import {
+  Card, CardContent, CardDescription, CardHeader, CardTitle
 } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -26,18 +29,15 @@ import {
 } from "@/components/ui/tooltip";
 import { formatCurrency } from '@/utils/formatters';
 import { getReorders } from '@/data/reorderData';
-import {getAllPurchaseOrdersAPI} from "@/services2/operations/purchaseOrder"
+import { getAllPurchaseOrdersAPI } from "@/services2/operations/purchaseOrder"
 import { PaymentStatusPopup } from '../orders/PaymentUpdateModel';
+import { Progress } from '@radix-ui/react-progress';
+import DateFilterDialog from '../orders/DateFilterPopup';
+import { useToast } from '@/hooks/use-toast';
+import { vendorWithOrderDetails} from "@/services2/operations/auth"
 
 
-// Get reorder suggestions based on low inventory
-const getReorderSuggestions = () => {
-  // In a real app, this would check inventory levels and return products that need reordering
-  return [
-    { id: 'prod1', name: 'Organic Apples', quantity: 50, threshold: 100, unit: 'lb', suggestedVendors: ['v1', 'v2'] },
-    { id: 'prod5', name: 'Bell Peppers', quantity: 20, threshold: 50, unit: 'each', suggestedVendors: ['v3'] }
-  ];
-};
+
 
 const PurchasesList = () => {
   const navigate = useNavigate();
@@ -45,6 +45,7 @@ const PurchasesList = () => {
   const [statusFilter, setStatusFilter] = useState('all');
   const [showReorderSuggestions, setShowReorderSuggestions] = useState(false);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const { toast } = useToast()
 
   // PAYMENT MODEL
   const [open, setOpen] = useState(false)
@@ -53,40 +54,87 @@ const PurchasesList = () => {
   const [orderIdDB, setOrderIdDB] = useState("")
   const [totalAmount, setTotalAmount] = useState(0)
 
+
+  //STAtus
+  const [summary, setSummary] = useState(null)
+  // REFETCH
+  const [startDate, setStartDate] = useState("")
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
+  const [paymentFilter, setPaymentFilter] = useState("all")
+  const [endDate, setEndDate] = useState("")
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [totalOrders, setTotalOrders] = useState(0)
+
+  //DETAILS
+  const [selectedUserData, setSelectedUserData] = useState(null)
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false)
+
+
   const fetchPurchase = async () => {
-  
+
+
     try {
-      const res = await getAllPurchaseOrdersAPI();
-      if (res) {
-        const transformed = res.map((order) => ({
+
+      const params = new URLSearchParams()
+      params.append("page", currentPage.toString())
+      params.append("limit", pageSize.toString())
+      params.append("paymentStatus", paymentFilter.toString())
+
+      if (debouncedSearchQuery) {
+        params.append("search", debouncedSearchQuery)
+      }
+      if (startDate) {
+        params.append("startDate", startDate)
+      }
+      if (endDate) {
+        params.append("endDate", endDate)
+      }
+
+
+      const res = await getAllPurchaseOrdersAPI(params.toString());
+      console.log(res)
+      if (res.orders) {
+        const transformed = res.orders.map((order) => ({
           ...order,
-          id:order._id,
+          id: order._id,
           vendorName: order.vendorId?.name || "",
           vendorId: order.vendorId?._id || "",
         }));
         setPurchaseOrders(transformed);
+        setSummary(res.summary)
+
       }
     } catch (error) {
       console.error("Error fetching purchase orders:", error);
-    } 
+    }
   };
-  
+
+
 
   useEffect(() => {
     fetchPurchase();
-  }, []);
-  const reorderSuggestions = getReorderSuggestions();
-  
+
+  }, [currentPage, pageSize, debouncedSearchQuery, paymentFilter, endDate, startDate])
+
+
   // Filter purchases based on search term and status
   const filteredPurchases = purchaseOrders.filter(purchase => {
-    const matchesSearch = purchase.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          purchase.purchaseOrderNumber?.toLowerCase().includes(searchTerm.toLowerCase());
-    
+    const matchesSearch = purchase.vendorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      purchase.purchaseOrderNumber?.toLowerCase().includes(searchTerm.toLowerCase());
+
     const matchesStatus = statusFilter === 'all' || purchase.status === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
+  console.log(filteredPurchases)
   const getStatusBadge = (status) => {
     const variants = {
       'pending': { variant: 'outline', icon: <Calendar className="h-3 w-3 mr-1" /> },
@@ -95,15 +143,15 @@ const PurchasesList = () => {
       'approved': { variant: 'success', icon: <FileCheck className="h-3 w-3 mr-1" /> },
       'rejected': { variant: 'destructive', icon: <FileX className="h-3 w-3 mr-1" /> }
     };
-    
+
     const { variant, icon } = variants[status] || variants.pending;
-    
+
     return (
       <Badge variant={variant} className="capitalize flex items-center">
-      {icon}
-      {(status || "pending").replace("-", " ")}
-    </Badge>
-    
+        {icon}
+        {(status || "pending").replace("-", " ")}
+      </Badge>
+
     );
   };
 
@@ -113,17 +161,17 @@ const PurchasesList = () => {
       'pending': { variant: 'warning', icon: <DollarSign className="h-3 w-3 mr-1" /> },
       'not-required': { variant: 'secondary', icon: <FileX className="h-3 w-3 mr-1" /> }
     };
-    
+
     const { variant, icon } = variants[status] || variants.pending;
-    
+
     return (
       <Badge variant={variant} className="capitalize flex items-center">
-      {icon}
-      {(status || "pending").replace("-", " ")}
-    </Badge>
+        {icon}
+        {(status || "pending").replace("-", " ")}
+      </Badge>
     );
   };
-  
+
   const handleUploadInvoice = (purchaseId) => {
     // In a real app, this would open a file upload dialog
     console.log(`Upload invoice for purchase ${purchaseId}`);
@@ -135,11 +183,28 @@ const PurchasesList = () => {
       setSearchTerm(searchTerm);
     }
   };
-  
+
   const handleCreateReorder = (product) => {
     navigate(`/vendors/new-purchase?productId=${product.id}&suggested=true`);
   };
 
+  const receivedPercentage =
+    summary && summary.totalAmount > 0
+      ? Math.round((summary.totalPaid / summary.totalAmount) * 100)
+      : 0;
+
+
+  const handleResetDates = () => {
+    setStartDate("")
+    setEndDate("")
+  }
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [searchQuery])
   return (
     <div className="space-y-6">
       <Card>
@@ -148,7 +213,7 @@ const PurchasesList = () => {
           <CardDescription>
             Track and manage purchases from vendors
           </CardDescription>
-          <div className="flex flex-col sm:flex-row gap-4 mt-4">
+          {/* <div className="flex flex-col sm:flex-row gap-4 mt-4">
             <div className="relative flex-1">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -175,9 +240,119 @@ const PurchasesList = () => {
               <ShoppingCart className="mr-2 h-4 w-4" />
               New Purchase
             </Button>
+          </div> */}
+
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-between">
+            <div className="relative w-full sm:max-w-xs">
+              <Search className="absolute top-2.5 left-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search orders..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+
+            <div className="flex gap-2">
+              <select
+                value={paymentFilter}
+                onChange={(e) => setPaymentFilter(e.target.value)}
+                className="h-10 px-3 rounded-md border border-gray-300 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Orders</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Unpaid</option>
+              </select>
+              {/* Custom Date Range Filters */}
+              <DateFilterDialog
+                startDate={startDate}
+                endDate={endDate}
+                setStartDate={setStartDate}
+                setEndDate={setEndDate}
+                handleResetDates={handleResetDates}
+              />
+
+              <Button size="sm" variant="outline" className="h-10" onClick={fetchPurchase} disabled={loading}>
+                {loading ? <RefreshCw size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}
+                Refresh
+              </Button>
+
+            </div>
           </div>
         </CardHeader>
         <CardContent>
+
+
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {/* Total Orders */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Orders</CardTitle>
+                <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  {(summary?.totalOrders ?? 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-muted-foreground">All time orders</p>
+              </CardContent>
+            </Card>
+
+            {/* Total Amount */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Total Amount</CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  $
+                  {(summary?.totalAmount ?? 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <p className="text-xs text-muted-foreground">All time sales</p>
+              </CardContent>
+            </Card>
+
+            {/* Received Amount */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Vendor Received Amount </CardTitle>
+                <BarChart className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">
+                  $
+                  {(summary?.totalPaid ?? 0).toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </div>
+                <div className="mt-2 space-y-1">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">
+                      {receivedPercentage}% of total
+                    </span>
+                    <span className="text-muted-foreground">
+                      $
+                      {(summary?.totalPending ?? 0).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      pending
+                    </span>
+                  </div>
+                  <Progress value={receivedPercentage} className="h-1" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+
+
           <Table>
             <TableHeader>
               <TableRow>
@@ -203,7 +378,9 @@ const PurchasesList = () => {
                     <TableCell className="font-medium">
                       {purchase.purchaseOrderNumber}
                     </TableCell>
-                    <TableCell>{purchase.vendorName}</TableCell>
+                    <TableCell 
+                      // onClick={() => fetchUserDetailsOrder(group?.id || group?._id)}
+                    >{purchase.vendorName}</TableCell>
                     <TableCell>{new Date(purchase.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{formatCurrency(purchase.totalAmount)}</TableCell>
                     <TableCell>
@@ -212,49 +389,49 @@ const PurchasesList = () => {
                     <TableCell>
                       {getPaymentStatusBadge(purchase.paymentStatus)}
                       <button
-                          onClick={() => {
-                            setOrderId(purchase.purchaseOrderNumber)
-                            setOpen(true)
-                            setTotalAmount(purchase.totalAmount)
-                            setOrderIdDB(purchase?._id || purchase?.id)
-                            setpaymentOrder(purchase)
-                          }}
-                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                        >
-                          {purchase.paymentStatus === "pending" ? "Pay Now" : "Edit"}
-                        </button>
+                        onClick={() => {
+                          setOrderId(purchase.purchaseOrderNumber)
+                          setOpen(true)
+                          setTotalAmount(purchase.totalAmount)
+                          setOrderIdDB(purchase?._id || purchase?.id)
+                          setpaymentOrder(purchase)
+                        }}
+                        className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                      >
+                        {purchase.paymentStatus === "pending" ? "Pay Now" : "Edit"}
+                      </button>
 
                     </TableCell>
                     <TableCell>
                       <div className="flex space-x-2">
-                        <Button variant="ghost" size="icon" 
-                                onClick={() => navigate(`/vendors/purchase/${purchase.id}`)}>
+                        <Button variant="ghost" size="icon"
+                          onClick={() => navigate(`/vendors/purchase/${purchase.id}`)}>
                           <Eye className="h-4 w-4" />
                         </Button>
-                        
+
                         {purchase.status === 'quality-check' && (
                           <Button variant="ghost" size="icon" className="text-green-600"
-                                  onClick={() => navigate(`/vendors/quality-control/${purchase.id}`)}>
+                            onClick={() => navigate(`/vendors/quality-control/${purchase.id}`)}>
                             <FileCheck className="h-4 w-4" />
                           </Button>
                         )}
-                        
-                        {(purchase.status === 'approved' || purchase.status === 'received') && 
-                         !purchase.invoiceUploaded && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="text-blue-600"
-                                        onClick={() => handleUploadInvoice(purchase.id)}>
-                                  <FileUp className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Upload Invoice</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+
+                        {(purchase.status === 'approved' || purchase.status === 'received') &&
+                          !purchase.invoiceUploaded && (
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-blue-600"
+                                    onClick={() => handleUploadInvoice(purchase.id)}>
+                                    <FileUp className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>Upload Invoice</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -264,117 +441,19 @@ const PurchasesList = () => {
           </Table>
         </CardContent>
       </Card>
-      
-      {/* Reorder Suggestions Card */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-xl font-semibold">Reorder Suggestions</CardTitle>
-            <CardDescription>
-              Products that need to be reordered based on current inventory levels
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => setShowReorderSuggestions(!showReorderSuggestions)}>
-            {showReorderSuggestions ? 'Hide' : 'Show'} Suggestions
-          </Button>
-        </CardHeader>
-        
-        {showReorderSuggestions && (
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Product</TableHead>
-                  <TableHead>Current Stock</TableHead>
-                  <TableHead>Threshold</TableHead>
-                  <TableHead>Suggested Vendors</TableHead>
-                  <TableHead className="w-[100px]">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-            
-              </TableBody>
-            </Table>
-          </CardContent>
-        )}
-      </Card>
-      
-      {/* Pending Payments Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-xl font-semibold">Pending Payments</CardTitle>
-          <CardDescription>
-            Outstanding payments for invoices received from vendors
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Purchase Order</TableHead>
-                <TableHead>Vendor</TableHead>
-                <TableHead>Invoice Date</TableHead>
-                <TableHead>Amount Due</TableHead>
-                <TableHead>Due Date</TableHead>
-                <TableHead className="w-[100px]">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {purchaseOrders
-                .filter(p => p.invoiceUploaded && p.paymentStatus === 'pending')
-                .length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                    No pending payments at this time.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                purchaseOrders
-                  .filter(p => p.invoiceUploaded && p.paymentStatus === 'pending')
-                  .map((purchase) => {
-                    // Mock invoice date (7 days after purchase date)
-                    const purchaseDate = new Date(purchase.date);
-                    const invoiceDate = new Date(purchaseDate);
-                    invoiceDate.setDate(purchaseDate.getDate() + 7);
-                    
-                    // Mock due date (30 days after invoice date)
-                    const dueDate = new Date(invoiceDate);
-                    dueDate.setDate(invoiceDate.getDate() + 30);
-                    
-                    return (
-                      <TableRow key={`payment-${purchase.id}`}>
-                        <TableCell className="font-medium">
-                          {purchase.purchaseOrderNumber}
-                        </TableCell>
-                        <TableCell>{purchase.vendorName}</TableCell>
-                        <TableCell>{invoiceDate.toLocaleDateString()}</TableCell>
-                        <TableCell>{formatCurrency(purchase.totalAmount)}</TableCell>
-                        <TableCell>{dueDate.toLocaleDateString()}</TableCell>
-                        <TableCell>
-                          <Button size="sm" variant="outline" onClick={() => navigate(`/vendors/payment/${purchase.id}`)}>
-                            <DollarSign className="mr-2 h-4 w-4" />
-                            Pay
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+
+     
       <PaymentStatusPopup
-              open={open}
-              onOpenChange={setOpen}
-              orderId={orderId}
-              totalAmount={totalAmount}
-              id={orderIdDB}
-              fetchOrders={fetchPurchase}
-              onPayment={()=>console.log("ONPAYMENT")}
-              paymentOrder={paymentOrder}
-              purchase={true}
-            />
+        open={open}
+        onOpenChange={setOpen}
+        orderId={orderId}
+        totalAmount={totalAmount}
+        id={orderIdDB}
+        fetchOrders={fetchPurchase}
+        onPayment={() => console.log("ONPAYMENT")}
+        paymentOrder={paymentOrder}
+        purchase={true}
+      />
     </div>
   );
 };

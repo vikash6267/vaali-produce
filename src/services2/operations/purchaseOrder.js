@@ -38,17 +38,29 @@ export const createPurchaseOrderAPI = async (formData, token) => {
 };
 
 // Get All Purchase Orders
-export const getAllPurchaseOrdersAPI = async (token) => {
+export const getAllPurchaseOrdersAPI = async (queryParams = "",token) => {
   try {
-    const response = await apiConnector("GET", GET_ALL_PURCHASE_ORDERS, null, {
-      Authorization: `Bearer ${token}`,
-    });
+    // const response = await apiConnector("GET", GET_ALL_PURCHASE_ORDERS, null, {
+    //   Authorization: `Bearer ${token}`,
+    // });
+
+
+
+     const response = await apiConnector(
+      "GET",
+      `${GET_ALL_PURCHASE_ORDERS}?${queryParams}`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      },
+    )
+
 
     if (!response?.data?.success) {
       throw new Error(response?.data?.message || "Something went wrong!");
     }
-console.log(response.data)
-    return response?.data?.data || [];
+
+    return response?.data || [];
   } catch (error) {
     console.error("GET ALL Purchase Orders API ERROR:", error);
     toast.error(error?.response?.data?.message || "Failed to get purchase orders!");

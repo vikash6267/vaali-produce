@@ -14,6 +14,7 @@ import { Receipt, Download, Upload, X, Play, Eye, FileImage, FileVideo, Trash2 }
 import { useToast } from "@/hooks/use-toast"
 import { formatCurrency } from "@/lib/data"
 import { exportCreditMemoToPDF } from "@/utils/pdf/export-credit-memo-to-pdf"
+import {createCreditMemoAPI} from "@/services2/operations/creditMemo"
 
 interface CreditMemoFormProps {
   open: boolean
@@ -315,14 +316,16 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
         })
       })
 
+
+const response = await createCreditMemoAPI(formData)
       // API call to save credit memo with files
-      const response = await fetch("/api/credit-memos", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-        body: formData,
-      })
+      // const response = await fetch("/api/credit-memos", {
+      //   method: "POST",
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      //   body: formData,
+      // })
 
       if (!response.ok) {
         throw new Error("Failed to create credit memo")
@@ -350,8 +353,8 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
       exportCreditMemoToPDF(creditMemoForPDF)
       setPdfGenerated(true)
 
-      onSuccess?.()
-      onClose()
+      // onSuccess?.()
+      // onClose()
 
       // Clean up file URLs
       creditItems.forEach((item) => {
@@ -361,15 +364,15 @@ export default function CreditMemoForm({ open, onClose, order, token, onSuccess 
       })
 
       // Reset form
-      setCreditMemoData({
-        creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
-        date: new Date().toISOString().split("T")[0],
-        reason: "",
-        notes: "",
-        refundMethod: "store_credit",
-        totalAmount: 0,
-      })
-      setCreditItems([])
+      // setCreditMemoData({
+      //   creditMemoNumber: `CM-${Date.now().toString().slice(-6)}`,
+      //   date: new Date().toISOString().split("T")[0],
+      //   reason: "",
+      //   notes: "",
+      //   refundMethod: "store_credit",
+      //   totalAmount: 0,
+      // })
+      // setCreditItems([])
     } catch (error) {
       console.error("Error creating credit memo:", error)
       toast({

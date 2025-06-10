@@ -66,7 +66,7 @@ export interface Order {
   orderId?: string;
   orderNumber?: string;
   orderType?: string;
-  store?: string;
+  store?: any;
   customer?: string;
   date: string;
   createdAt?: string;

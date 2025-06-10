@@ -15,7 +15,8 @@ const {
   FETCH_MY_PROFILE_API,
   UPDATE_PASSWORD_API,
   USER_WITH_ORDER,
-  DELETE_STORE_API
+  DELETE_STORE_API,
+  VENDOR_WITH_ORDER
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -196,6 +197,26 @@ export const userWithOrderDetails = async (id) => {
 
 };
 
+
+
+export const vendorWithOrderDetails = async (id) => {
+
+  try {
+    const response = await apiConnector("GET", `${VENDOR_WITH_ORDER}/${id}`,)
+
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    return response?.data?.data || {};
+  } catch (error) {
+    console.error("GET User with order API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed User with order product!");
+    return [];
+  }
+
+};
 
 export const getUserAPI = async ({
   email = null,
