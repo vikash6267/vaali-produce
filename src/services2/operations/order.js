@@ -361,9 +361,9 @@ console.log(palletData)
 
 
 
-export const deleteOrderAPI = async (id, token) => {
+export const deleteOrderAPI = async (id, token,reason) => {
     try {
-        const response = await apiConnector("DELETE", `${DELETE_ORDER}/${id}`, {}, {
+        const response = await apiConnector("DELETE", `${DELETE_ORDER}/${id}`, {reason}, {
             Authorization: `Bearer ${token}`,
         });
 

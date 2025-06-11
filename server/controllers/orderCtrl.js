@@ -591,34 +591,64 @@ const updatePaymentDetails = async (req, res) => {
   }
 };
 
+
+
+
+
 const deleteOrderCtrl = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  if (!reason) {
+    return res.status(400).json({ success: false, message: "Reason is required" });
+  }
+
   try {
-    const { id } = req.params;
-
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid order ID" });
+    const order = await orderModel.findById(id);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Order not found" });
     }
 
-    const deletedOrder = await orderModel.findByIdAndDelete(id);
+    const amount = order.total ?? 0;
 
-    if (!deletedOrder) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found" });
+    // 1. Soft delete order fields
+    order.isDelete = true;
+    order.deleted = { reason, amount };
+
+    // 2. Zero total
+    order.total = 0;
+    // order.paymentStatus = "pending"
+
+    // 3. Update all items
+    if (Array.isArray(order.items)) {
+      order.items = order.items.map(item => {
+        const qty = item.quantity ?? 0;
+        const price = item.unitPrice || item.price || 0;
+        const total = item.total ?? qty * price;
+
+        return {
+          ...item,
+          deletedQuantity: qty,
+          deletedTotal: total,
+          quantity: 0,
+          total: 0
+        };
+      });
     }
+
+    await order.save();
 
     res.status(200).json({
       success: true,
-      message: "Order deleted successfully",
-      deletedOrder,
+      message: "Order soft-deleted successfully",
+      deletedOrder: order,
     });
-  } catch (error) {
-    console.error("Error deleting order:", error);
-    res.status(500).json({ success: false, message: "Internal Server Error" });
+  } catch (err) {
+    console.error("Soft delete error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 const updateOrderTypeCtrl = async (req, res) => {
   try {

@@ -89,7 +89,14 @@ export interface Order {
   clientName?: string;
   clientId?: string;
   palletData?:PalletData;
-  paymentDetails?: PaymentDetails;  // Added paymentDetails field here
+  paymentDetails?: PaymentDetails;  
+   // 🆕 Soft delete support
+  isDelete?: boolean;
+  deleted?: {
+    reason?: string;
+    amount?: number;
+  };
+
 
 }
 
@@ -105,6 +112,8 @@ export interface OrderItem {
   unitPrice?: number;
   discountedPrice?: number;
   total?: number;
+   deletedQuantity?: number;
+  deletedTotal?: number;
 }
 
 export interface Address {

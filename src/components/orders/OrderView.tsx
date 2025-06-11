@@ -91,7 +91,13 @@ const getPaymentStatusClass = (status: string) => {
 const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onClose, userRole }) => {
   if (!order) return null;
 
-  const totalQuantity = order.items.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+  const totalQuantity = order.items.reduce((sum, item) => {
+    if (order?.isDelete) {
+      return sum + Number(item.deletedQuantity || 0);
+    } else {
+      return sum + Number(item.quantity || 0);
+    }
+  }, 0);
 
   console.log(order)
   return (
@@ -182,6 +188,13 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
         </div>
 
         <Separator className="my-4" />
+        <div>
+          {order?.isDelete && order.deleted?.reason && (
+            <div className="text-sm text-red-600 italic">
+              📝 Void Reason: {order.deleted.reason}
+            </div>
+          )}
+        </div>
 
         {/* Order Items */}
         <div>
@@ -204,10 +217,21 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
                   <div className="col-span-2 text-right">
                     {formatCurrency(item.unitPrice || item.price)}
                   </div>
-                  <div className="col-span-2 text-right">{item.quantity}</div>
+                  <div className="col-span-2 text-right">{order?.isDelete ? item.deletedQuantity : item.quantity}</div>
                   <div className="col-span-2 text-right font-medium">
-                    {formatCurrency(item.total || (item.quantity * (item.unitPrice || item.price)))}
+                    {order?.isDelete ? (
+                      <>
+                        <span className="line-through text-muted-foreground">
+                          {formatCurrency(item.deletedTotal)}
+                        </span>
+                        <br />
+                        <span className="text-xs text-red-500">Voided</span>
+                      </>
+                    ) : (
+                      formatCurrency(item.total || (item.quantity * (item.unitPrice || item.price)))
+                    )}
                   </div>
+
                 </div>
                 {index < order.items.length - 1 && <Separator />}
               </div>
@@ -217,7 +241,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
 
         {/* Order Summary */}
         <div className="mt-4 space-y-2">
-           <div className="flex justify-between">
+          <div className="flex justify-between">
             <span className="text-muted-foreground">Total Quantity</span>
             <span>{totalQuantity}</span>
           </div>
@@ -225,10 +249,10 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
             <span className="text-muted-foreground">Subtotal</span>
             <span>{formatCurrency((order.subtotal || order.total) - order.shippinCost)}</span>
           </div>
-         
+
           <div className="flex justify-between">
             <span className="text-muted-foreground">Shipping Cost</span>
-            <span>{formatCurrency( order.shippinCost)}</span>
+            <span>{formatCurrency(order.shippinCost)}</span>
           </div>
           {order.tax !== undefined && (
             <div className="flex justify-between">
@@ -251,7 +275,9 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
           <Separator />
           <div className="flex justify-between font-medium">
             <span>Total</span>
-            <span>{formatCurrency(order.total)}</span>
+            <span>  {order?.isDelete
+              ? formatCurrency(order?.deleted?.amount)
+              : formatCurrency(order.total)}</span>
           </div>
         </div>
 

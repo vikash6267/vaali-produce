@@ -44,6 +44,8 @@ import {
   CreditCard,
   Badge,
   Eye,
+  FileX,
+  Ban,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -232,8 +234,28 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     navigate(`/orders/edit/${order._id}`)
   }
 
-  const handleDelete = async (id: string, orderNumber: string) => {
-    const result = await Swal.fire({
+const handleDelete = async (id: string, orderNumber: string) => {
+  const { value: reason, isConfirmed } = await Swal.fire({
+    title: "Reason for Deletion",
+    input: "textarea",
+    inputLabel: `Why are you deleting order ${orderNumber}?`,
+    inputPlaceholder: "Enter the reason here...",
+    inputAttributes: {
+      'aria-label': 'Type your reason here'
+    },
+    showCancelButton: true,
+    confirmButtonText: "Submit",
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    inputValidator: (value) => {
+      if (!value) {
+        return "Reason is required!";
+      }
+    }
+  });
+
+  if (isConfirmed && reason) {
+    const confirmed = await Swal.fire({
       title: "Are you sure?",
       text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
       icon: "warning",
@@ -241,17 +263,20 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
       confirmButtonText: "Yes, delete it!",
-    })
+    });
 
-    if (result.isConfirmed) {
-      const deletedOrder = await deleteOrderAPI(id, token)
+    if (confirmed.isConfirmed) {
+      const deletedOrder = await deleteOrderAPI(id, token, reason);
+      console.log(reason)
 
       if (deletedOrder) {
-        onDelete(id)
-        fetchOrders()
+        onDelete(id);
+        fetchOrders();
       }
     }
   }
+}
+
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -935,17 +960,25 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>
-                      <div className="flex items-center">
-                        <button
-                          className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline"
-                          onClick={() => {
-                            order.clientId && handleViewClientProfile(order.clientId)
-                            fetchUserDetailsOrder(order?.store?._id)
-                          }}
-                        >
-                          {order.clientName}
-                        </button>
-                      </div>
+              <div className="flex flex-col items-start">
+  <button
+    className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline text-left"
+    onClick={() => {
+      order.clientId && handleViewClientProfile(order.clientId)
+      fetchUserDetailsOrder(order?.store?._id)
+    }}
+  >
+    <div>{order.clientName}</div>
+    {order?.isDelete && (
+      <div className="flex items-center text-red-500 text-xs font-semibold mt-0.5">
+        <Ban className="w-4 h-4 mr-1" />
+        VOIDED
+      </div>
+    )}
+  </button>
+</div>
+
+
                     </TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>
@@ -960,7 +993,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           <span className="capitalize">{order.status}</span>
                         </div>
 
-                        {order.status !== "delivered" && (
+                        {!order?.isDelete && order.status !== "delivered" && (
                           <button
                             onClick={() => {
                               setStatusOrderId(order.orderNumber)
@@ -987,7 +1020,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           <span className="capitalize">{order.paymentStatus}</span>
                         </div>
 
-                        <button
+                       {!order?.isDelete && <button
                           onClick={() => {
                             setOrderId(order.orderNumber)
                             setOpen(true)
@@ -998,7 +1031,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
                         >
                           {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
-                        </button>
+                        </button>}
 
                         {activeTab === "NextWeek" && (
                           <button
@@ -1012,7 +1045,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                     </TableCell>
                     <TableCell>{order.items.length} items</TableCell>
                     <TableCell className="font-medium">
-                      {formatCurrency(order.total)}
+                     {order?.isDelete 
+  ? formatCurrency(order?.deleted?.amount) 
+  : formatCurrency(order.total)}
+
+                      {/* {formatCurrency(order.total)} */}
                       {order.paymentStatus === "partial" && <p>{formatCurrency(order.paymentAmount - order.total)}</p>}
                     </TableCell>
 
@@ -1053,7 +1090,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                               View Client Profile
                             </DropdownMenuItem>
                           )}
-                          {user.role === "admin" && (
+                          {!order?.isDelete && user.role === "admin" && (
                             <DropdownMenuItem onClick={() => handleEdit(order)}>
                               <Edit size={14} className="mr-2" />
                               Edit
@@ -1063,7 +1100,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                           <DropdownMenuSeparator />
 
                           {/* Credit Memo Section */}
-                          <DropdownMenuSub>
+                        {!order?.isDelete &&  <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                               <CreditCard size={14} className="mr-2" />
                               Credit Memos
@@ -1080,9 +1117,9 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 </DropdownMenuItem>
                               )}
                             </DropdownMenuSubContent>
-                          </DropdownMenuSub>
+                          </DropdownMenuSub>}
 
-                          <DropdownMenuSub>
+                         {!order?.isDelete && <DropdownMenuSub>
                             <DropdownMenuSubTrigger>
                               <FilePlus2 size={14} className="mr-2" />
                               Generate Documents
@@ -1112,11 +1149,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                                 </>
                               )}
                             </DropdownMenuSubContent>
-                          </DropdownMenuSub>
+                          </DropdownMenuSub>}
 
                           <DropdownMenuSeparator />
 
-                          {user.role === "admin" && (
+                          {!order?.isDelete &&user.role === "admin" && (
                             <DropdownMenuItem
                               onClick={() => handleDelete(order?._id, order?.id)}
                               className="text-red-600 hover:text-red-700 focus:text-red-700"

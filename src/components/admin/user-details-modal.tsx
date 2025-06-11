@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { formatCurrency } from "@/lib/utils"
-import { User, ShoppingBag, MapPin, Phone, Mail, Store, User2, Calendar, Package, AlertCircle } from "lucide-react"
+import { User, ShoppingBag, MapPin, Phone, Mail, Store, User2, Calendar, Package, AlertCircle, Ban } from "lucide-react"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -60,7 +60,7 @@ interface UserDetailsProps {
   } | null
 }
 
-const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,vendor=false }: UserDetailsProps) => {
+const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder, vendor = false }: UserDetailsProps) => {
   const [open, setOpen] = useState(false)
   const [orderId, setOrderId] = useState("")
   const [paymentOrder, setpaymentOrder] = useState<Order | null>(null)
@@ -162,7 +162,7 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,ven
           <Button variant="link" onClick={() => fetchUserDetailsOrder(userData._id)}>
             Refresh
           </Button>
-         {!vendor && <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
+          {!vendor && <Button variant="link" onClick={() => setIsStatementFilterOpen(true)} disabled={isGeneratingPDF}>
             {isGeneratingPDF ? "Generating PDF..." : "Download Statement"}
           </Button>}
 
@@ -348,7 +348,10 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,ven
                                 </Badge>
 
                                 {/* Total Amount */}
-                                <span className="font-semibold">{formatCurrency(order.total)} </span>
+                                <span className="font-semibold flex items-center gap-1">
+                                  {formatCurrency(order?.isDelete ? order?.deleted?.amount || 0 : order.total)}
+                                  {order?.isDelete && <Ban className="w-4 h-4 text-red-500" />}
+                                </span>
                               </div>
                             </div>
                           </AccordionTrigger>
@@ -369,20 +372,42 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,ven
                                     </TableRow>
                                   </TableHeader>
                                   <TableBody>
+
                                     {order.items.map((item, itemIndex) => (
                                       <TableRow key={`${order._id}-item-${itemIndex}`}>
                                         <TableCell className="font-medium">{item.name || item.productName}</TableCell>
+
                                         <TableCell className="text-right">
-                                          {formatCurrency(item?.unitPrice || item?.price)}{" "}
+                                          {formatCurrency(item?.unitPrice || item?.price)}
                                         </TableCell>
+
                                         <TableCell className="text-right">
-                                          {item.quantity} {item.pricingType === "unit" ? "LB" : ""}
+                                          {order?.isDelete ? (
+                                            <span className="line-through text-muted-foreground">
+                                              {item.deletedQuantity} {item.pricingType === "unit" ? "LB" : ""}
+                                            </span>
+                                          ) : (
+                                            <>
+                                              {item.quantity} {item.pricingType === "unit" ? "LB" : ""}
+                                            </>
+                                          )}
                                         </TableCell>
-                                        <TableCell className="text-right">
-                                          {formatCurrency((item?.unitPrice || item?.price) * item.quantity)}
+
+                                        <TableCell className="text-right flex items-center justify-end gap-1">
+                                          {order?.isDelete ? (
+                                            <>
+                                              <span className="line-through text-muted-foreground">
+                                                {formatCurrency(item.deletedTotal || 0)}
+                                              </span>
+                                              <Ban className="w-4 h-4 text-red-500" />
+                                            </>
+                                          ) : (
+                                            formatCurrency((item?.unitPrice || item?.price) * item.quantity)
+                                          )}
                                         </TableCell>
                                       </TableRow>
                                     ))}
+
                                     <TableRow>
                                       <TableCell colSpan={3} className="text-right font-medium">
                                         Subtotal
@@ -405,14 +430,15 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,ven
                                       <TableCell colSpan={3} className="text-right font-bold">
                                         Total
                                       </TableCell>
-                                      <TableCell className="text-right font-bold">
-                                        {formatCurrency(order.total)}
+                                      <TableCell className="text-right font-bold flex items-center justify-end gap-1">
+                                        {formatCurrency(order?.isDelete ? order?.deleted?.amount || 0 : order.total)}
+                                        {order?.isDelete && <Ban className="w-4 h-4 text-red-500" />}
                                       </TableCell>
                                     </TableRow>
                                   </TableBody>
                                 </Table>
                                 <div className="mt-2 space-y-2">
-                                  <button
+                                  {!order?.isDelete && <button
                                     onClick={() => {
                                       setOrderId(order.orderNumber)
                                       setOpen(true)
@@ -423,35 +449,35 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder,ven
                                     className="text-xs bg-blue-600 text-white px-4 py-1.5 rounded-md hover:bg-blue-700 transition duration-200 shadow-sm"
                                   >
                                     {order.paymentStatus === "pending" ? "Pay Now" : "Edit Payment"}
-                                  </button>
-{order.paymentDetails && (
-  <div className="bg-gray-100 p-3 rounded-md text-sm text-gray-800 border border-gray-200 shadow-sm">
-    <p>
-      <span className="font-medium">Payment Status:</span> 
-      {order.paymentStatus === "partial" ? "Partial Paid" : "Full Paid"}
-    </p>
-    <p>
-      <span className="font-medium">Amount:</span> 
-      ${order.paymentAmount || "N/A"}
-    </p>
-    <p>
-      <span className="font-medium">Method:</span> 
-      {order.paymentDetails.method || "N/A"}
-    </p>
-    {order.paymentDetails.method === "creditcard" && (
-      <p>
-        <span className="font-medium">Transaction ID:</span> 
-        {order.paymentDetails.transactionId || "N/A"}
-      </p>
-    )}
-    {(order.paymentDetails.method === "cash" || order.paymentDetails.method === "cheque") && (
-      <p>
-        <span className="font-medium">Notes:</span> 
-        {order.paymentDetails.notes || "N/A"}
-      </p>
-    )}
-  </div>
-)}
+                                  </button>}
+                                  {order.paymentDetails && (
+                                    <div className="bg-gray-100 p-3 rounded-md text-sm text-gray-800 border border-gray-200 shadow-sm">
+                                      <p>
+                                        <span className="font-medium">Payment Status:</span>
+                                        {order.paymentStatus === "partial" ? "Partial Paid" : "Full Paid"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">Amount:</span>
+                                        ${order.paymentAmount || "N/A"}
+                                      </p>
+                                      <p>
+                                        <span className="font-medium">Method:</span>
+                                        {order.paymentDetails.method || "N/A"}
+                                      </p>
+                                      {order.paymentDetails.method === "creditcard" && (
+                                        <p>
+                                          <span className="font-medium">Transaction ID:</span>
+                                          {order.paymentDetails.transactionId || "N/A"}
+                                        </p>
+                                      )}
+                                      {(order.paymentDetails.method === "cash" || order.paymentDetails.method === "cheque") && (
+                                        <p>
+                                          <span className="font-medium">Notes:</span>
+                                          {order.paymentDetails.notes || "N/A"}
+                                        </p>
+                                      )}
+                                    </div>
+                                  )}
 
                                 </div>
 
