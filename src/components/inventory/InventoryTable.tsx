@@ -141,9 +141,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
               <div className="flex items-center">Product {renderSortIcon("name")}</div>
             </TableHead>
-            <TableHead className="cursor-pointer" onClick={() => handleSort("category")}>
+            {/* <TableHead className="cursor-pointer" onClick={() => handleSort("category")}>
               <div className="flex items-center">Category {renderSortIcon("category")}</div>
-            </TableHead>
+            </TableHead> */}
             <TableHead className="text-right cursor-pointer" onClick={() => handleSort("quantity")}>
               <div className="flex items-center justify-end">Quantity {renderSortIcon("quantity")}</div>
             </TableHead>
@@ -221,14 +221,14 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     )}
                   </div>
                 </TableCell>
-                <TableCell>
+                {/* <TableCell>
                   <Badge variant="outline" className="font-normal">
                     {product.category}
                   </Badge>
                   {product.batchInfo && (
                     <div className="text-xs text-muted-foreground mt-1">Batch: {product.batchInfo}</div>
                   )}
-                </TableCell>
+                </TableCell> */}
                 <TableCell className="text-right">
                   <div className={`font-medium ${product.quantity <= product.threshold ? "text-red-600" : ""}`}>
                     {product.quantity} 
