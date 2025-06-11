@@ -44,6 +44,8 @@ import NewPurchase from "./pages/NewPurchase";
 import VendorQualityControl from "./pages/VendorQualityControl";
 import VendorInvoiceUpload from "./pages/VendorInvoiceUpload";
 import VendorPayment from "./pages/VendorPayment";
+import EditPurchaseOrder from "./pages/EditPurchaseOrder";
+import ViewPurchaseOrder from "./pages/ViewPurchase";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -388,6 +390,22 @@ export default function App() {
           element={
             <PrivateRoute>
               <NewPurchase />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vendors/edit-purchase/:id"
+          element={
+            <PrivateRoute>
+              <EditPurchaseOrder />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/vendors/purchase/:id"
+          element={
+            <PrivateRoute>
+              <ViewPurchaseOrder />
             </PrivateRoute>
           }
         />
