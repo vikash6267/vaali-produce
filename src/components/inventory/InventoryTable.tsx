@@ -144,11 +144,18 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             {/* <TableHead className="cursor-pointer" onClick={() => handleSort("category")}>
               <div className="flex items-center">Category {renderSortIcon("category")}</div>
             </TableHead> */}
-            <TableHead className="text-right cursor-pointer" onClick={() => handleSort("quantity")}>
-              <div className="flex items-center justify-end">Quantity {renderSortIcon("quantity")}</div>
+        
+            <TableHead className="text-right " >
+              <div className="flex items-center justify-end">Purchased </div>
             </TableHead>
-            {/* <TableHead className="text-right cursor-pointer" onClick={() => handleSort("price")}>
-              <div className="flex items-center justify-end">Price {renderSortIcon("price")}</div>
+            <TableHead className="text-right " >
+              <div className="flex items-center justify-end">Sell </div>
+            </TableHead>
+            <TableHead className="text-right " >
+              <div className="flex items-center justify-end">Remaining </div>
+            </TableHead>
+                {/* <TableHead className="text-right cursor-pointer" onClick={() => handleSort("quantity")}>
+              <div className="flex items-center justify-end">Remaining Quantity {renderSortIcon("quantity")}</div>
             </TableHead> */}
             <TableHead className="text-right">
               <div className="flex items-center justify-end">Price</div>
@@ -229,24 +236,30 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     <div className="text-xs text-muted-foreground mt-1">Batch: {product.batchInfo}</div>
                   )}
                 </TableCell> */}
+                 <TableCell className="text-right">
+                  <div className="font-medium">
+                   {product?.totalPurchase || 0}
+                  </div>
+                
+                </TableCell>
                 <TableCell className="text-right">
-                  <div className={`font-medium ${product.quantity <= product.threshold ? "text-red-600" : ""}`}>
-                    {product.quantity} 
+                  <div className={`font-medium `}>
+                    {product.totalSell } 
                   </div>
                   {/* {product.weightVariation && product.weightVariation > 0 && (
                     <div className="text-xs text-muted-foreground">±{product.weightVariation}%</div>
                   )} */}
                 </TableCell>
-                {/* <TableCell className="text-right">
-                  <div className="font-medium">
-                    ${product.price.toFixed(2)}/{product.unit}
+                <TableCell className="text-right">
+                  <div className={`font-medium `}>
+                      {(product?.totalPurchase || 0) - (product?.totalSell || 0)}
+
                   </div>
-                  {product.bulkDiscounts && product.bulkDiscounts.length > 0 && (
-                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-300">
-                      Volume Discount
-                    </Badge>
-                  )}
-                </TableCell> */}
+                  {/* {product.weightVariation && product.weightVariation > 0 && (
+                    <div className="text-xs text-muted-foreground">±{product.weightVariation}%</div>
+                  )} */}
+                </TableCell>
+               
                 <TableCell className="text-right">
                   {product.pricePerBox && product.boxSize ? (
                     <div className="flex items-center justify-end gap-1">

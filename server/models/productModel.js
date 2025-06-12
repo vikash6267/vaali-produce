@@ -1,6 +1,25 @@
 const mongoose = require("mongoose");
 
 
+const updatedFromOrdersSchema = new mongoose.Schema({
+  purchaseOrder: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'PurchaseOrder',
+   
+  },
+  oldQuantity: {
+    type: Number,
+
+  },
+  newQuantity: {
+    type: Number,
+ 
+  },
+  difference: {
+    type: Number,
+  
+  },
+}, { _id: false });
 
 
 const ProductSchema = new mongoose.Schema(
@@ -18,6 +37,14 @@ const ProductSchema = new mongoose.Schema(
         quantity: {
             type: Number,
             required: true,
+            default: 0,
+        },
+        totalSell: {
+            type: Number,
+            default: 0,
+        },
+        totalPurchase: {
+            type: Number,
             default: 0,
         },
         unit: {
@@ -89,10 +116,11 @@ const ProductSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
-        updatedFromOrders: [{
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "PurchaseOrder",
-          }]
+   updatedFromOrders: {
+    type: [updatedFromOrdersSchema],
+    default: []
+  }
+
           
     },
     { timestamps: true }

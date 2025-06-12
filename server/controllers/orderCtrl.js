@@ -5,6 +5,7 @@ const { generateStatementPDF } = require("../utils/generateOrder");
 const nodemailer = require("nodemailer");
 const { exportInvoiceToPDFBackend } = require("../templates/exportInvoice");
 const Counter = require("../models/counterModel");
+const Product = require("../models/productModel");
 
 const mailSender = async (
   to,
@@ -142,6 +143,17 @@ const createOrderCtrl = async (req, res) => {
       createdAt: orderDate, // Use the fixed date
     });
 
+    for (const item of items) {
+      const { productId, quantity } = item;
+      if (!productId || quantity <= 0) continue;
+
+      await Product.findByIdAndUpdate(productId, {
+        $inc: {
+          totalSell: quantity,
+          quantity: -quantity
+        }
+      });
+    }
     await newOrder.save();
 
     res.status(201).json({
@@ -215,11 +227,11 @@ const getAllOrderCtrl = async (req, res) => {
           ...matchStage,
           ...(search
             ? {
-                $or: [
-                  { orderNumber: searchRegex },
-                  { "store.storeName": searchRegex },
-                ],
-              }
+              $or: [
+                { orderNumber: searchRegex },
+                { "store.storeName": searchRegex },
+              ],
+            }
             : {}),
         },
       },
@@ -323,10 +335,42 @@ const updateOrderCtrl = async (req, res) => {
 
     // Ensure the order exists
     const existingOrder = await orderModel.findById(id);
+
     if (!existingOrder) {
       return res
         .status(404)
         .json({ success: false, message: "Order not found!" });
+    }
+
+    const oldItemsMap = {};
+    existingOrder.items.forEach(item => {
+      oldItemsMap[item.productId.toString()] = item.quantity;
+    });
+
+    // Update order fields
+    Object.keys(updateFields).forEach((key) => {
+      if (updateFields[key] !== undefined) {
+        existingOrder[key] = updateFields[key];
+      }
+    });
+
+    await existingOrder.save();
+
+    // Now adjust product stocks based on quantity difference
+    for (const newItem of existingOrder.items) {
+      const productId = newItem.productId;
+      const newQty = newItem.quantity;
+      const oldQty = oldItemsMap[productId.toString()] || 0;
+      const diff = newQty - oldQty;
+
+      if (diff !== 0) {
+        await Product.findByIdAndUpdate(productId, {
+          $inc: {
+            totalSell: diff,
+            quantity: -diff
+          }
+        });
+      }
     }
 
     // Update only the fields that are present in the request body
@@ -619,6 +663,18 @@ const deleteOrderCtrl = async (req, res) => {
     order.total = 0;
     // order.paymentStatus = "pending"
 
+       for (const item of order.items) {
+      const { productId, quantity } = item;
+      if (!productId || quantity <= 0) continue;
+
+      await Product.findByIdAndUpdate(productId, {
+        $inc: {
+          totalSell: -quantity,
+          quantity: quantity
+        }
+      });
+    }
+    
     // 3. Update all items
     if (Array.isArray(order.items)) {
       order.items = order.items.map(item => {
@@ -635,6 +691,7 @@ const deleteOrderCtrl = async (req, res) => {
         };
       });
     }
+ 
 
     await order.save();
 
@@ -849,17 +906,15 @@ const getUserOrderStatement = async (req, res) => {
 
         // const customerEmail = "vikasmaheshwari6267@gmail.com" ;
         const customerEmail = user.email;
-        const subject = `Monthly Statement for ${
-          user.storeName
-        } - ${new Date().toLocaleString("en-US", {
-          month: "long",
-          year: "numeric",
-        })}`;
+        const subject = `Monthly Statement for ${user.storeName
+          } - ${new Date().toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}`;
         const message = `
           Dear ${user.ownerName || user.name},
 
-          Please find attached the monthly statement for your store "${
-            user.storeName
+          Please find attached the monthly statement for your store "${user.storeName
           }".
           This statement includes order details and payment status for the selected period.
 

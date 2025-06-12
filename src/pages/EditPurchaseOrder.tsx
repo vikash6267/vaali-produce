@@ -20,6 +20,7 @@ interface PurchaseItemForm {
   quantity: number
   unitPrice: number
   totalPrice: number
+  qualityStatus?: string
 }
 
 
@@ -77,7 +78,7 @@ export default NewPurchase;
       try {
         setLoading(true)
         const response = await getSinglePurchaseOrderAPI(id)
-
+console.log(response)
         if (response) {
           setVendorId(response.vendorId?._id || response.vendorId)
           setPurchaseOrderNumber(response.purchaseOrderNumber)
@@ -90,6 +91,7 @@ export default NewPurchase;
             productId: item.productId?._id || item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
+            qualityStatus: item.qualityStatus,
             totalPrice: item.totalPrice || item.quantity * item.unitPrice,
           }))
 
@@ -253,7 +255,7 @@ export default NewPurchase;
       })
 
       // Navigate back to purchases list
-      navigate("/vendors")
+      // navigate("/vendors")
     } catch (error) {
       console.error("Error updating purchase order:", error)
       toast({
@@ -400,17 +402,25 @@ export default NewPurchase;
                       </Select>
                     </div>
 
-                    <div className="col-span-2">
-                      <Label htmlFor={`quantity-${index}`}>Quantity</Label>
-                      <Input
-                        id={`quantity-${index}`}
-                        type="number"
-                        min="0"
-                        step="1"
-                        value={item.quantity || ""}
-                        onChange={(e) => handleQuantityChange(index, e.target.value)}
-                      />
-                    </div>
+                   <div className="col-span-2 space-y-1">
+  <Label htmlFor={`quantity-${index}`} className="text-sm font-medium">
+    Qty
+  </Label>
+  <Input
+    id={`quantity-${index}`}
+    type="number"
+    min="0"
+    step="1"
+    disabled={item.qualityStatus === "approved"}
+    value={item.quantity || ""}
+    onChange={(e) => handleQuantityChange(index, e.target.value)}
+    className="h-10 text-sm"
+  />
+  {item.qualityStatus === "approved" && (
+    <p className="text-xs text-red-600 italic">Approved – can't edit</p>
+  )}
+</div>
+
 
                     <div className="col-span-1 text-center mt-1">
                       <span className="text-sm text-muted-foreground">{getProductUnitType(item.productId)}</span>

@@ -33,6 +33,66 @@ exports.createPurchaseOrder = async (req, res) => {
     }
 };
 
+
+// exports.createPurchaseOrder = async (req, res) => {
+//   try {
+//     const {
+//       vendorId,
+//       purchaseOrderNumber,
+//       purchaseDate,
+//       deliveryDate,
+//       notes,
+//       items,
+//       totalAmount
+//     } = req.body;
+
+//     const newOrder = new PurchaseOrder({
+//       vendorId,
+//       purchaseOrderNumber,
+//       purchaseDate,
+//       deliveryDate,
+//       notes,
+//       items,
+//       totalAmount
+//     });
+
+//     await newOrder.save();
+
+//     // ✅ Update product quantity and logs
+//     for (const item of items) {
+//       const product = await Product.findById(item.productId);
+//       if (product) {
+//         const oldQuantity = product.quantity;
+//         const newQuantity = oldQuantity + item.quantity;
+
+//         product.quantity = newQuantity;
+
+//         product.updatedFromOrders.push({
+//           purchaseOrder: newOrder._id,
+//           oldQuantity,
+//           newQuantity,
+//           difference: item.quantity,
+//         });
+
+//         await product.save();
+//       }
+//     }
+
+//     res.status(201).json({
+//       success: true,
+//       message: 'Purchase order created successfully.',
+//       data: newOrder
+//     });
+//   } catch (error) {
+//     res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error
+//     });
+//   }
+// };
+
+
 exports.getAllPurchaseOrders = async (req, res) => {
   try {
     
@@ -192,8 +252,9 @@ exports.updatePurchaseOrder = async (req, res) => {
             deliveryDate,
             notes,
             items,
-        } = req.body;
-
+            totalAmount
+        } = req.body.quantityData;
+console.log(notes)
         const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
             id,
             {
@@ -203,6 +264,7 @@ exports.updatePurchaseOrder = async (req, res) => {
                 deliveryDate,
                 notes,
                 items,
+                totalAmount
             },
             { new: true }
         );
@@ -211,9 +273,93 @@ exports.updatePurchaseOrder = async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Purchase order updated successfully', data: updatedOrder });
     } catch (error) {
+      console.log(error)
         res.status(500).json({ success: false, message: 'Internal server error', error });
     }
 };
+
+
+// exports.updatePurchaseOrder = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const {
+//       vendorId,
+//       purchaseOrderNumber,
+//       purchaseDate,
+//       deliveryDate,
+//       notes,
+//       items,
+//     } = req.body.quantityData;
+
+
+//     console.log(req.body)
+//     if (!Array.isArray(items)) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "'items' must be an array",
+//       });
+//     }
+
+//     const order = await PurchaseOrder.findById(id);
+//     if (!order) {
+//       return res.status(404).json({ success: false, message: 'Purchase order not found' });
+//     }
+
+//     // ✅ Track quantity changes for each item
+//     for (const incomingItem of items) {
+//       const existingItem = order.items.find(item => item._id.toString() === incomingItem._id);
+
+//       if (existingItem) {
+//         const quantityDiff = incomingItem.quantity - existingItem.quantity;
+
+//         if (quantityDiff !== 0) {
+//           const product = await Product.findById(incomingItem.productId);
+//           if (product) {
+//             const oldQuantity = product.quantity;
+//             const newQuantity = oldQuantity + quantityDiff;
+
+//             product.quantity = newQuantity;
+
+//             product.updatedFromOrders.push({
+//               purchaseOrder: order._id,
+//               oldQuantity,
+//               newQuantity,
+//               difference: quantityDiff,
+//             });
+
+//             await product.save();
+//           }
+//         }
+//       }
+//     }
+
+//     // ✅ Update purchase order
+//     order.vendorId = vendorId;
+//     order.purchaseOrderNumber = purchaseOrderNumber;
+//     order.purchaseDate = purchaseDate;
+//     order.deliveryDate = deliveryDate;
+//     order.notes = notes;
+//     order.items = items;
+
+//     const updatedOrder = await order.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: 'Purchase order updated successfully',
+//       data: updatedOrder
+//     });
+//   } catch (error) {
+//     console.error("Error in updatePurchaseOrder:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: 'Internal server error',
+//       error: error.message
+//     });
+//   }
+// };
+
+
+
 
 exports.deletePurchaseOrder = async (req, res) => {
     try {
@@ -231,53 +377,104 @@ exports.deletePurchaseOrder = async (req, res) => {
 
 
 
+
 exports.updateItemQualityStatus = async (req, res) => {
-    try {
-      const { purchaseOrderId } = req.params;
-      const updatedItems = req.body;
-  
-      const order = await PurchaseOrder.findById(purchaseOrderId);
-      if (!order) {
-        return res.status(404).json({ success: false, message: "Purchase order not found" });
-      }
-  
-      // Loop over the incoming updatedItems
-      for (const incomingItem of updatedItems) {
-        const existingItem = order.items.id(incomingItem._id);
-        if (existingItem) {
-          // Update item quality status
-          existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
-          existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
-          existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
-  
-          // If approved, update the product quantity
-          if (incomingItem.qualityStatus === "approved") {
-            const product = await Product.findById(incomingItem.productId._id);
-            if (product) {
-              // Check if already updated for this order
-              const alreadyUpdated = product.updatedFromOrders.includes(purchaseOrderId);
-              if (!alreadyUpdated) {
-                product.quantity += incomingItem.quantity;
-                product.updatedFromOrders.push(purchaseOrderId);
-                await product.save();
-              }
-            }
-          }
-        }
-      }
-  
-      await order.save();
-  
-      res.status(200).json({
-        success: true,
-        message: "Items and product quantities updated successfully",
-        data: order.items,
-      });
-    } catch (error) {
-      console.error("Error in bulk quality update:", error);
-      res.status(500).json({ success: false, message: "Internal server error", error });
+  try {
+    const { purchaseOrderId } = req.params;
+    const updatedItems = req.body;
+
+    if (!mongoose.Types.ObjectId.isValid(purchaseOrderId)) {
+      return res.status(400).json({ success: false, message: "Invalid Purchase Order ID" });
     }
-  };
+
+    const order = await PurchaseOrder.findById(purchaseOrderId);
+    if (!order) {
+      return res.status(404).json({ success: false, message: "Purchase order not found" });
+    }
+
+    for (const incomingItem of updatedItems) {
+      const existingItem = order.items.id(incomingItem._id);
+      if (!existingItem) continue;
+
+      const wasApprovedBefore = existingItem.qualityStatus === "approved";
+      const oldItemQuantity = existingItem.quantity;
+      const newItemQuantity = typeof incomingItem.quantity === "number" ? incomingItem.quantity : oldItemQuantity;
+      const isApprovedNow = incomingItem.qualityStatus === "approved";
+
+  
+      // Update fields
+      existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
+      existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
+      existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
+      existingItem.quantity = newItemQuantity;
+
+      if (isApprovedNow) {
+        const productId = incomingItem.productId?._id || incomingItem.productId;
+
+        if (!mongoose.Types.ObjectId.isValid(productId)) {
+          console.warn(`⚠️ Invalid productId: ${productId}`);
+          continue;
+        }
+
+        const product = await Product.findById(productId);
+        if (!product) {
+          console.warn(`⚠️ Product not found: ${productId}`);
+          continue;
+        }
+
+        product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder);
+        const logEntry = product.updatedFromOrders.find(e => e.purchaseOrder.toString() === purchaseOrderId);
+
+        if (!wasApprovedBefore) {
+          // First time approval
+          product.quantity += newItemQuantity;
+          product.totalPurchase += newItemQuantity;
+          console.log("➕ First time approval. Added:", newItemQuantity);
+
+          product.updatedFromOrders.push({
+            purchaseOrder: purchaseOrderId,
+            oldQuantity: 0,
+            newQuantity: newItemQuantity,
+            difference: newItemQuantity,
+          });
+
+        } else if (logEntry && newItemQuantity !== oldItemQuantity) {
+          // Already approved, but quantity changed
+          const diff = newItemQuantity - oldItemQuantity;
+          product.quantity += diff;
+          product.totalPurchase += diff;
+          console.log("🔁 Updated quantity difference:", diff);
+
+          logEntry.oldQuantity = logEntry.newQuantity;
+          logEntry.newQuantity = newItemQuantity;
+          logEntry.difference = diff;
+        } else {
+          console.log("✅ No quantity update required.");
+        }
+
+        await product.save();
+      }
+    }
+
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Items and product quantities updated successfully",
+      data: order.items,
+    });
+  } catch (error) {
+    console.error("❌ Error in bulk quality update:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
 
 
 exports.updatePaymentDetailsPurchase = async (req, res) => {

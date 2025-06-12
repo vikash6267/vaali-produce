@@ -170,21 +170,22 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
       let totalQuantity = 0;
       const buyers = [];
   
-      orders.forEach(order => {
-        const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
-  
-        order.items.forEach(item => {
-          if (item.productId?.toString() === productId) {
-            totalQuantity += item.quantity || 1;
-  
-            buyers.push({
-              name: buyerName,
-              quantity: item.quantity || 1,
-              orderDate: order.createdAt
-            });
-          }
-        });
+ orders.forEach(order => {
+  const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
+
+  order.items.forEach(item => {
+    if (item.productId?.toString() === productId && item.quantity > 0) {
+      totalQuantity += item.quantity;
+
+      buyers.push({
+        name: buyerName,
+        quantity: item.quantity,
+        orderDate: order.createdAt
       });
+    }
+  });
+});
+
   
       return res.status(200).json({
         success: true,
@@ -505,6 +506,78 @@ exports.getProductsByStore = async (req, res) => {
 };
 
 
+const updateTotalSellForAllProducts = async (req, res) => {
+  try {
+    // Step 1: Fetch all regular orders
+    const orders = await Order.find({
+      orderType: "Regural"
+    }).select("items").lean();
+
+    // Step 2: Prepare map to accumulate total quantity per productId
+    const productSalesMap = {};
+
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        const productId = item.productId?.toString();
+        const quantity = item.quantity;
+
+        if (!productId || quantity <= 0) return;
+
+        if (!productSalesMap[productId]) {
+          productSalesMap[productId] = 0;
+        }
+
+        productSalesMap[productId] += quantity;
+      });
+    });
+
+    // Step 3: Prepare bulk update operations
+    const bulkOps = Object.entries(productSalesMap).map(([productId, totalSell]) => ({
+      updateOne: {
+        filter: { _id: new mongoose.Types.ObjectId(productId) },
+        update: { $set: { totalSell } }
+      }
+    }));
+
+    // Step 4: Set totalSell = 0 for unsold products
+    const allProductIds = await Product.find().distinct("_id");
+    const soldProductIds = Object.keys(productSalesMap).map(id => id.toString());
+
+    const unsoldProductIds = allProductIds
+      .map(id => id.toString())
+      .filter(id => !soldProductIds.includes(id));
+
+    unsoldProductIds.forEach(productId => {
+      bulkOps.push({
+        updateOne: {
+          filter: { _id: new mongoose.Types.ObjectId(productId) },
+          update: { $set: { totalSell: 0 } }
+        }
+      });
+    });
+
+    // Step 5: Perform bulk update
+    if (bulkOps.length > 0) {
+      await Product.bulkWrite(bulkOps);
+    }
+
+    // Step 6: Return updated data
+    const updatedProducts = await Product.find().select("name image totalSell").lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "Total sell updated from orders successfully",
+      products: updatedProducts
+    });
+
+  } catch (error) {
+    console.error("Error updating totalSell from orders:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 
 module.exports = { 
@@ -515,6 +588,7 @@ module.exports = {
     updateProductCtrl, 
     updateProductPrice, 
     bulkDiscountApply,
-    getWeeklyOrdersByProductCtrl
+    getWeeklyOrdersByProductCtrl,
+    updateTotalSellForAllProducts
 
 };

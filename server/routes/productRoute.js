@@ -10,6 +10,7 @@ const {
   bulkDiscountApply,
   getProductsByStore,
   getWeeklyOrdersByProductCtrl,
+  updateTotalSellForAllProducts
 
   
    
@@ -20,6 +21,7 @@ const {
 const router = express.Router();
 
 router.post("/create", createProductCtrl)
+router.get("/updateQuantity", updateTotalSellForAllProducts)
 router.get("/getAll", getAllProductCtrl)
 router.get("/get/:id", getSingleProductCtrl)
 router.get("/get-order/:productId", getWeeklyOrdersByProductCtrl)

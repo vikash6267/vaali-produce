@@ -5,6 +5,8 @@ export interface Product {
   name: string;
   category: string;
   quantity: number;
+  totalSell?: number;
+  totalPurchase?: number;
   unit: string;
   price: number;
   threshold?: number;
