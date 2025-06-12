@@ -1,11 +1,12 @@
 
-import { z } from 'zod';
+import { optional, z } from 'zod';
 import { BulkDiscount } from '@/types';
 
 export const formSchema = z.object({
   name: z.string().min(1, { message: 'Product name is required' }),
   category: z.string().min(1, { message: 'Category is required' }),
   quantity: z.coerce.number().min(0, { message: 'Quantity must be 0 or greater' }),
+  totalPurchase: z.coerce.number().optional(),
   unit: z.string().min(1, { message: 'Unit is required' }),
   price: z.coerce.number().min(0, { message: 'Price must be 0 or greater' }),
   threshold: z.coerce.number().min(0, { message: 'Threshold must be 0 or greater' }),

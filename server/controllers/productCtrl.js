@@ -29,6 +29,7 @@ const createProductCtrl = async (req, res) => {
             pricePerBox,
             image,
             shippinCost=0,
+            
         } = req.body;
 
       
@@ -57,6 +58,7 @@ const createProductCtrl = async (req, res) => {
             boxSize,
             pricePerBox,
             image: image,
+          
         });
 
         const product = await newProduct.save();
@@ -277,7 +279,8 @@ const updateProductCtrl = async (req, res) => {
             boxSize,
             pricePerBox,
             image,
-            shippinCost
+            shippinCost,
+            totalPurchase
         } = req.body;
 
         const { id } = req.params;
@@ -316,6 +319,7 @@ const updateProductCtrl = async (req, res) => {
         product.pricePerBox = pricePerBox || product.pricePerBox;
         product.image = image;
         product.shippinCost = shippinCost;
+        product.totalPurchase = totalPurchase;
 
         await product.save();
 

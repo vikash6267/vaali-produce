@@ -33,6 +33,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
       quantity: 0,
       unit: "lb",
       price: 0,
+      totalPurchase: 0,
       threshold: 5,
       description: "",
       enablePromotions: false,
@@ -51,7 +52,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
   });
 
   const[loading,setLoading] = useState(false)
-
+console.log(isEditProduct)
 
   const fetchProductDetails = async () => {
     if (!isEditProduct || !editProduct) return;
@@ -67,6 +68,7 @@ const AddProductForm: React.FC<AddProductFormProps> = ({
           name: response.name || "",
           category: response.category || "",
           quantity: response.quantity || 0,
+          totalPurchase: response.totalPurchase || 0,
           unit: response.unit || "lb",
           price: response.price || 0,
           threshold: response.threshold || 5,
@@ -146,7 +148,7 @@ console.log(data)
           </div>
         ) : (
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ProductFormTabs control={form.control} categories={categories} units={units} />
+            <ProductFormTabs control={form.control} categories={categories} units={units} isEditProduct={isEditProduct} />
   
             {hasErrors && (
               <div className="flex items-center gap-2 text-destructive text-sm mt-2 mb-0 px-2 py-1 bg-destructive/10 rounded">

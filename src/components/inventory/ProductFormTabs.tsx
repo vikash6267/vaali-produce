@@ -11,13 +11,16 @@ interface ProductFormTabsProps {
   control: Control<FormValues>;
   categories: string[];
   units: string[];
+  isEditProduct?: boolean;
 }
 
 const ProductFormTabs: React.FC<ProductFormTabsProps> = ({ 
   control, 
   categories, 
-  units 
+  units ,
+  isEditProduct
 }) => {
+  console.log(isEditProduct)
   return (
     <Tabs defaultValue="basic" className="w-full">
       <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -32,6 +35,8 @@ const ProductFormTabs: React.FC<ProductFormTabsProps> = ({
           categories={categories}
           units={units}
           simplified={true}
+          isEditProduct={isEditProduct}
+
         />
       </TabsContent>
       
@@ -41,6 +46,7 @@ const ProductFormTabs: React.FC<ProductFormTabsProps> = ({
           categories={categories}
           units={units}
           simplified={false}
+          isEditProduct={isEditProduct}
         />
       </TabsContent>
       

@@ -16,6 +16,7 @@ interface ProductDetailsProps {
   categories: string[];
   units: string[];
   simplified?: boolean;
+  isEditProduct?: boolean;
 }
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({
@@ -23,10 +24,11 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
   categories,
   units,
   simplified = false,
+  isEditProduct ,
 }) => {
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
-
+console.log(isEditProduct)
   return (
     <div className="space-y-4">
       <TextField
@@ -100,6 +102,16 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({
           description="Available quantity"
           placeholder="0"
         />
+  {isEditProduct &&      <TextField
+          control={control}
+          name="totalPurchase"
+          label="Purchase "
+          type="number"
+          min="0"
+          step="1"
+          description="Total Purchase "
+          placeholder="0"
+        />}
 
         <TextField
           control={control}
