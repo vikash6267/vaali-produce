@@ -115,6 +115,13 @@ const orderSchema = new mongoose.Schema(
     },
     creditMemos: { type: mongoose.Schema.Types.ObjectId, ref: "CreditMemo" },
 
+
+
+     notes: {
+      type: String,
+    },
+
+
     shippingAddress: {
       type: addressSchema,
       required: true,

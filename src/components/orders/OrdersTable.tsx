@@ -44,7 +44,6 @@ import {
   CreditCard,
   Badge,
   Eye,
-  FileX,
   Ban,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
@@ -96,9 +95,6 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   onPayment,
 }) => {
   const [searchQuery, setSearchQuery] = useState("")
-  
-
-
 
   const { toast } = useToast()
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
@@ -121,13 +117,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [loading, setLoading] = useState(false)
   const [totalOrders, setTotalOrders] = useState(0)
 
-    // REFETCH
+  // REFETCH
   const [startDate, setStartDate] = useState("")
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState("")
   const [paymentFilter, setPaymentFilter] = useState("all")
   const [endDate, setEndDate] = useState("")
-
-
 
   // PAYMENT MODEL
   const [open, setOpen] = useState(false)
@@ -147,10 +141,14 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const [summary, setSummary] = useState(null)
   const csvLinkRef = useRef(null)
 
-
-
   // CREDIT MEMO
-  const [isCreditMemoListOpen, setIsCreditMemoListOpen] = useState(false) 
+  const [isCreditMemoListOpen, setIsCreditMemoListOpen] = useState(false)
+
+  // Order Notes state
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false)
+  const [selectedOrderForNotes, setSelectedOrderForNotes] = useState<Order | null>(null)
+  const [orderNotes, setOrderNotes] = useState("")
+  const [isUpdatingNotes, setIsUpdatingNotes] = useState(false)
 
   const handleResetDates = () => {
     setStartDate("")
@@ -234,49 +232,48 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
     navigate(`/orders/edit/${order._id}`)
   }
 
-const handleDelete = async (id: string, orderNumber: string) => {
-  const { value: reason, isConfirmed } = await Swal.fire({
-    title: "Reason for Deletion",
-    input: "textarea",
-    inputLabel: `Why are you deleting order ${orderNumber}?`,
-    inputPlaceholder: "Enter the reason here...",
-    inputAttributes: {
-      'aria-label': 'Type your reason here'
-    },
-    showCancelButton: true,
-    confirmButtonText: "Submit",
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    inputValidator: (value) => {
-      if (!value) {
-        return "Reason is required!";
-      }
-    }
-  });
-
-  if (isConfirmed && reason) {
-    const confirmed = await Swal.fire({
-      title: "Are you sure?",
-      text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
-      icon: "warning",
+  const handleDelete = async (id: string, orderNumber: string) => {
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: "Reason for Deletion",
+      input: "textarea",
+      inputLabel: `Why are you deleting order ${orderNumber}?`,
+      inputPlaceholder: "Enter the reason here...",
+      inputAttributes: {
+        "aria-label": "Type your reason here",
+      },
       showCancelButton: true,
+      confirmButtonText: "Submit",
       confirmButtonColor: "#d33",
       cancelButtonColor: "#3085d6",
-      confirmButtonText: "Yes, delete it!",
-    });
+      inputValidator: (value) => {
+        if (!value) {
+          return "Reason is required!"
+        }
+      },
+    })
 
-    if (confirmed.isConfirmed) {
-      const deletedOrder = await deleteOrderAPI(id, token, reason);
-      console.log(reason)
+    if (isConfirmed && reason) {
+      const confirmed = await Swal.fire({
+        title: "Are you sure?",
+        text: `You are about to delete order ${orderNumber}. This action cannot be undone!`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Yes, delete it!",
+      })
 
-      if (deletedOrder) {
-        onDelete(id);
-        fetchOrders();
+      if (confirmed.isConfirmed) {
+        const deletedOrder = await deleteOrderAPI(id, token, reason)
+        console.log(reason)
+
+        if (deletedOrder) {
+          onDelete(id)
+          fetchOrders()
+        }
       }
     }
   }
-}
-
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -446,7 +443,7 @@ const handleDelete = async (id: string, orderNumber: string) => {
     )
   }
 
-   const renderCreditMemoList = () => {
+  const renderCreditMemoList = () => {
     if (!selectedOrder) return null
 
     return (
@@ -461,12 +458,11 @@ const handleDelete = async (id: string, orderNumber: string) => {
       />
     )
   }
- const handleViewCreditMemos = (order: Order) => {
+  const handleViewCreditMemos = (order: Order) => {
     setSelectedOrder(order)
     setIsCreditMemoListOpen(true)
   }
 
-  
   const handleDownloadAllOrders = async (type: string) => {
     setLoading(true)
     try {
@@ -754,16 +750,64 @@ const handleDelete = async (id: string, orderNumber: string) => {
   const receivedPercentage =
     summary && summary.totalAmount > 0 ? Math.round((summary.totalReceived / summary.totalAmount) * 100) : 0
 
-
-
   const [orderCreditMemos, setOrderCreditMemos] = useState<{ [orderId: string]: number }>({})
 
-     const getCreditMemoCount = (orderId: string) => {
+  const getCreditMemoCount = (orderId: string) => {
     return orderCreditMemos[orderId] || 0
   }
 
+  const handleOrderNotes = (order: Order) => {
+    setSelectedOrderForNotes(order)
+    setOrderNotes(order.notes || "")
+    setIsNotesDialogOpen(true)
+  }
 
-  
+  const handleUpdateNotes = async () => {
+    if (!selectedOrderForNotes) return
+
+    setIsUpdatingNotes(true)
+    try {
+      const updateData = {
+        notes: orderNotes,
+      }
+
+      const updatedOrder = await updateOrderAPI(
+        updateData,
+        token,
+        selectedOrderForNotes._id || selectedOrderForNotes.id,
+      )
+
+      if (updatedOrder) {
+        // Update the orders state
+        const updatedOrders = orders.map((order) => {
+          if (order._id === selectedOrderForNotes._id || order.id === selectedOrderForNotes.id) {
+            return { ...order, notes: orderNotes }
+          }
+          return order
+        })
+        setOrders(updatedOrders)
+
+        toast({
+          title: "Notes Updated",
+          description: `Notes for order ${selectedOrderForNotes.id} have been updated successfully`,
+        })
+
+        setIsNotesDialogOpen(false)
+        setSelectedOrderForNotes(null)
+        setOrderNotes("")
+      }
+    } catch (error) {
+      console.error("Error updating notes:", error)
+      toast({
+        title: "Error",
+        description: "Failed to update order notes",
+        variant: "destructive",
+      })
+    } finally {
+      setIsUpdatingNotes(false)
+    }
+  }
+
   return (
     <div className="space-y-4 animate-slide-up">
       <div className="flex flex-col sm:flex-row gap-3 justify-between">
@@ -938,7 +982,7 @@ const handleDelete = async (id: string, orderNumber: string) => {
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
-       <TableBody>
+          <TableBody>
             {loading ? (
               <TableRow>
                 <TableCell colSpan={9} className="text-center py-10">
@@ -960,25 +1004,23 @@ const handleDelete = async (id: string, orderNumber: string) => {
                   <TableRow key={order.id}>
                     <TableCell className="font-medium">{order.id}</TableCell>
                     <TableCell>
-              <div className="flex flex-col items-start">
-  <button
-    className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline text-left"
-    onClick={() => {
-      order.clientId && handleViewClientProfile(order.clientId)
-      fetchUserDetailsOrder(order?.store?._id)
-    }}
-  >
-    <div>{order.clientName}</div>
-    {order?.isDelete && (
-      <div className="flex items-center text-red-500 text-xs font-semibold mt-0.5">
-        <Ban className="w-4 h-4 mr-1" />
-        VOIDED
-      </div>
-    )}
-  </button>
-</div>
-
-
+                      <div className="flex flex-col items-start">
+                        <button
+                          className="cursor-pointer text-blue-600 underline hover:text-primary hover:underline text-left"
+                          onClick={() => {
+                            order.clientId && handleViewClientProfile(order.clientId)
+                            fetchUserDetailsOrder(order?.store?._id)
+                          }}
+                        >
+                          <div>{order.clientName}</div>
+                          {order?.isDelete && (
+                            <div className="flex items-center text-red-500 text-xs font-semibold mt-0.5">
+                              <Ban className="w-4 h-4 mr-1" />
+                              VOIDED
+                            </div>
+                          )}
+                        </button>
+                      </div>
                     </TableCell>
                     <TableCell>{formatDate(order.date)}</TableCell>
                     <TableCell>
@@ -1020,18 +1062,20 @@ const handleDelete = async (id: string, orderNumber: string) => {
                           <span className="capitalize">{order.paymentStatus}</span>
                         </div>
 
-                       {!order?.isDelete && <button
-                          onClick={() => {
-                            setOrderId(order.orderNumber)
-                            setOpen(true)
-                            setTotalAmount(order.total)
-                            setOrderIdDB(order?._id || order?.id)
-                            setpaymentOrder(order)
-                          }}
-                          className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
-                        >
-                          {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
-                        </button>}
+                        {!order?.isDelete && (
+                          <button
+                            onClick={() => {
+                              setOrderId(order.orderNumber)
+                              setOpen(true)
+                              setTotalAmount(order.total)
+                              setOrderIdDB(order?._id || order?.id)
+                              setpaymentOrder(order)
+                            }}
+                            className="mt-1 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition"
+                          >
+                            {order.paymentStatus === "pending" ? "Pay Now" : "Edit"}
+                          </button>
+                        )}
 
                         {activeTab === "NextWeek" && (
                           <button
@@ -1045,9 +1089,7 @@ const handleDelete = async (id: string, orderNumber: string) => {
                     </TableCell>
                     <TableCell>{order.items.length} items</TableCell>
                     <TableCell className="font-medium">
-                     {order?.isDelete 
-  ? formatCurrency(order?.deleted?.amount) 
-  : formatCurrency(order.total)}
+                      {order?.isDelete ? formatCurrency(order?.deleted?.amount) : formatCurrency(order.total)}
 
                       {/* {formatCurrency(order.total)} */}
                       {order.paymentStatus === "partial" && <p>{formatCurrency(order.paymentAmount - order.total)}</p>}
@@ -1056,14 +1098,14 @@ const handleDelete = async (id: string, orderNumber: string) => {
                     {/* Credit Memo Column */}
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {order.creditMemos  ? (
+                        {order.creditMemos ? (
                           <button
                             onClick={() => handleViewCreditMemos(order)}
                             className="flex items-center gap-1 text-blue-600 hover:text-blue-800"
                           >
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
                               <Receipt size={12} className="mr-1" />
-                            Credit Mem
+                              Credit Mem
                             </Badge>
                           </button>
                         ) : (
@@ -1090,6 +1132,10 @@ const handleDelete = async (id: string, orderNumber: string) => {
                               View Client Profile
                             </DropdownMenuItem>
                           )}
+                          <DropdownMenuItem onClick={() => handleOrderNotes(order)}>
+                            <FileText size={14} className="mr-2" />
+                            Order Notes
+                          </DropdownMenuItem>
                           {!order?.isDelete && user.role === "admin" && (
                             <DropdownMenuItem onClick={() => handleEdit(order)}>
                               <Edit size={14} className="mr-2" />
@@ -1100,60 +1146,64 @@ const handleDelete = async (id: string, orderNumber: string) => {
                           <DropdownMenuSeparator />
 
                           {/* Credit Memo Section */}
-                        {!order?.isDelete &&  <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <CreditCard size={14} className="mr-2" />
-                              Credit Memos
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="min-w-[200px]">
-                              <DropdownMenuItem onClick={() => handleCreateCreditMemo(order)}>
-                                <Plus size={14} className="mr-2" />
-                                Create New
-                              </DropdownMenuItem>
-                              {creditMemoCount > 0 && (
-                                <DropdownMenuItem onClick={() => handleViewCreditMemos(order)}>
-                                  <Eye size={14} className="mr-2" />
-                                  View Existing ({creditMemoCount})
+                          {!order?.isDelete && (
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <CreditCard size={14} className="mr-2" />
+                                Credit Memos
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent className="min-w-[200px]">
+                                <DropdownMenuItem onClick={() => handleCreateCreditMemo(order)}>
+                                  <Plus size={14} className="mr-2" />
+                                  Create New
                                 </DropdownMenuItem>
-                              )}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>}
+                                {creditMemoCount > 0 && (
+                                  <DropdownMenuItem onClick={() => handleViewCreditMemos(order)}>
+                                    <Eye size={14} className="mr-2" />
+                                    View Existing ({creditMemoCount})
+                                  </DropdownMenuItem>
+                                )}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          )}
 
-                         {!order?.isDelete && <DropdownMenuSub>
-                            <DropdownMenuSubTrigger>
-                              <FilePlus2 size={14} className="mr-2" />
-                              Generate Documents
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="min-w-[220px]">
-                              <DropdownMenuItem onClick={() => handleCreateDocument(order, "invoice")}>
-                                <FileSpreadsheet size={14} className="mr-2" />
-                                Invoice
-                              </DropdownMenuItem>
-                              {(!order.orderType || order.orderType === "Regural") && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
-                                    <Receipt size={14} className="mr-2" />
-                                    Transportation Receipt
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "delivery")}>
-                                    <ReceiptText size={14} className="mr-2" />
-                                    Delivery Note
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCreateDocument(order, "custom")}>
-                                    <PencilRuler size={14} className="mr-2" />
-                                    Custom Document
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
-                                    <Wrench className="mr-2 h-4 w-4" /> Create Work Order
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>}
+                          {!order?.isDelete && (
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <FilePlus2 size={14} className="mr-2" />
+                                Generate Documents
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent className="min-w-[220px]">
+                                <DropdownMenuItem onClick={() => handleCreateDocument(order, "invoice")}>
+                                  <FileSpreadsheet size={14} className="mr-2" />
+                                  Invoice
+                                </DropdownMenuItem>
+                                {(!order.orderType || order.orderType === "Regural") && (
+                                  <>
+                                    <DropdownMenuItem onClick={() => handleCreateDocument(order, "transport")}>
+                                      <Receipt size={14} className="mr-2" />
+                                      Transportation Receipt
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCreateDocument(order, "delivery")}>
+                                      <ReceiptText size={14} className="mr-2" />
+                                      Delivery Note
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCreateDocument(order, "custom")}>
+                                      <PencilRuler size={14} className="mr-2" />
+                                      Custom Document
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleCreateWorkOrder(order)}>
+                                      <Wrench className="mr-2 h-4 w-4" /> Create Work Order
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                          )}
 
                           <DropdownMenuSeparator />
 
-                          {!order?.isDelete &&user.role === "admin" && (
+                          {!order?.isDelete && user.role === "admin" && (
                             <DropdownMenuItem
                               onClick={() => handleDelete(order?._id, order?.id)}
                               className="text-red-600 hover:text-red-700 focus:text-red-700"
@@ -1280,9 +1330,60 @@ const handleDelete = async (id: string, orderNumber: string) => {
         userData={selectedUserData}
         fetchUserDetailsOrder={fetchUserDetailsOrder}
       />
-
       {renderCreditMemoList()}
+      {/* Order Notes Dialog */}
+      <Dialog open={isNotesDialogOpen} onOpenChange={setIsNotesDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-2 text-center sm:text-left">
+              <h3 className="text-lg font-semibold">Order Notes</h3>
+              <p className="text-sm text-muted-foreground">
+                {selectedOrderForNotes ? `Notes for order ${selectedOrderForNotes.id}` : ""}
+              </p>
+            </div>
 
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="notes" className="text-sm font-medium">
+                  Notes
+                </label>
+                <textarea
+                  id="notes"
+                  value={orderNotes}
+                  onChange={(e) => setOrderNotes(e.target.value)}
+                  placeholder="Enter order notes here..."
+                  className="w-full min-h-[120px] px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setIsNotesDialogOpen(false)
+                    setSelectedOrderForNotes(null)
+                    setOrderNotes("")
+                  }}
+                  disabled={isUpdatingNotes}
+                >
+                  Cancel
+                </Button>
+                <Button type="button" onClick={handleUpdateNotes} disabled={isUpdatingNotes}>
+                  {isUpdatingNotes ? (
+                    <>
+                      <RefreshCw size={16} className="mr-2 animate-spin" />
+                      Updating...
+                    </>
+                  ) : (
+                    "Update Notes"
+                  )}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
