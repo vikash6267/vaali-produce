@@ -298,6 +298,7 @@ const NewPurchaseForm = () => {
 
   const getProductUnitType = (productId: string) => {
     const product = products.find(p => p.id === productId);
+    console.log(product)
     return product ? product.unit : '';
   };
 

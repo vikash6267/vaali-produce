@@ -85,7 +85,7 @@ console.log(isEditProduct)
           label="Unit"
           description="Unit of measurement"
           options={units}
-          defaultValue="lb"
+        
           onSelectCustom={() => {}}
           isUnit={true}
         />
