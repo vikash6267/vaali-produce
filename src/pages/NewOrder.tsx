@@ -173,7 +173,7 @@ const NewOrder = () => {
   };
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} />
 
       <div className="flex-1 flex flex-col overflow-hidden">
