@@ -39,6 +39,7 @@ interface PurchaseItemForm {
   quantity: number;
   unitPrice: number;
   totalPrice: number;
+  lb: number;
 }
 
 const NewPurchaseForm = () => {
@@ -58,7 +59,7 @@ const NewPurchaseForm = () => {
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<PurchaseItemForm[]>([
-    { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0 }
+    { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }
   ]);
 
   const [totalAmount, setTotalAmount] = useState(0);
@@ -235,7 +236,7 @@ const NewPurchaseForm = () => {
   };
 
   const addItemRow = () => {
-    setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0 }]);
+    setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }]);
   };
 
   const removeItemRow = (index: number) => {
@@ -462,12 +463,29 @@ const NewPurchaseForm = () => {
                         onChange={(e) => handleQuantityChange(index, e.target.value)}
                       />
                     </div>
+                   <div className="col-span-1">
+  <Label htmlFor={`lb-${index}`}>
+    {getProductUnitType(item.productId) || "Select Product"}
+  </Label>
+  <Input
+    id={`lb-${index}`}
+    type="number"
+    min="0"
+    step="1"
+    value={item.lb || ''}
+    onChange={(e) => {
+      const updatedItems = [...items];
+      updatedItems[index].lb = Number(e.target.value);
+      setItems(updatedItems);
+    }}
+  />
+</div>
 
-                    <div className="col-span-1 text-center mt-1">
+                    {/* <div className="col-span-1 text-center mt-1">
                       <span className="text-sm text-muted-foreground">
                         {getProductUnitType(item.productId)}
                       </span>
-                    </div>
+                    </div> */}
 
                     <div className="col-span-2">
                       <Label htmlFor={`unitPrice-${index}`}>Box Price</Label>

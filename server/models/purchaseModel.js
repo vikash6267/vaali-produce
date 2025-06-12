@@ -68,6 +68,10 @@ const purchaseItemSchema = new mongoose.Schema({
     type: String,
 
   },
+  lb: {
+    type: String,
+
+  },
   mediaUrls: {
     type: [String], // Array of strings
     default: []

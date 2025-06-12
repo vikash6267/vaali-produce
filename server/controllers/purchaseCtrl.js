@@ -254,7 +254,7 @@ exports.updatePurchaseOrder = async (req, res) => {
             items,
             totalAmount
         } = req.body.quantityData;
-console.log(notes)
+console.log(items)
         const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
             id,
             {

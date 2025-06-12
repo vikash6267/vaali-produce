@@ -21,6 +21,7 @@ interface PurchaseItemForm {
   unitPrice: number
   totalPrice: number
   qualityStatus?: string
+  lb?: number
 }
 
 
@@ -64,7 +65,7 @@ export default NewPurchase;
   const [purchaseDate, setPurchaseDate] = useState("")
   const [deliveryDate, setDeliveryDate] = useState("")
   const [notes, setNotes] = useState("")
-  const [items, setItems] = useState<PurchaseItemForm[]>([{ productId: "", quantity: 0, unitPrice: 0, totalPrice: 0 }])
+  const [items, setItems] = useState<PurchaseItemForm[]>([{ productId: "", quantity: 0, unitPrice: 0, totalPrice: 0 ,lb:0}])
 
   const [totalAmount, setTotalAmount] = useState(0)
   const [products, setProducts] = useState([])
@@ -92,6 +93,7 @@ console.log(response)
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             qualityStatus: item.qualityStatus,
+            lb: item.lb,
             totalPrice: item.totalPrice || item.quantity * item.unitPrice,
           }))
 
@@ -193,9 +195,9 @@ console.log(response)
     setItems(updatedItems)
   }
 
-  const addItemRow = () => {
-    setItems([...items, { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0 }])
-  }
+   const addItemRow = () => {
+    setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }]);
+  };
 
   const removeItemRow = (index: number) => {
     if (items.length === 1) {
@@ -420,7 +422,23 @@ console.log(response)
     <p className="text-xs text-red-600 italic">Approved – can't edit</p>
   )}
 </div>
-
+      <div className="col-span-1">
+  <Label htmlFor={`lb-${index}`}>
+    {getProductUnitType(item.productId) || "Select Product"}
+  </Label>
+  <Input
+    id={`lb-${index}`}
+    type="number"
+    min="0"
+    step="1"
+    value={item.lb || ''}
+    onChange={(e) => {
+      const updatedItems = [...items];
+      updatedItems[index].lb = Number(e.target.value);
+      setItems(updatedItems);
+    }}
+  />
+</div>
 
                     <div className="col-span-1 text-center mt-1">
                       <span className="text-sm text-muted-foreground">{getProductUnitType(item.productId)}</span>
