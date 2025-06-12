@@ -400,60 +400,70 @@ exports.updateItemQualityStatus = async (req, res) => {
       const oldItemQuantity = existingItem.quantity;
       const newItemQuantity = typeof incomingItem.quantity === "number" ? incomingItem.quantity : oldItemQuantity;
       const isApprovedNow = incomingItem.qualityStatus === "approved";
+      const isRejectedNow = incomingItem.qualityStatus === "rejected";
 
-  
       // Update fields
       existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
       existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
       existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
       existingItem.quantity = newItemQuantity;
 
-      if (isApprovedNow) {
-        const productId = incomingItem.productId?._id || incomingItem.productId;
+      const productId = incomingItem.productId?._id || incomingItem.productId;
 
-        if (!mongoose.Types.ObjectId.isValid(productId)) {
-          console.warn(`⚠️ Invalid productId: ${productId}`);
-          continue;
-        }
-
-        const product = await Product.findById(productId);
-        if (!product) {
-          console.warn(`⚠️ Product not found: ${productId}`);
-          continue;
-        }
-
-        product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder);
-        const logEntry = product.updatedFromOrders.find(e => e.purchaseOrder.toString() === purchaseOrderId);
-
-        if (!wasApprovedBefore) {
-          // First time approval
-          product.quantity += newItemQuantity;
-          product.totalPurchase += newItemQuantity;
-          console.log("➕ First time approval. Added:", newItemQuantity);
-
-          product.updatedFromOrders.push({
-            purchaseOrder: purchaseOrderId,
-            oldQuantity: 0,
-            newQuantity: newItemQuantity,
-            difference: newItemQuantity,
-          });
-
-        } else if (logEntry && newItemQuantity !== oldItemQuantity) {
-          // Already approved, but quantity changed
-          const diff = newItemQuantity - oldItemQuantity;
-          product.quantity += diff;
-          product.totalPurchase += diff;
-          console.log("🔁 Updated quantity difference:", diff);
-
-          logEntry.oldQuantity = logEntry.newQuantity;
-          logEntry.newQuantity = newItemQuantity;
-          logEntry.difference = diff;
-        } else {
-          console.log("✅ No quantity update required.");
-        }
-
-        await product.save();
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        console.warn(`⚠️ Invalid productId: ${productId}`);
+        continue;
       }
+
+      const product = await Product.findById(productId);
+      if (!product) {
+        console.warn(`⚠️ Product not found: ${productId}`);
+        continue;
+      }
+
+      product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder);
+      const logEntry = product.updatedFromOrders.find(e => e.purchaseOrder.toString() === purchaseOrderId);
+
+      // ✅ Case 1: Approved -> Rejected
+      if (wasApprovedBefore && isRejectedNow) {
+        product.quantity -= oldItemQuantity;
+        product.totalPurchase -= oldItemQuantity;
+        console.log("❌ Rejected after approval. Removed:", oldItemQuantity);
+
+        if (logEntry) {
+          product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder.toString() !== purchaseOrderId);
+        }
+      }
+
+      // ✅ Case 2: First time approval
+      else if (!wasApprovedBefore && isApprovedNow) {
+        product.quantity += newItemQuantity;
+        product.totalPurchase += newItemQuantity;
+        console.log("➕ First time approval. Added:", newItemQuantity);
+
+        product.updatedFromOrders.push({
+          purchaseOrder: purchaseOrderId,
+          oldQuantity: 0,
+          newQuantity: newItemQuantity,
+          difference: newItemQuantity,
+        });
+      }
+
+      // ✅ Case 3: Already approved and quantity updated
+      else if (wasApprovedBefore && isApprovedNow && logEntry && newItemQuantity !== oldItemQuantity) {
+        const diff = newItemQuantity - oldItemQuantity;
+        product.quantity += diff;
+        product.totalPurchase += diff;
+        console.log("🔁 Updated quantity difference:", diff);
+
+        logEntry.oldQuantity = logEntry.newQuantity;
+        logEntry.newQuantity = newItemQuantity;
+        logEntry.difference = diff;
+      } else {
+        console.log("✅ No quantity update required.");
+      }
+
+      await product.save();
     }
 
     await order.save();
@@ -472,6 +482,7 @@ exports.updateItemQualityStatus = async (req, res) => {
     });
   }
 };
+
 
 
 

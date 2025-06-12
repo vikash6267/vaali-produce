@@ -248,16 +248,16 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
 
   const handleSubmit = async () => {
     // Check if all items have been assessed
-    const unassessedItems = items.filter(item => item.qualityStatus === 'pending');
+    // const unassessedItems = items.filter(item => item.qualityStatus === 'pending');
     
-    if (unassessedItems.length > 0) {
-      toast({
-        title: "Incomplete Assessment",
-        description: `${unassessedItems.length} items still need to be assessed`,
-        variant: "destructive"
-      });
-      return;
-    }
+    // if (unassessedItems.length > 0) {
+    //   toast({
+    //     title: "Incomplete Assessment",
+    //     description: `${unassessedItems.length} items still need to be assessed`,
+    //     variant: "destructive"
+    //   });
+    //   return;
+    // }
 
     await updatePurchaseOrderQualityAPI(purchaseId,items,token)
     // Filter approved items
