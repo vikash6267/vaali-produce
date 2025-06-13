@@ -636,6 +636,43 @@ const updatePaymentDetails = async (req, res) => {
 };
 
 
+const markOrderAsUnpaid = async (req, res) => {
+  const { orderId } = req.params;
+console.log(orderId)
+  try {
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      {
+        paymentStatus: "pending",
+        paymentDetails: null,
+        paymentAmount: 0,
+      },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Order marked as unpaid successfully",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error marking order as unpaid:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
+
+
 
 
 
@@ -1345,6 +1382,7 @@ module.exports = {
   getDashboardData,
   getPendingOrders,
   invoiceMailCtrl,
+  markOrderAsUnpaid
 };
 
 //    const refreshQuickBooksToken = async () => {
