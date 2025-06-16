@@ -518,7 +518,7 @@ const Inventory = () => {
                   />
 
                   {/* Stock Level Filter */}
-                  <Select value={filters.stockLevel} onValueChange={(value) => handleFilterChange("stockLevel", value)}>
+                  {/* <Select value={filters.stockLevel} onValueChange={(value) => handleFilterChange("stockLevel", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Stock Levels" />
                     </SelectTrigger>
@@ -531,7 +531,7 @@ const Inventory = () => {
                       <SelectItem value="medium">Medium Stock (1-3x Reorder Level)</SelectItem>
                       <SelectItem value="high">High Stock (Above 3x Reorder Level)</SelectItem>
                     </SelectContent>
-                  </Select>
+                  </Select> */}
 
 
                   <div className="flex items-center gap-4 mt-4">
