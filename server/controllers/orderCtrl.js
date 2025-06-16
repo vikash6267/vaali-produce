@@ -71,7 +71,7 @@ const createOrderCtrl = async (req, res) => {
       createdAt,
     } = req.body;
 
-    console.log(req.body);
+    console.log(items);
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Order items are required" });
@@ -143,17 +143,67 @@ const createOrderCtrl = async (req, res) => {
       createdAt: orderDate, // Use the fixed date
     });
 
-    for (const item of items) {
-      const { productId, quantity } = item;
-      if (!productId || quantity <= 0) continue;
+   for (const item of items) {
+  const { productId, quantity, pricingType } = item;
+  if (!productId || quantity <= 0) continue;
 
-      await Product.findByIdAndUpdate(productId, {
-        $inc: {
-          totalSell: quantity,
-          quantity: -quantity
-        }
-      });
-    }
+  const product = await Product.findById(productId);
+  if (!product) continue;
+
+  const saleDate = orderDate || new Date();
+
+// Add to sales history
+if (pricingType === "unit") {
+ 
+
+  product.lbSellHistory.push({
+    date: saleDate,
+    weight: quantity,
+    lb: "unit",
+  });
+} else if (pricingType === "box") {
+  
+  const totalBoxes = product.totalPurchase || 1;
+    
+    const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+    const estimatedUnitsUsed = avgUnitsPerBox * quantity; 
+
+    product.lbSellHistory.push({
+    date: saleDate,
+    weight: estimatedUnitsUsed,
+    lb: "box",
+  });
+  product.salesHistory.push({
+    date: saleDate,
+    quantity: quantity,
+  });
+
+ 
+}
+
+
+
+  if (pricingType === "unit") {
+    product.unitSell += quantity;
+    product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+
+  }
+
+  else if (pricingType === "box") {
+    product.totalSell += quantity;
+    product.remaining = Math.max(0, product.remaining - quantity);
+
+    // Calculate average unit weight per box (approximation)
+    const totalBoxes = product.totalPurchase || 1; // avoid div by zero
+    const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+
+    const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+    product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+  }
+
+  await product.save();
+}
+
     await newOrder.save();
 
     res.status(201).json({
@@ -328,57 +378,180 @@ const getOrderForStoreCtrl = async (req, res) => {
   }
 };
 
+// const updateOrderCtrl = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const updateFields = req.body;
+
+//     // Ensure the order exists
+//     const existingOrder = await orderModel.findById(id);
+
+//     if (!existingOrder) {
+//       return res
+//         .status(404)
+//         .json({ success: false, message: "Order not found!" });
+//     }
+
+//     const oldItemsMap = {};
+//     existingOrder.items.forEach(item => {
+//       oldItemsMap[item.productId.toString()] = item.quantity;
+//     });
+
+//     // Update order fields
+//     Object.keys(updateFields).forEach((key) => {
+//       if (updateFields[key] !== undefined) {
+//         existingOrder[key] = updateFields[key];
+//       }
+//     });
+
+//     await existingOrder.save();
+
+//     // Now adjust product stocks based on quantity difference
+//     for (const newItem of existingOrder.items) {
+//       const productId = newItem.productId;
+//       const newQty = newItem.quantity;
+//       const oldQty = oldItemsMap[productId.toString()] || 0;
+//       const diff = newQty - oldQty;
+
+//       if (diff !== 0) {
+//         await Product.findByIdAndUpdate(productId, {
+//           $inc: {
+//             totalSell: diff,
+//             quantity: -diff
+//           }
+//         });
+//       }
+//     }
+
+//     // Update only the fields that are present in the request body
+//     Object.keys(updateFields).forEach((key) => {
+//       if (updateFields[key] !== undefined) {
+//         existingOrder[key] = updateFields[key];
+//       }
+//     });
+
+//     await existingOrder.save();
+
+//     return res.status(200).json({
+//       success: true,
+//       message: "Order updated successfully",
+//       updatedOrder: existingOrder,
+//     });
+//   } catch (error) {
+//     console.error("Error updating order:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error while updating order",
+//     });
+//   }
+// };
+
+// POST /api/orders/:orderId/pallet
+
 const updateOrderCtrl = async (req, res) => {
   try {
     const { id } = req.params;
     const updateFields = req.body;
 
-    // Ensure the order exists
     const existingOrder = await orderModel.findById(id);
-
     if (!existingOrder) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Order not found!" });
+      return res.status(404).json({ success: false, message: "Order not found!" });
     }
 
     const oldItemsMap = {};
     existingOrder.items.forEach(item => {
-      oldItemsMap[item.productId.toString()] = item.quantity;
+      oldItemsMap[item.productId.toString()] = { quantity: item.quantity, pricingType: item.pricingType };
     });
 
-    // Update order fields
+    // Update order fields (excluding items)
     Object.keys(updateFields).forEach((key) => {
-      if (updateFields[key] !== undefined) {
+      if (key !== "items" && updateFields[key] !== undefined) {
         existingOrder[key] = updateFields[key];
       }
     });
 
-    await existingOrder.save();
+    // If items are updated, process inventory changes
+    if (updateFields.items && Array.isArray(updateFields.items)) {
+      existingOrder.items = updateFields.items;
 
-    // Now adjust product stocks based on quantity difference
-    for (const newItem of existingOrder.items) {
-      const productId = newItem.productId;
-      const newQty = newItem.quantity;
-      const oldQty = oldItemsMap[productId.toString()] || 0;
-      const diff = newQty - oldQty;
+      for (const item of updateFields.items) {
+        const { productId, quantity, pricingType } = item;
+        if (!productId || quantity <= 0) continue;
 
-      if (diff !== 0) {
-        await Product.findByIdAndUpdate(productId, {
-          $inc: {
-            totalSell: diff,
-            quantity: -diff
-          }
-        });
+        const product = await Product.findById(productId);
+        if (!product) continue;
+const saleDate = existingOrder.createdAt || new Date();
+
+// Remove old sales history for this date
+product.salesHistory = product.salesHistory.filter(p => {
+  return new Date(p.date).toISOString() !== new Date(existingOrder.createdAt).toISOString();
+});
+
+product.lbSellHistory = product.lbSellHistory.filter(p => {
+  return new Date(p.date).toISOString() !== new Date(existingOrder.createdAt).toISOString();
+});
+
+// Add updated sales history
+if (pricingType === "unit") {
+  product.salesHistory.push({
+    date: saleDate,
+    quantity: quantity,
+  });
+
+  product.lbSellHistory.push({
+    date: saleDate,
+    weight: quantity,
+    lb: "unit",
+  });
+} else if (pricingType === "box") {
+  const totalBoxes = product.totalPurchase || 1;
+  const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+  const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+  product.salesHistory.push({
+    date: saleDate,
+    quantity: quantity,
+  });
+
+  product.lbSellHistory.push({
+    date: saleDate,
+    weight: estimatedUnitsUsed,
+    lb: "box",
+  });
+}
+
+        const old = oldItemsMap[productId.toString()] || { quantity: 0, pricingType };
+
+        // Reverse old impact
+        if (old.pricingType === "unit") {
+          product.unitSell -= old.quantity;
+          product.unitRemaining += old.quantity;
+        } else if (old.pricingType === "box") {
+          product.totalSell -= old.quantity;
+          product.remaining += old.quantity;
+
+          const totalBoxes = product.totalPurchase || 1;
+          const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+          product.unitRemaining += avgUnitsPerBox * old.quantity;
+        }
+
+        // Apply new impact
+        if (pricingType === "unit") {
+          product.unitSell += quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        } else if (pricingType === "box") {
+          product.totalSell += quantity;
+          product.remaining = Math.max(0, product.remaining - quantity);
+
+          const totalBoxes = product.totalPurchase || 1;
+          const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+        }
+
+        await product.save();
       }
     }
-
-    // Update only the fields that are present in the request body
-    Object.keys(updateFields).forEach((key) => {
-      if (updateFields[key] !== undefined) {
-        existingOrder[key] = updateFields[key];
-      }
-    });
 
     await existingOrder.save();
 
@@ -396,7 +569,7 @@ const updateOrderCtrl = async (req, res) => {
   }
 };
 
-// POST /api/orders/:orderId/pallet
+
 const updatePalletInfo = async (req, res) => {
   const { orderId } = req.params;
   const { palletData } = req.body;
@@ -655,43 +828,67 @@ const deleteOrderCtrl = async (req, res) => {
 
     const amount = order.total ?? 0;
 
-    // 1. Soft delete order fields
+    // Soft delete flags
     order.isDelete = true;
     order.deleted = { reason, amount };
-
-    // 2. Zero total
     order.total = 0;
-    // order.paymentStatus = "pending"
 
-       for (const item of order.items) {
-      const { productId, quantity } = item;
+    // Loop through each item and reverse its effect
+    for (const item of order.items) {
+      const { productId, quantity, pricingType } = item;
       if (!productId || quantity <= 0) continue;
 
-      await Product.findByIdAndUpdate(productId, {
-        $inc: {
-          totalSell: -quantity,
-          quantity: quantity
-        }
-      });
-    }
-    
-    // 3. Update all items
-    if (Array.isArray(order.items)) {
-      order.items = order.items.map(item => {
-        const qty = item.quantity ?? 0;
-        const price = item.unitPrice || item.price || 0;
-        const total = item.total ?? qty * price;
+      const product = await Product.findById(productId);
+      if (!product) continue;
 
-        return {
-          ...item,
-          deletedQuantity: qty,
-          deletedTotal: total,
-          quantity: 0,
-          total: 0
-        };
-      });
+      const saleDate = order.createdAt;
+      const totalBoxes = product.totalPurchase || 1;
+      const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+      const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+      if (pricingType === "unit") {
+        product.unitSell -= quantity ;
+        product.unitRemaining += quantity;
+
+        // Remove unit lbSellHistory
+        product.lbSellHistory = product.lbSellHistory.filter(
+          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "unit" && p.weight === quantity)
+        );
+
+        // Remove estimated box lbSellHistory
+        product.lbSellHistory = product.lbSellHistory.filter(
+          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "box" && p.weight === estimatedUnitsUsed)
+        );
+      }
+
+      if (pricingType === "box") {
+        product.totalSell -= quantity
+        product.remaining += quantity;
+        product.unitRemaining += estimatedUnitsUsed
+
+        // Remove box sales history
+        product.salesHistory = product.salesHistory.filter(
+          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.quantity === quantity)
+        );
+      }
+
+      await product.save();
     }
- 
+
+    // Zero out order items and preserve deleted info
+    order.items = order.items.map(item => {
+      const qty = item.quantity ?? 0;
+      const price = item.unitPrice || item.price || 0;
+      const total = item.total ?? qty * price;
+
+      return {
+        ...item,
+        deletedQuantity: qty,
+        deletedTotal: total,
+        quantity: 0,
+        total: 0
+      };
+    });
 
     await order.save();
 
@@ -705,6 +902,7 @@ const deleteOrderCtrl = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 
 const updateOrderTypeCtrl = async (req, res) => {

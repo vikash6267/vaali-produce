@@ -1,83 +1,73 @@
+"use client"
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import {
-  ArrowLeft, Save, Plus, Trash, Package, DollarSign, Calendar
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle
-} from '@/components/ui/card';
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useToast } from '@/hooks/use-toast';
-import { formatCurrency } from '@/utils/formatters';
-import PageHeader from '@/components/shared/PageHeader';
+import type React from "react"
+import { useState, useEffect } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
+import { ArrowLeft, Save, Plus, Trash, Package, DollarSign, Calendar } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardFooter } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { useToast } from "@/hooks/use-toast"
+import { formatCurrency } from "@/utils/formatters"
+import PageHeader from "@/components/shared/PageHeader"
 import { getAllProductAPI } from "@/services2/operations/product"
 import { getAllVendorsAPI } from "@/services2/operations/vendor"
-import {createPurchaseOrderAPI} from "@/services2/operations/purchaseOrder"
-import { useSelector } from 'react-redux';
-import { RootState } from '@/redux/store';
-import ReactSelect from 'react-select';
-
+import { createPurchaseOrderAPI } from "@/services2/operations/purchaseOrder"
+import { useSelector } from "react-redux"
+import type { RootState } from "@/redux/store"
 
 // Mock vendor pricing data
 const mockVendorPricing = [
-  { vendorId: 'v1', productId: 'prod1', price: 1.20 }, // Green Valley Farms - Apples
-  { vendorId: 'v2', productId: 'prod1', price: 1.35 }, // Organic Supply - Apples
-  { vendorId: 'v1', productId: 'prod2', price: 1.40 }, // Green Valley Farms - Pears
-  { vendorId: 'v3', productId: 'prod3', price: 1.90 }, // Fresh Produce - Tomatoes
-  { vendorId: 'v3', productId: 'prod5', price: 0.95 }  // Fresh Produce - Bell Peppers
-];
+  { vendorId: "v1", productId: "prod1", price: 1.2 }, // Green Valley Farms - Apples
+  { vendorId: "v2", productId: "prod1", price: 1.35 }, // Organic Supply - Apples
+  { vendorId: "v1", productId: "prod2", price: 1.4 }, // Green Valley Farms - Pears
+  { vendorId: "v3", productId: "prod3", price: 1.9 }, // Fresh Produce - Tomatoes
+  { vendorId: "v3", productId: "prod5", price: 0.95 }, // Fresh Produce - Bell Peppers
+]
 
 interface PurchaseItemForm {
-  productId: string;
-  quantity: number;
-  unitPrice: number;
-  totalPrice: number;
-  lb: number;
+  productId: string
+  quantity: number
+  unitPrice: number
+  totalPrice: number
+  lb: number
+  totalWeight: number
 }
 
 const NewPurchaseForm = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const { toast } = useToast();
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { toast } = useToast()
 
   // Parse URL query parameters
-  const queryParams = new URLSearchParams(location.search);
-  const suggestedProductId = queryParams.get('productId');
-  const isSuggested = queryParams.get('suggested') === 'true';
+  const queryParams = new URLSearchParams(location.search)
+  const suggestedProductId = queryParams.get("productId")
+  const isSuggested = queryParams.get("suggested") === "true"
 
   // Form state
-  const [vendorId, setVendorId] = useState('');
-  const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split('T')[0]);
-  const [deliveryDate, setDeliveryDate] = useState('');
-  const [notes, setNotes] = useState('');
+  const [vendorId, setVendorId] = useState("")
+  const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
+  const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().split("T")[0])
+  const [deliveryDate, setDeliveryDate] = useState("")
+  const [notes, setNotes] = useState("")
   const [items, setItems] = useState<PurchaseItemForm[]>([
-    { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }
-  ]);
+    { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 },
+  ])
 
-  const [totalAmount, setTotalAmount] = useState(0);
-  const [suggestedVendors, setSuggestedVendors] = useState<string[]>([]);
+  const [totalAmount, setTotalAmount] = useState(0)
+  const [totalUnitType, setTotalUnitType] = useState(0)
+  const [suggestedVendors, setSuggestedVendors] = useState<string[]>([])
   const [products, setProducts] = useState([])
-  const [vendors, setVendors] = useState([]);
-  const token = useSelector((state: RootState) => state.auth?.token ?? null);
-
-
-
-
-
+  const [vendors, setVendors] = useState([])
+  const token = useSelector((state: RootState) => state.auth?.token ?? null)
 
   const fetchProducts = async () => {
     try {
       const response = await getAllProductAPI()
       console.log(response)
-      // { id: 'prod1', name: 'Organic Apples', price: 1.25, unit: 'lb' },
 
       if (response) {
         const updatedProducts = response.map((product) => ({
@@ -85,7 +75,6 @@ const NewPurchaseForm = () => {
           id: product._id,
           price: product.pricePerBox,
           lastUpdated: product?.updatedAt,
-
         }))
         setProducts(updatedProducts)
       }
@@ -94,187 +83,186 @@ const NewPurchaseForm = () => {
     }
   }
 
-
   const fetchVendors = async () => {
-    const data = await getAllVendorsAPI();
-    console.log(data);
+    const data = await getAllVendorsAPI()
+    console.log(data)
 
     const formattedData = data.map((vendor) => ({
       ...vendor,
-      id: vendor._id, // replace _id with id
-    }));
+      id: vendor._id,
+    }))
 
-    setVendors(formattedData);
-  };
-
-
-
+    setVendors(formattedData)
+  }
 
   useEffect(() => {
-    fetchVendors();
+    fetchVendors()
     fetchProducts()
   }, [])
 
   // Generate PO number when the component mounts
   useEffect(() => {
-    const currentYear = new Date().getFullYear();
-    const randomNum = Math.floor(1000 + Math.random() * 9000);
-    setPurchaseOrderNumber(`PO-${currentYear}-${randomNum}`);
+    const currentYear = new Date().getFullYear()
+    const randomNum = Math.floor(1000 + Math.random() * 9000)
+    setPurchaseOrderNumber(`PO-${currentYear}-${randomNum}`)
 
     // If there's a suggested product, set it up
     if (isSuggested && suggestedProductId) {
-      // Find product
-      const product = products.find(p => p.id === suggestedProductId);
+      const product = products.find((p) => p.id === suggestedProductId)
       if (product) {
-        // Find suggested vendors for this product
         const vendorsForProduct = mockVendorPricing
-          .filter(vp => vp.productId === suggestedProductId)
-          .map(vp => vp.vendorId);
+          .filter((vp) => vp.productId === suggestedProductId)
+          .map((vp) => vp.vendorId)
 
-        setSuggestedVendors(vendorsForProduct);
+        setSuggestedVendors(vendorsForProduct)
 
-        // If there's only one suggested vendor, select it automatically
         if (vendorsForProduct.length === 1) {
-          setVendorId(vendorsForProduct[0]);
+          setVendorId(vendorsForProduct[0])
         }
 
-        // Set the product in the first item
-        const updatedItems = [...items];
+        const updatedItems = [...items]
         updatedItems[0] = {
           ...updatedItems[0],
           productId: suggestedProductId,
           unitPrice: product.price,
-          quantity: 100, // Default reorder quantity
-          totalPrice: 100 * product.price
-        };
+          quantity: 100,
+          totalPrice: 100 * product.price,
+          totalWeight: 0,
+        }
 
-        setItems(updatedItems);
+        setItems(updatedItems)
       }
     }
-  }, [isSuggested, suggestedProductId]);
+  }, [isSuggested, suggestedProductId])
 
-  // Calculate total amount whenever items change
+  // Calculate total amount and weight whenever items change
   useEffect(() => {
-    const total = items.reduce((sum, item) => sum + item.totalPrice, 0);
-    setTotalAmount(total);
-  }, [items]);
+    const total = items.reduce((sum, item) => sum + item.totalPrice, 0)
+    const totalWeight = items.reduce((sum, item) => sum + item.totalWeight, 0)
+    setTotalAmount(total)
+    setTotalUnitType(totalWeight)
+  }, [items])
 
   const handleProductChange = (index: number, productId: string) => {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
+    const product = products.find((p) => p.id === productId)
+    if (!product) return
 
-    // If a vendor is selected, check if there's vendor-specific pricing
-    let price = product.price;
+    let price = product.price
     if (vendorId) {
-      const vendorPricing = mockVendorPricing.find(
-        vp => vp.vendorId === vendorId && vp.productId === productId
-      );
+      const vendorPricing = mockVendorPricing.find((vp) => vp.vendorId === vendorId && vp.productId === productId)
       if (vendorPricing) {
-        price = vendorPricing.price;
+        price = vendorPricing.price
       }
     }
 
-    const updatedItems = [...items];
+    const updatedItems = [...items]
     updatedItems[index] = {
       ...updatedItems[index],
       productId,
       unitPrice: price,
-      totalPrice: updatedItems[index].quantity * price
-    };
+      totalPrice: updatedItems[index].quantity * price,
+      totalWeight: updatedItems[index].quantity * updatedItems[index].lb,
+    }
 
-    setItems(updatedItems);
-  };
+    setItems(updatedItems)
+  }
 
   const handleVendorChange = (vendorId: string) => {
-    setVendorId(vendorId);
+    setVendorId(vendorId)
 
-    // Update prices based on vendor-specific pricing
-    const updatedItems = items.map(item => {
-      if (!item.productId) return item;
+    const updatedItems = items.map((item) => {
+      if (!item.productId) return item
 
-      // Check if there's vendor-specific pricing
-      const vendorPricing = mockVendorPricing.find(
-        vp => vp.vendorId === vendorId && vp.productId === item.productId
-      );
+      const vendorPricing = mockVendorPricing.find((vp) => vp.vendorId === vendorId && vp.productId === item.productId)
 
       if (vendorPricing) {
         return {
           ...item,
           unitPrice: vendorPricing.price,
-          totalPrice: item.quantity * vendorPricing.price
-        };
+          totalPrice: item.quantity * vendorPricing.price,
+          totalWeight: item.quantity * item.lb,
+        }
       }
 
-      return item;
-    });
+      return item
+    })
 
-    setItems(updatedItems);
-  };
+    setItems(updatedItems)
+  }
 
   const handleQuantityChange = (index: number, quantity: string) => {
-    const qty = parseFloat(quantity) || 0;
-    const updatedItems = [...items];
+    const qty = Number.parseFloat(quantity) || 0
+    const updatedItems = [...items]
     updatedItems[index] = {
       ...updatedItems[index],
       quantity: qty,
-      totalPrice: qty * updatedItems[index].unitPrice
-    };
-
-    setItems(updatedItems);
-  };
+      totalPrice: qty * updatedItems[index].unitPrice,
+      totalWeight: qty * updatedItems[index].lb,
+    }
+    setItems(updatedItems)
+  }
 
   const handleUnitPriceChange = (index: number, price: string) => {
-    const unitPrice = parseFloat(price) || 0;
-    const updatedItems = [...items];
+    const unitPrice = Number.parseFloat(price) || 0
+    const updatedItems = [...items]
     updatedItems[index] = {
       ...updatedItems[index],
       unitPrice,
-      totalPrice: updatedItems[index].quantity * unitPrice
-    };
+      totalPrice: updatedItems[index].quantity * unitPrice,
+    }
 
-    setItems(updatedItems);
-  };
+    setItems(updatedItems)
+  }
+
+  const handleLbChange = (index: number, lbValue: number) => {
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      lb: lbValue,
+      totalWeight: updatedItems[index].quantity * lbValue,
+    }
+    setItems(updatedItems)
+  }
 
   const addItemRow = () => {
-    setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }]);
-  };
+    setItems([...items, { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 }])
+  }
 
   const removeItemRow = (index: number) => {
     if (items.length === 1) {
       toast({
         variant: "destructive",
         title: "Cannot remove item",
-        description: "A purchase order must have at least one item."
-      });
-      return;
+        description: "A purchase order must have at least one item.",
+      })
+      return
     }
 
-    const updatedItems = [...items];
-    updatedItems.splice(index, 1);
-    setItems(updatedItems);
-  };
+    const updatedItems = [...items]
+    updatedItems.splice(index, 1)
+    setItems(updatedItems)
+  }
 
-  const handleSubmit = async(e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
 
-    // Validate form
     if (!vendorId) {
       toast({
         variant: "destructive",
         title: "Missing vendor",
-        description: "Please select a vendor for this purchase."
-      });
-      return;
+        description: "Please select a vendor for this purchase.",
+      })
+      return
     }
 
-    const invalidItems = items.filter(item => !item.productId || item.quantity <= 0);
+    const invalidItems = items.filter((item) => !item.productId || item.quantity <= 0)
     if (invalidItems.length > 0) {
       toast({
         variant: "destructive",
         title: "Invalid items",
-        description: "Please ensure all items have a product selected and a quantity greater than zero."
-      });
-      return;
+        description: "Please ensure all items have a product selected and a quantity greater than zero.",
+      })
+      return
     }
 
     const payload = {
@@ -285,31 +273,24 @@ const NewPurchaseForm = () => {
       notes,
       items,
       totalAmount,
-      
-    };
-    await createPurchaseOrderAPI(payload,token)
- 
-    // In a real app, this would call an API to create the purchase
-  
+    }
+    await createPurchaseOrderAPI(payload, token)
 
-    // Navigate back to purchases list
-    navigate('/vendors');
-  };
+    navigate("/vendors")
+  }
 
   const getProductUnitType = (productId: string) => {
-    const product = products.find(p => p.id === productId);
-    console.log(product)
-    return product ? product.unit : '';
-  };
+    const product = products.find((p) => p.id === productId)
+    return product ? product.unit : ""
+  }
 
-  // Check if a vendor is recommended for the current product selection
   const isRecommendedVendor = (vendorId: string) => {
-    return suggestedVendors.includes(vendorId);
-  };
+    return suggestedVendors.includes(vendorId)
+  }
 
   return (
     <div className="container mx-auto py-6 space-y-6">
-      <Button variant="ghost" onClick={() => navigate('/vendors')}>
+      <Button variant="ghost" onClick={() => navigate("/vendors")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Purchases
       </Button>
@@ -412,14 +393,9 @@ const NewPurchaseForm = () => {
               <div className="space-y-4">
                 {items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-3 items-end">
-                 
-                 
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <Label htmlFor={`product-${index}`}>Product</Label>
-                      <Select
-                        value={item.productId}
-                        onValueChange={(value) => handleProductChange(index, value)}
-                      >
+                      <Select value={item.productId} onValueChange={(value) => handleProductChange(index, value)}>
                         <SelectTrigger id={`product-${index}`}>
                           <SelectValue placeholder="Select a product" />
                         </SelectTrigger>
@@ -433,60 +409,29 @@ const NewPurchaseForm = () => {
                       </Select>
                     </div>
 
-                    {/* {
-                          <div className="col-span-5">
-                          <Label htmlFor={`product-${index}`}>Product</Label>
-                          <ReactSelect
-                            id={`product-${index}`}
-                            options={products.map(product => ({
-                              value: product.id,
-                              label: product.name
-                            }))}
-                            value={products.find(p => p.id === item.productId) && {
-                              value: item.productId,
-                              label: products.find(p => p.id === item.productId)?.name,
-                            }}
-                            onChange={(selected) => handleProductChange(index, selected?.value)}
-                            placeholder="Select a product"
-                            isSearchable
-                          />
-                        </div>
-                    } */}
-
-                    <div className="col-span-2">
+                    <div className="col-span-1">
                       <Label htmlFor={`quantity-${index}`}>Quantity</Label>
                       <Input
                         id={`quantity-${index}`}
                         type="number"
                         min="0"
                         step="1"
-                        value={item.quantity || ''}
+                        value={item.quantity || ""}
                         onChange={(e) => handleQuantityChange(index, e.target.value)}
                       />
                     </div>
-                   <div className="col-span-1">
-  <Label htmlFor={`lb-${index}`}>
-    {getProductUnitType(item.productId) || "Select Product"}
-  </Label>
-  <Input
-    id={`lb-${index}`}
-    type="number"
-    min="0"
-    step="1"
-    value={item.lb || ''}
-    onChange={(e) => {
-      const updatedItems = [...items];
-      updatedItems[index].lb = Number(e.target.value);
-      setItems(updatedItems);
-    }}
-  />
-</div>
 
-                    {/* <div className="col-span-1 text-center mt-1">
-                      <span className="text-sm text-muted-foreground">
-                        {getProductUnitType(item.productId)}
-                      </span>
-                    </div> */}
+                    <div className="col-span-1">
+                      <Label htmlFor={`lb-${index}`}>{getProductUnitType(item.productId) || "Unit"}</Label>
+                      <Input
+                        id={`lb-${index}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.lb || ""}
+                        onChange={(e) => handleLbChange(index, Number(e.target.value))}
+                      />
+                    </div>
 
                     <div className="col-span-2">
                       <Label htmlFor={`unitPrice-${index}`}>Box Price</Label>
@@ -498,7 +443,7 @@ const NewPurchaseForm = () => {
                           min="0"
                           step="0.01"
                           className="pl-8"
-                          value={item.unitPrice || ''}
+                          value={item.unitPrice || ""}
                           onChange={(e) => handleUnitPriceChange(index, e.target.value)}
                         />
                       </div>
@@ -507,6 +452,15 @@ const NewPurchaseForm = () => {
                     <div className="col-span-1">
                       <div className="text-right">
                         <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2">
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Total Weight</div>
+                        <span className="font-medium">
+                          {item.totalWeight.toFixed(2)} {getProductUnitType(item.productId) || "lbs"}
+                        </span>
                       </div>
                     </div>
 
@@ -526,15 +480,21 @@ const NewPurchaseForm = () => {
               </div>
 
               <div className="mt-6 flex justify-end">
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Total Amount</div>
-                  <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+                <div className="text-right space-y-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total Weight</div>
+                    <div className="text-lg font-semibold">{totalUnitType.toFixed(2)} lbs</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total Amount</div>
+                    <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </CardContent>
           <CardFooter className="flex justify-between">
-            <Button type="button" variant="outline" onClick={() => navigate('/vendors')}>
+            <Button type="button" variant="outline" onClick={() => navigate("/vendors")}>
               Cancel
             </Button>
             <Button type="submit">
@@ -545,7 +505,7 @@ const NewPurchaseForm = () => {
         </Card>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default NewPurchaseForm;
+export default NewPurchaseForm

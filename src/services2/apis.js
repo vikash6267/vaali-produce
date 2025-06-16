@@ -35,6 +35,7 @@ export const product = {
   CREATE_PRODUCT: BASE_URL + "/product/create",
 
   GET_ALL_PRODUCT: BASE_URL + "/product/getAll",
+  GET_ALL_PRODUCT_SUMMARY: BASE_URL + "/product/getAllSummary",
   GET_PRODUCT: BASE_URL + "/product/get",
   GET_PRODUCT_ORDER: BASE_URL + "/product/get-order",
   DELETE_PRODUCT: BASE_URL + "/product/delete",

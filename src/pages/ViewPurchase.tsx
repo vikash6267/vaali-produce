@@ -55,6 +55,7 @@ const ViewPurchaseOrder =()=> {
         setLoading(true)
         const response = await getSinglePurchaseOrderAPI(id)
 
+        console.log(response)
         if (response) {
           setPurchaseOrder(response)
         }
@@ -225,6 +226,8 @@ const ViewPurchaseOrder =()=> {
               <TableRow>
                 <TableHead>Product</TableHead>
                 <TableHead>Quantity</TableHead>
+                <TableHead>lb</TableHead>
+                <TableHead>Total lb</TableHead>
                 <TableHead>Unit Price</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
@@ -239,6 +242,12 @@ const ViewPurchaseOrder =()=> {
                     <TableCell className="font-medium">{productName}</TableCell>
                     <TableCell>
                       {item.quantity} {unitType}
+                    </TableCell>
+                    <TableCell>
+                      {item.lb}
+                    </TableCell>
+                    <TableCell>
+                      {item.totalWeight}
                     </TableCell>
                     <TableCell>{formatCurrency(item.unitPrice)}</TableCell>
                     <TableCell className="text-right">

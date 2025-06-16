@@ -72,6 +72,11 @@ const purchaseItemSchema = new mongoose.Schema({
     type: String,
 
   },
+  totalWeight: {
+    type: Number,
+    default:0
+
+  },
   mediaUrls: {
     type: [String], // Array of strings
     default: []

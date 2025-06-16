@@ -2,23 +2,31 @@ const mongoose = require("mongoose");
 
 
 const updatedFromOrdersSchema = new mongoose.Schema({
-  purchaseOrder: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'PurchaseOrder',
-   
-  },
-  oldQuantity: {
-    type: Number,
+    purchaseOrder: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'PurchaseOrder',
 
-  },
-  newQuantity: {
-    type: Number,
- 
-  },
-  difference: {
-    type: Number,
-  
-  },
+    },
+    oldQuantity: {
+        type: Number,
+
+    },
+    newQuantity: {
+        type: Number,
+
+    },
+    perLb: {
+        type: Number,
+
+    },
+    totalLb: {
+        type: Number,
+
+    },
+    difference: {
+        type: Number,
+
+    },
 }, { _id: false });
 
 
@@ -34,11 +42,16 @@ const ProductSchema = new mongoose.Schema(
             ref: "Category",
             required: true,
         },
+
+
+
+
         quantity: {
             type: Number,
             required: true,
             default: 0,
         },
+        // BOXES
         totalSell: {
             type: Number,
             default: 0,
@@ -47,6 +60,67 @@ const ProductSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        remaining: {
+            type: Number,
+            default: 0,
+        },
+        // LB's
+        unitPurchase: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+        unitRemaining: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+        unitSell: {
+            type: Number,
+            required: true,
+            default: 0,
+        },
+
+
+
+        purchaseHistory: [
+            {
+                date: { type: Date, required: true },
+                quantity: { type: Number, default: 0 },
+            }
+        ],
+        salesHistory: [
+            {
+                date: { type: Date, required: true },
+                quantity: { type: Number, default: 0 },
+            }
+        ],
+        lbPurchaseHistory: [
+            {
+                date: { type: Date, required: true },
+                weight: { type: Number, default: 0 },
+                lb: { type: String }
+            }
+        ],
+        lbSellHistory: [
+            {
+                date: { type: Date, required: true },
+                weight: { type: Number, default: 0 },
+                lb: { type: String }
+            }
+        ],
+
+
+        quantityTrash: [
+            {
+                quantity: { type: Number, required: true },
+                type: { type: String, enum: ['box', 'unit'], required: true },
+                reason: { type: String, default: 'expired' },
+                date: { type: Date, default: Date.now }
+            }
+        ],
+
+
         unit: {
             type: String,
 
@@ -116,12 +190,12 @@ const ProductSchema = new mongoose.Schema(
             type: Number,
             default: 0
         },
-   updatedFromOrders: {
-    type: [updatedFromOrdersSchema],
-    default: []
-  }
+        updatedFromOrders: {
+            type: [updatedFromOrdersSchema],
+            default: []
+        }
 
-          
+
     },
     { timestamps: true }
 );

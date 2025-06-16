@@ -37,7 +37,7 @@ import PriceUpdateModal from "@/components/inventory/PriceUpdateModal"
 import PriceListUpdateModal from "@/components/inventory/PriceListUpdateModal"
 import BulkDiscountModal from "@/components/inventory/BulkDiscountModal"
 import { useNavigate } from "react-router-dom"
-import { getAllProductAPI } from "@/services2/operations/product"
+import { getAllProductAPI,getAllProductSummaryAPI } from "@/services2/operations/product"
 
 interface FilterState {
   search: string
@@ -76,7 +76,7 @@ const Inventory = () => {
   const fetchProducts = async () => {
     setLoading(true)
     try {
-      const response = await getAllProductAPI()
+      const response = await getAllProductSummaryAPI()
       console.log(response)
       if (response) {
         const updatedProducts = response.map((product) => ({

@@ -30,6 +30,8 @@ interface QualityControlFormProps {
 // Update the PurchaseItem interface to include mediaUrls
 interface ExtendedPurchaseItem extends PurchaseItem {
   mediaUrls?: string[];
+  totalWeight?:Number;
+  lb?:Number;
 }
 
 // Interface for vendor pricing data
@@ -366,7 +368,7 @@ const QualityControlForm: React.FC<QualityControlFormProps> = ({ purchaseId }) =
                     Quantity: {item.quantity} {item.unit}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Batch: {item.batchNumber}
+                    Lb/Total: {String(item?.lb) } / {String(item?.totalWeight)}
                   </p>
                   
                   <div className="flex items-center gap-2 mt-3">

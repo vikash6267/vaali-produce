@@ -13,18 +13,61 @@ import {
   Trash,
   FileEdit,
   MoreHorizontal,
-  Image,
-  AlertTriangle,
-  Calendar,
   Package,
+  ShoppingCart,
+  TrendingUp,
+  Archive,
+  BarChart3,
+  Box,
+  ImageIcon,
+  Trash2,
 } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import type { Product } from "@/types"
-import { format, isAfter, isBefore, addDays } from "date-fns"
+
+import { isAfter, isBefore, addDays } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 import AddProductForm from "./AddProductForm"
 import { getSingleProductOrderAPI } from "@/services2/operations/product"
+
+interface Product {
+  id: string
+  _id?: string
+  name: string
+  category: string
+  quantity: number
+  totalSell?: number
+  totalPurchase?: number
+  unit: string
+  price: number
+  threshold?: number
+  lastUpdated: string
+  description?: string
+  image?: string
+  summary?: {
+    totalRemaining?: number
+    totalPurchase?: number
+    totalSell?: number
+    unitPurchase?: number
+    unitRemaining?: number
+    unitSell?: number
+  }
+  weightVariation?: number
+  expiryDate?: string
+  batchInfo?: string
+  origin?: string
+  organic?: boolean
+  storageInstructions?: string
+  boxSize?: number
+  shippinCost?: number
+  pricePerBox?: number
+  featuredOffer?: boolean
+  popularityRank?: number
+  estimatedProfit?: number
+  recommendedOrder?: number
+  enablePromotions?: boolean
+  palette?: string
+}
 
 interface InventoryTableProps {
   products: Product[]
@@ -47,6 +90,19 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   const [isEditProduct, setIsEditProduct] = useState(false)
   const [orderDetails, setOrderDetails] = useState(false)
   const [productOrderData, setProductOrderData] = useState(null)
+
+  // New state for summary popup
+  const [summaryPopup, setSummaryPopup] = useState(false)
+  const [summaryData, setSummaryData] = useState<{
+    type: "purchased" | "sell" | "remaining"
+    product: Product
+  } | null>(null)
+
+const [trashForm, setTrashForm] = useState({
+  quantity: "",
+  type: "box",
+  reason: ""
+})
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -126,6 +182,88 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     setOrderDetails(true)
   }
 
+  // Handle summary popup
+  const handleSummaryClick = (type: "purchased" | "sell" | "remaining", product: Product) => {
+    setSummaryData({ type, product })
+    setSummaryPopup(true)
+  }
+
+  // Get summary popup content
+  const getSummaryContent = () => {
+    if (!summaryData) return null
+
+    const { type, product } = summaryData
+    const summary = product.summary || {}
+
+    switch (type) {
+      case "purchased":
+        return {
+          title: "Purchased Details",
+          icon: <ShoppingCart className="h-6 w-6 text-blue-600" />,
+          total: summary.totalPurchase || 0,
+          unit: summary.unitPurchase || 0,
+          color: "text-blue-600",
+          bgColor: "bg-blue-50",
+        }
+      case "sell":
+        return {
+          title: "Sell Details",
+          icon: <TrendingUp className="h-6 w-6 text-green-600" />,
+          total: summary.totalSell || 0,
+          unit: summary.unitSell || 0,
+          color: "text-green-600",
+          bgColor: "bg-green-50",
+        }
+      case "remaining":
+        return {
+          title: "Remaining Details",
+          icon: <Archive className="h-6 w-6 text-orange-600" />,
+          total: summary.totalRemaining || 0,
+          unit: summary.unitRemaining || 0,
+          color: "text-orange-600",
+          bgColor: "bg-orange-50",
+        }
+      default:
+        return null
+    }
+  }
+  
+  const handleTrashSubmit = async () => {
+  const { quantity, type, reason } = trashForm
+
+  if (!quantity || !type || !reason) {
+    alert("Please fill all fields.")
+    return
+  }
+
+  try {
+    const res = await fetch("/api/products/trash", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        productId: summaryData.product._id,
+        quantity: Number(quantity),
+        type,
+        reason,
+      }),
+    })
+
+    const data = await res.json()
+
+    if (res.ok) {
+      alert("Trash updated successfully.")
+      setSummaryPopup(false) // close popup
+      setTrashForm({ quantity: "", type: "box", reason: "" }) // reset form
+    } else {
+      alert(data.message || "Something went wrong.")
+    }
+  } catch (err) {
+    console.error(err)
+    alert("Error occurred while submitting.")
+  }
+}
+
+
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -141,32 +279,22 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
             <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
               <div className="flex items-center">Product {renderSortIcon("name")}</div>
             </TableHead>
-            {/* <TableHead className="cursor-pointer" onClick={() => handleSort("category")}>
-              <div className="flex items-center">Category {renderSortIcon("category")}</div>
-            </TableHead> */}
-        
-            <TableHead className="text-right " >
-              <div className="flex items-center justify-end">Purchased </div>
+            <TableHead className="text-right cursor-pointer">
+              <div className="flex items-center justify-end">Purchased</div>
             </TableHead>
-            <TableHead className="text-right " >
-              <div className="flex items-center justify-end">Sell </div>
+            <TableHead className="text-right cursor-pointer">
+              <div className="flex items-center justify-end">Sell</div>
             </TableHead>
-            <TableHead className="text-right " >
-              <div className="flex items-center justify-end">Remaining </div>
+            <TableHead className="text-right cursor-pointer">
+              <div className="flex items-center justify-end">Remaining</div>
             </TableHead>
-                {/* <TableHead className="text-right cursor-pointer" onClick={() => handleSort("quantity")}>
-              <div className="flex items-center justify-end">Remaining Quantity {renderSortIcon("quantity")}</div>
-            </TableHead> */}
             <TableHead className="text-right">
               <div className="flex items-center justify-end">Price</div>
             </TableHead>
-            {/* <TableHead className="cursor-pointer" onClick={() => handleSort("expiryDate")}>
-              <div className="flex items-center">Expiry {renderSortIcon("expiryDate")}</div>
-            </TableHead> */}
             <TableHead className="text-right cursor-pointer" onClick={() => handleSort("lastUpdated")}>
               <div className="flex items-center justify-end">Updated {renderSortIcon("lastUpdated")}</div>
             </TableHead>
-            <TableHead className="text-right "> Order Actions</TableHead>
+            <TableHead className="text-right">Order Actions</TableHead>
             <TableHead className="w-[100px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -203,7 +331,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     />
                   ) : (
                     <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
-                      <Image className="w-5 h-5 text-muted-foreground/70" />
+                      <ImageIcon className="w-5 h-5 text-muted-foreground/70" />
                     </div>
                   )}
                 </TableCell>
@@ -228,80 +356,40 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                     )}
                   </div>
                 </TableCell>
-                {/* <TableCell>
-                  <Badge variant="outline" className="font-normal">
-                    {product.category}
-                  </Badge>
-                  {product.batchInfo && (
-                    <div className="text-xs text-muted-foreground mt-1">Batch: {product.batchInfo}</div>
-                  )}
-                </TableCell> */}
-                 <TableCell className="text-right">
-                  <div className="font-medium">
-                   {product?.totalPurchase || 0}
+                <TableCell
+                  className="text-right cursor-pointer hover:bg-blue-50 transition-colors"
+                  onClick={() => handleSummaryClick("purchased", product)}
+                >
+                  <div className="font-medium text-blue-600 hover:text-blue-800">
+                    {product?.summary?.totalPurchase || 0}
                   </div>
-                
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className={`font-medium `}>
-                    {product.totalSell } 
+                <TableCell
+                  className="text-right cursor-pointer hover:bg-green-50 transition-colors"
+                  onClick={() => handleSummaryClick("sell", product)}
+                >
+                  <div className="font-medium text-green-600 hover:text-green-800">
+                    {product?.summary?.totalSell || 0}
                   </div>
-                  {/* {product.weightVariation && product.weightVariation > 0 && (
-                    <div className="text-xs text-muted-foreground">±{product.weightVariation}%</div>
-                  )} */}
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className={`font-medium `}>
-                      {(product?.totalPurchase || 0) - (product?.totalSell || 0)}
-
+                <TableCell
+                  className="text-right cursor-pointer hover:bg-orange-50 transition-colors"
+                  onClick={() => handleSummaryClick("remaining", product)}
+                >
+                  <div className="font-medium text-orange-600 hover:text-orange-800">
+                    {product?.summary?.totalRemaining || 0}
                   </div>
-                  {/* {product.weightVariation && product.weightVariation > 0 && (
-                    <div className="text-xs text-muted-foreground">±{product.weightVariation}%</div>
-                  )} */}
                 </TableCell>
-               
                 <TableCell className="text-right">
                   {product.pricePerBox && product.boxSize ? (
                     <div className="flex items-center justify-end gap-1">
                       <Package className="h-3 w-3 text-muted-foreground" />
                       <span className="font-medium">${product.pricePerBox.toFixed(2)}</span>
-                      <span className="text-xs text-muted-foreground">
-                       
-                      </span>
                     </div>
                   ) : (
                     <span className="text-sm text-muted-foreground">N/A</span>
                   )}
                 </TableCell>
-                {/* <TableCell>
-                  {product.expiryDate ? (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-3 w-3 text-muted-foreground" />
-                      <span
-                        className={`
-                        text-sm 
-                        ${isExpired(product) ? "text-red-600 font-medium" : ""} 
-                        ${isNearingExpiry(product) && !isExpired(product) ? "text-amber-600 font-medium" : ""}
-                      `}
-                      >
-                        {format(new Date(product.expiryDate), "MMM d, yyyy")}
-                      </span>
-                      {isExpired(product) && <AlertTriangle className="h-3 w-3 text-red-600 ml-1" />}
-                    </div>
-                  ) : (
-                    <span className="text-sm text-muted-foreground">N/A</span>
-                  )}
-                  {isNearingExpiry(product) && !isExpired(product) && (
-                    <Badge variant="outline" className="mt-1 bg-amber-50 text-amber-700 border-amber-300 text-xs">
-                      Sell Soon
-                    </Badge>
-                  )}
-                  {isExpired(product) && (
-                    <Badge variant="outline" className="mt-1 bg-red-50 text-red-700 border-red-300 text-xs">
-                      Expired
-                    </Badge>
-                  )}
-                </TableCell> */}
                 <TableCell className="text-right text-muted-foreground">
                   {new Date(product.lastUpdated).toLocaleDateString()}
                 </TableCell>
@@ -309,19 +397,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   onClick={() => fetchProductOrder(product?._id)}
                   className="text-right text-muted-foreground cursor-pointer underline text-blue-800"
                 >
-                  {/* {product?.totalOrder} */}
-                 Total
+                  Total
                 </TableCell>
                 <TableCell>
                   <div className="flex justify-end gap-2">
-                    {/* <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => onReorderProduct(product)}
-                      disabled={product.quantity > product.threshold}
-                    >
-                      <Truck className="h-4 w-4" />
-                    </Button> */}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon">
@@ -338,10 +417,6 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                           <FileEdit className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
-                        {/* <DropdownMenuItem>
-                          <Copy className="h-4 w-4 mr-2" />
-                          Duplicate
-                        </DropdownMenuItem> */}
                         <DropdownMenuItem onClick={() => handleDelete(product.id)} className="text-red-600">
                           <Trash className="h-4 w-4 mr-2" />
                           Delete
@@ -356,6 +431,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         </TableBody>
       </Table>
 
+      {/* Edit Product Dialog */}
       <Dialog open={isEditProduct} onOpenChange={setIsEditProduct}>
         <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -372,6 +448,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         </DialogContent>
       </Dialog>
 
+      {/* Order Details Dialog */}
       <Dialog open={orderDetails} onOpenChange={setOrderDetails}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
@@ -397,7 +474,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                         <div className="flex justify-between">
                           <span className="font-medium">{buyer.name}</span>
                           <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            {buyer.quantity} 
+                            {buyer.quantity}
                           </span>
                         </div>
                         <div className="text-sm text-muted-foreground">
@@ -411,12 +488,124 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   <p className="text-muted-foreground">No orders in the last 7 days</p>
                 )}
               </div>
+              <div>Total Orders - {productOrderData?.totalOrdersThisWeek}</div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Summary Popup Dialog */}
+      <Dialog open={summaryPopup} onOpenChange={setSummaryPopup}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+              {getSummaryContent()?.icon}
+              {getSummaryContent()?.title}
+              
+            </DialogTitle>
+          </DialogHeader>
+          {summaryData && (
+            <div className="space-y-4">
+              {/* Product Info */}
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <img
+                  src={summaryData.product.image || "/placeholder.svg"}
+                  alt={summaryData.product.name}
+                  className="w-12 h-12 object-cover rounded-md"
+                />
+                <div>
+                  <h3 className="font-medium text-sm">{summaryData.product.name}</h3>
+                  <p className="text-xs text-muted-foreground">{summaryData.product.category}</p>
+                </div>
+              </div>
+
+              {/* Summary Cards */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className={`p-4 rounded-lg border-2 ${getSummaryContent()?.bgColor} border-opacity-20`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <BarChart3 className={`h-5 w-5 ${getSummaryContent()?.color}`} />
+                    <span className="text-sm font-medium text-gray-700">Total</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${getSummaryContent()?.color}`}>{getSummaryContent()?.total}</div>
+                </div>
+
+                <div className={`p-4 rounded-lg border-2 ${getSummaryContent()?.bgColor} border-opacity-20`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Box className={`h-5 w-5 ${getSummaryContent()?.color}`} />
+                    <span className="text-sm font-medium text-gray-700">Unit</span>
+                  </div>
+                  <div className={`text-2xl font-bold ${getSummaryContent()?.color}`}>{getSummaryContent()?.unit}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{summaryData.product.unit}</div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="pt-2 border-t">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last Updated:</span>
+                  <span className="font-medium">{new Date(summaryData.product.lastUpdated).toLocaleDateString()}</span>
+                </div>
+              </div>
             </div>
           )}
 
-          <div>
-            Total Orders - {productOrderData?.totalOrdersThisWeek}
-          </div>
+          {/* Trash Quantity Update Form - Only for Remaining */}
+{getSummaryContent()?.title === "Remaining Details" && (
+  <div className="pt-4 border-t">
+    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-red-600">
+      <Trash2 className="w-4 h-4" />
+      Move Quantity to Trash
+    </h4>
+
+    <div className="space-y-3">
+      {/* Quantity Input */}
+      <div>
+        <label className="block text-sm font-medium">Quantity</label>
+        <input
+          type="number"
+          min={1}
+          value={trashForm.quantity}
+          onChange={(e) => setTrashForm({ ...trashForm, quantity: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+        />
+      </div>
+
+      {/* Type Select */}
+      <div>
+        <label className="block text-sm font-medium">Type</label>
+        <select
+          value={trashForm.type}
+          onChange={(e) => setTrashForm({ ...trashForm, type: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+        >
+          <option value="box">Box</option>
+          <option value="unit">Unit</option>
+        </select>
+      </div>
+
+      {/* Reason Input */}
+      <div>
+        <label className="block text-sm font-medium">Reason</label>
+        <input
+          type="text"
+          value={trashForm.reason}
+          onChange={(e) => setTrashForm({ ...trashForm, reason: e.target.value })}
+          placeholder="e.g. Expired or Broken"
+          className="w-full px-3 py-2 border rounded-md text-sm"
+        />
+      </div>
+
+      {/* Submit Button */}
+      <button
+        onClick={handleTrashSubmit}
+        className="w-full mt-2 bg-red-600 text-white py-2 rounded-md text-sm font-medium hover:bg-red-700"
+      >
+        Update Trash
+      </button>
+    </div>
+  </div>
+)}
+
         </DialogContent>
       </Dialog>
     </div>

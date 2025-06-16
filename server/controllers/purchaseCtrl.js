@@ -378,6 +378,132 @@ exports.deletePurchaseOrder = async (req, res) => {
 
 
 
+// exports.updateItemQualityStatus = async (req, res) => {
+//   try {
+//     const { purchaseOrderId } = req.params;
+//     const updatedItems = req.body;
+
+//     if (!mongoose.Types.ObjectId.isValid(purchaseOrderId)) {
+//       return res.status(400).json({ success: false, message: "Invalid Purchase Order ID" });
+//     }
+
+//     const order = await PurchaseOrder.findById(purchaseOrderId);
+//     if (!order) {
+//       return res.status(404).json({ success: false, message: "Purchase order not found" });
+//     }
+
+//     for (const incomingItem of updatedItems) {
+//       const existingItem = order.items.id(incomingItem._id);
+//       if (!existingItem) continue;
+
+//       const wasApprovedBefore = existingItem.qualityStatus === "approved";
+//       const oldItemQuantity = existingItem.quantity;
+//       const newItemQuantity = typeof incomingItem.quantity === "number" ? incomingItem.quantity : oldItemQuantity;
+//       const isApprovedNow = incomingItem.qualityStatus === "approved";
+//       const isRejectedNow = incomingItem.qualityStatus === "rejected";
+
+//       // Update fields
+//       existingItem.qualityStatus = incomingItem.qualityStatus || existingItem.qualityStatus;
+//       existingItem.qualityNotes = incomingItem.qualityNotes || existingItem.qualityNotes;
+//       existingItem.mediaUrls = incomingItem.mediaUrls || existingItem.mediaUrls;
+//       existingItem.quantity = newItemQuantity;
+
+//       const productId = incomingItem.productId?._id || incomingItem.productId;
+
+//       if (!mongoose.Types.ObjectId.isValid(productId)) {
+//         console.warn(`⚠️ Invalid productId: ${productId}`);
+//         continue;
+//       }
+
+//       const product = await Product.findById(productId);
+//       if (!product) {
+//         console.warn(`⚠️ Product not found: ${productId}`);
+//         continue;
+//       }
+
+//       product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder);
+//       const logEntry = product.updatedFromOrders.find(e => e.purchaseOrder.toString() === purchaseOrderId);
+
+//       // ✅ Case 1: Approved -> Rejected
+//       if (wasApprovedBefore && isRejectedNow) {
+//         product.quantity -= oldItemQuantity;
+//         product.totalPurchase -= oldItemQuantity;
+//         console.log("❌ Rejected after approval. Removed:", oldItemQuantity);
+
+//         if (logEntry) {
+//           product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder.toString() !== purchaseOrderId);
+//         }
+//       }
+
+//       // ✅ Case 2: First time approval
+//       else if (!wasApprovedBefore && isApprovedNow) {
+//         product.quantity += newItemQuantity;
+//         product.totalPurchase += newItemQuantity;
+//         console.log("➕ First time approval. Added:", newItemQuantity);
+
+//         product.updatedFromOrders.push({
+//           purchaseOrder: purchaseOrderId,
+//           oldQuantity: 0,
+//           newQuantity: newItemQuantity,
+//           difference: newItemQuantity,
+//         });
+//       }
+
+//       // ✅ Case 3: Already approved and quantity updated
+//       else if (wasApprovedBefore && isApprovedNow && logEntry && newItemQuantity !== oldItemQuantity) {
+//         const diff = newItemQuantity - oldItemQuantity;
+//         product.quantity += diff;
+//         product.totalPurchase += diff;
+//         console.log("🔁 Updated quantity difference:", diff);
+
+//         logEntry.oldQuantity = logEntry.newQuantity;
+//         logEntry.newQuantity = newItemQuantity;
+//         logEntry.difference = diff;
+//       } else {
+//         console.log("✅ No quantity update required.");
+//       }
+
+//       await product.save();
+//     }
+
+//     await order.save();
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Items and product quantities updated successfully",
+//       data: order.items,
+//     });
+//   } catch (error) {
+//     console.error("❌ Error in bulk quality update:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal server error",
+//       error: error.message,
+//     });
+//   }
+// };
+
+
+// ✅ utility function to update product history (add or subtract quantities)
+const updateHistoryEntry = (historyArray, date, key, value, lb = null) => {
+  const dateStr = new Date(date).toISOString().split('T')[0];
+  const entry = historyArray.find(h =>
+    new Date(h.date).toISOString().split('T')[0] === dateStr &&
+    (lb ? h.lb === lb : true)
+  );
+
+  if (entry) {
+    entry[key] += value;
+  } else {
+    const newEntry = { date: new Date(date), [key]: value };
+    if (lb) newEntry.lb = lb;
+    historyArray.push(newEntry);
+  }
+};
+
+// ✅ FULL CONTROLLER: updateItemQualityStatus
+
+
 exports.updateItemQualityStatus = async (req, res) => {
   try {
     const { purchaseOrderId } = req.params;
@@ -424,29 +550,59 @@ exports.updateItemQualityStatus = async (req, res) => {
       product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder);
       const logEntry = product.updatedFromOrders.find(e => e.purchaseOrder.toString() === purchaseOrderId);
 
+      const existingTotalWeight = existingItem.totalWeight || 0;
+      const existingLb = existingItem.lb || null;
+
       // ✅ Case 1: Approved -> Rejected
       if (wasApprovedBefore && isRejectedNow) {
         product.quantity -= oldItemQuantity;
         product.totalPurchase -= oldItemQuantity;
-        console.log("❌ Rejected after approval. Removed:", oldItemQuantity);
+        product.remaining -= oldItemQuantity;
+        product.unitPurchase -= existingTotalWeight;
+        product.unitRemaining -= existingTotalWeight;
 
         if (logEntry) {
           product.updatedFromOrders = product.updatedFromOrders.filter(e => e.purchaseOrder.toString() !== purchaseOrderId);
         }
+
+        product.purchaseHistory = product.purchaseHistory.filter(p => new Date(p.date).toISOString() !== new Date(order.purchaseDate).toISOString());
+        product.lbPurchaseHistory = product.lbPurchaseHistory.filter(p => new Date(p.date).toISOString() !== new Date(order.purchaseDate).toISOString());
+
+        console.log("❌ Rejected after approval. Removed:", oldItemQuantity);
       }
 
       // ✅ Case 2: First time approval
       else if (!wasApprovedBefore && isApprovedNow) {
         product.quantity += newItemQuantity;
         product.totalPurchase += newItemQuantity;
-        console.log("➕ First time approval. Added:", newItemQuantity);
+        product.remaining += newItemQuantity;
+        product.unitPurchase += existingTotalWeight;
+        product.unitRemaining += existingTotalWeight;
 
-        product.updatedFromOrders.push({
+        const entry = {
           purchaseOrder: purchaseOrderId,
           oldQuantity: 0,
           newQuantity: newItemQuantity,
+          perLb: existingLb,
+          totalLb: existingTotalWeight,
           difference: newItemQuantity,
+        };
+        product.updatedFromOrders.push(entry);
+
+        product.purchaseHistory.push({
+          date: order.purchaseDate,
+          quantity: newItemQuantity,
         });
+
+        if (existingLb && existingTotalWeight) {
+          product.lbPurchaseHistory.push({
+            date: order.purchaseDate,
+            weight: existingTotalWeight,
+            lb: existingLb,
+          });
+        }
+
+        console.log("➕ First time approval. Added:", newItemQuantity);
       }
 
       // ✅ Case 3: Already approved and quantity updated
@@ -454,11 +610,29 @@ exports.updateItemQualityStatus = async (req, res) => {
         const diff = newItemQuantity - oldItemQuantity;
         product.quantity += diff;
         product.totalPurchase += diff;
-        console.log("🔁 Updated quantity difference:", diff);
+        product.remaining += diff;
+
+        const weightDiff = existingTotalWeight - (logEntry.totalLb || 0);
+        product.unitPurchase += weightDiff;
+        product.unitRemaining += weightDiff;
+
+        // update lb purchase history
+        const lbHist = product.lbPurchaseHistory.find(p => new Date(p.date).toISOString() === new Date(order.purchaseDate).toISOString());
+        if (lbHist) {
+          lbHist.weight = existingTotalWeight;
+        }
+
+        // update purchase history
+        const history = product.purchaseHistory.find(p => new Date(p.date).toISOString() === new Date(order.purchaseDate).toISOString());
+        if (history) history.quantity = newItemQuantity;
 
         logEntry.oldQuantity = logEntry.newQuantity;
         logEntry.newQuantity = newItemQuantity;
         logEntry.difference = diff;
+        logEntry.totalLb = existingTotalWeight;
+        logEntry.perLb = existingLb;
+
+        console.log("🔁 Updated quantity difference:", diff);
       } else {
         console.log("✅ No quantity update required.");
       }
@@ -482,9 +656,6 @@ exports.updateItemQualityStatus = async (req, res) => {
     });
   }
 };
-
-
-
 
 
 

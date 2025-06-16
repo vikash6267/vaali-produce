@@ -1,7 +1,8 @@
+"use client"
+
 import type React from "react"
 import { useState, useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom";
-
+import { useParams, useNavigate } from "react-router-dom"
 import { ArrowLeft, Save, Plus, Trash, Package, DollarSign, Calendar, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -14,6 +15,7 @@ import { formatCurrency } from "@/utils/formatters"
 import { getAllProductAPI } from "@/services2/operations/product"
 import { getAllVendorsAPI } from "@/services2/operations/vendor"
 import { getSinglePurchaseOrderAPI, updatePurchaseOrderAPI } from "@/services2/operations/purchaseOrder"
+import Sidebar from "@/components/layout/Sidebar"
 
 interface PurchaseItemForm {
   productId: string
@@ -21,53 +23,40 @@ interface PurchaseItemForm {
   unitPrice: number
   totalPrice: number
   qualityStatus?: string
-  lb?: number
+  lb: number
+  totalWeight: number
 }
 
+const EditPurchaseOrder = () => {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
-
-
-
-import Sidebar from '@/components/layout/Sidebar';
-
-const NewPurchase = () => {
-
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
-  };
   return (
-    <div className="flex h-screen overflow-hidden">
-              
-    <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
-
+    <div className="flex  overflow-hidden">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 overflow-auto">
-        <EditPurchaseOrder />
+        <EditPurchaseOrderForm />
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default NewPurchase;
-
-
-
- const  EditPurchaseOrder =()=> {
-   const navigate = useNavigate();
-  const { id } = useParams(); 
-
+const EditPurchaseOrderForm = () => {
+  const navigate = useNavigate()
+  const { id } = useParams()
   const { toast } = useToast()
-  console.log(id)
+
   // Form state
   const [vendorId, setVendorId] = useState("")
   const [purchaseOrderNumber, setPurchaseOrderNumber] = useState("")
   const [purchaseDate, setPurchaseDate] = useState("")
   const [deliveryDate, setDeliveryDate] = useState("")
   const [notes, setNotes] = useState("")
-  const [items, setItems] = useState<PurchaseItemForm[]>([{ productId: "", quantity: 0, unitPrice: 0, totalPrice: 0 ,lb:0}])
+  const [items, setItems] = useState<PurchaseItemForm[]>([
+    { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 },
+  ])
 
   const [totalAmount, setTotalAmount] = useState(0)
+  const [totalUnitType, setTotalUnitType] = useState(0)
   const [products, setProducts] = useState([])
   const [vendors, setVendors] = useState([])
   const [loading, setLoading] = useState(true)
@@ -79,7 +68,8 @@ export default NewPurchase;
       try {
         setLoading(true)
         const response = await getSinglePurchaseOrderAPI(id)
-console.log(response)
+        console.log(response)
+
         if (response) {
           setVendorId(response.vendorId?._id || response.vendorId)
           setPurchaseOrderNumber(response.purchaseOrderNumber)
@@ -87,18 +77,19 @@ console.log(response)
           setDeliveryDate(response.deliveryDate ? new Date(response.deliveryDate).toISOString().split("T")[0] : "")
           setNotes(response.notes || "")
 
-          // Format items
+          // Format items with totalWeight calculation
           const formattedItems = response.items.map((item) => ({
             productId: item.productId?._id || item.productId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
+            quantity: item.quantity || 0,
+            unitPrice: item.unitPrice || 0,
             qualityStatus: item.qualityStatus,
-            lb: item.lb,
-            totalPrice: item.totalPrice || item.quantity * item.unitPrice,
+            lb: item.lb || 0,
+            totalWeight: (item.quantity || 0) * (item.lb || 0),
+            totalPrice: item.totalPrice || (item.quantity || 0) * (item.unitPrice || 0),
           }))
 
           setItems(formattedItems)
-          setTotalAmount(response.totalAmount)
+          setTotalAmount(response.totalAmount || 0)
         }
       } catch (error) {
         console.error("Error fetching purchase order:", error)
@@ -148,10 +139,12 @@ console.log(response)
     fetchData()
   }, [])
 
-  // Calculate total amount whenever items change
+  // Calculate total amount and weight whenever items change
   useEffect(() => {
-    const total = items.reduce((sum, item) => sum + item.totalPrice, 0)
+    const total = items.reduce((sum, item) => sum + (item.totalPrice || 0), 0)
+    const totalWeight = items.reduce((sum, item) => sum + (item.totalWeight || 0), 0)
     setTotalAmount(total)
+    setTotalUnitType(totalWeight)
   }, [items])
 
   const handleProductChange = (index: number, productId: string) => {
@@ -166,6 +159,7 @@ console.log(response)
       productId,
       unitPrice: price,
       totalPrice: updatedItems[index].quantity * price,
+      totalWeight: updatedItems[index].quantity * updatedItems[index].lb,
     }
 
     setItems(updatedItems)
@@ -178,8 +172,8 @@ console.log(response)
       ...updatedItems[index],
       quantity: qty,
       totalPrice: qty * updatedItems[index].unitPrice,
+      totalWeight: qty * updatedItems[index].lb,
     }
-
     setItems(updatedItems)
   }
 
@@ -195,9 +189,19 @@ console.log(response)
     setItems(updatedItems)
   }
 
-   const addItemRow = () => {
-    setItems([...items, { productId: '', quantity: 0, unitPrice: 0, totalPrice: 0,lb: 0 }]);
-  };
+  const handleLbChange = (index: number, lbValue: number) => {
+    const updatedItems = [...items]
+    updatedItems[index] = {
+      ...updatedItems[index],
+      lb: lbValue,
+      totalWeight: updatedItems[index].quantity * lbValue,
+    }
+    setItems(updatedItems)
+  }
+
+  const addItemRow = () => {
+    setItems([...items, { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 }])
+  }
 
   const removeItemRow = (index: number) => {
     if (items.length === 1) {
@@ -217,7 +221,6 @@ console.log(response)
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validate form
     if (!vendorId) {
       toast({
         variant: "destructive",
@@ -255,9 +258,6 @@ console.log(response)
         title: "Purchase order updated",
         description: "The purchase order has been successfully updated.",
       })
-
-      // Navigate back to purchases list
-      // navigate("/vendors")
     } catch (error) {
       console.error("Error updating purchase order:", error)
       toast({
@@ -287,7 +287,7 @@ console.log(response)
   }
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container space-y-6">
       <Button variant="ghost" onClick={() => navigate("/vendors")}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Purchases
@@ -388,7 +388,7 @@ console.log(response)
               <div className="space-y-4">
                 {items.map((item, index) => (
                   <div key={index} className="grid grid-cols-12 gap-3 items-end">
-                    <div className="col-span-5">
+                    <div className="col-span-4">
                       <Label htmlFor={`product-${index}`}>Product</Label>
                       <Select value={item.productId} onValueChange={(value) => handleProductChange(index, value)}>
                         <SelectTrigger id={`product-${index}`}>
@@ -404,44 +404,35 @@ console.log(response)
                       </Select>
                     </div>
 
-                   <div className="col-span-2 space-y-1">
-  <Label htmlFor={`quantity-${index}`} className="text-sm font-medium">
-    Qty
-  </Label>
-  <Input
-    id={`quantity-${index}`}
-    type="number"
-    min="0"
-    step="1"
-    disabled={item.qualityStatus === "approved"}
-    value={item.quantity || ""}
-    onChange={(e) => handleQuantityChange(index, e.target.value)}
-    className="h-10 text-sm"
-  />
-  {item.qualityStatus === "approved" && (
-    <p className="text-xs text-red-600 italic">Approved – can't edit</p>
-  )}
-</div>
-      <div className="col-span-1">
-  <Label htmlFor={`lb-${index}`}>
-    {getProductUnitType(item.productId) || "Select Product"}
-  </Label>
-  <Input
-    id={`lb-${index}`}
-    type="number"
-    min="0"
-    step="1"
-    value={item.lb || ''}
-    onChange={(e) => {
-      const updatedItems = [...items];
-      updatedItems[index].lb = Number(e.target.value);
-      setItems(updatedItems);
-    }}
-  />
-</div>
+                    <div className="col-span-2 space-y-1">
+                      <Label htmlFor={`quantity-${index}`} className="text-sm font-medium">
+                        Qty
+                      </Label>
+                      <Input
+                        id={`quantity-${index}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        disabled={item.qualityStatus === "approved"}
+                        value={item.quantity || ""}
+                        onChange={(e) => handleQuantityChange(index, e.target.value)}
+                        className="h-10 text-sm"
+                      />
+                      {item.qualityStatus === "approved" && (
+                        <p className="text-xs text-red-600 italic">Approved – can't edit</p>
+                      )}
+                    </div>
 
-                    <div className="col-span-1 text-center mt-1">
-                      <span className="text-sm text-muted-foreground">{getProductUnitType(item.productId)}</span>
+                    <div className="col-span-1">
+                      <Label htmlFor={`lb-${index}`}>{getProductUnitType(item.productId) || "Unit"}</Label>
+                      <Input
+                        id={`lb-${index}`}
+                        type="number"
+                        min="0"
+                        step="1"
+                        value={item.lb || ""}
+                        onChange={(e) => handleLbChange(index, Number(e.target.value))}
+                      />
                     </div>
 
                     <div className="col-span-2">
@@ -462,7 +453,16 @@ console.log(response)
 
                     <div className="col-span-1">
                       <div className="text-right">
-                        <span className="font-medium">{formatCurrency(item.totalPrice)}</span>
+                        <span className="font-medium">{formatCurrency(item.totalPrice || 0)}</span>
+                      </div>
+                    </div>
+
+                    <div className="col-span-2">
+                      <div className="text-right">
+                        <div className="text-xs text-muted-foreground">Total Weight</div>
+                        <span className="font-medium">
+                          {(item.totalWeight || 0).toFixed(2)} {getProductUnitType(item.productId) || "lbs"}
+                        </span>
                       </div>
                     </div>
 
@@ -482,9 +482,15 @@ console.log(response)
               </div>
 
               <div className="mt-6 flex justify-end">
-                <div className="text-right">
-                  <div className="text-sm text-muted-foreground">Total Amount</div>
-                  <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+                <div className="text-right space-y-2">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total Weight</div>
+                    <div className="text-lg font-semibold">{totalUnitType.toFixed(2)} lbs</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total Amount</div>
+                    <div className="text-2xl font-bold">{formatCurrency(totalAmount)}</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -512,3 +518,5 @@ console.log(response)
     </div>
   )
 }
+
+export default EditPurchaseOrder

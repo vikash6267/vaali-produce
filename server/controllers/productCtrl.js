@@ -75,41 +75,17 @@ const createProductCtrl = async (req, res) => {
 const getAllProductCtrl = async (req, res) => {
   try {
     // Step 1: Fetch all products with category
-    const products = await productModel.find()
-      .populate({
-        path: "category",
-        select: "categoryName",
-      })
-      .lean();
+    const products = await productModel.find().lean();
 
-    // Step 2: Aggregate total orders for each product
-    const orderStats = await Order.aggregate([
-      { $unwind: "$items" },
-      {
-        $group: {
-          _id: "$items.productId", 
-          totalOrder: { $sum: "$items.quantity" }, // or use $sum: 1 for just count
-        }
-      }
-    ]);
+    
 
-    // Step 3: Convert stats to a map for quick access
-    const orderMap = {};
-    orderStats.forEach(stat => {
-      orderMap[stat._id.toString()] = stat.totalOrder;
-    });
 
-    // Step 4: Attach totalOrder to each product and format category
-    const modifiedProducts = products.map(product => ({
-      ...product,
-      category: product.category?.categoryName || null,
-      totalOrder: orderMap[product._id.toString()] || 0,
-    }));
+  
 
 
     return res.status(200).json({
       success: true,
-      products: modifiedProducts,
+      products: products
     });
   } catch (error) {
     console.error("Product fetch error:", error);
@@ -584,6 +560,183 @@ const updateTotalSellForAllProducts = async (req, res) => {
 };
 
 
+
+
+
+// const getAllProductsWithHistorySummary = async (req, res) => {
+//   try {
+//     const { startDate, endDate } = req.query;
+
+//     // Parse dates
+//     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
+//     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
+
+//     // Helper: checks if date is within range
+//     const isWithinRange = (date) => {
+//       const d = new Date(date);
+//       return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+//     };
+
+//     // Fetch all products
+//     const products = await Product.find().lean()
+
+//     const productSummaries = products.map(product => {
+//       // Filter data within date range
+//       const filteredPurchase = product?.purchaseHistory?.filter(p => isWithinRange(p.date));
+//       const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date));
+//       const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date));
+//       const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date));
+
+//       // Calculate totals
+//       const totalPurchase = filteredPurchase?.reduce((sum, p) => sum + p.quantity, 0);
+//       const totalSell = filteredSell?.reduce((sum, s) => sum + s.quantity, 0);
+//       const unitPurchase = filteredUnitPurchase?.reduce((sum, p) => sum + p.weight, 0);
+//       const unitSell = filteredUnitSell?.reduce((sum, s) => sum + s.weight, 0);
+
+//       const totalRemaining = totalPurchase - totalSell;
+//       const unitRemaining = unitPurchase - unitSell;
+
+//       return {
+//         product,
+//         summary: {
+//           totalPurchase,
+//           totalSell,
+//           totalRemaining: Math.max(0, totalRemaining),
+//           unitPurchase,
+//           unitSell,
+//           unitRemaining: Math.max(0, unitRemaining),
+//         },
+//       };
+//     });
+
+//     res.status(200).json({
+//       success: true,
+//       data: productSummaries,
+//     });
+
+//   } catch (error) {
+//     console.error("❌ Error fetching all product summaries:", error);
+//     res.status(500).json({ success: false, message: "Server Error" });
+//   }
+// };
+
+
+const getAllProductsWithHistorySummary = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+
+    const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
+    const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
+
+    const isDateFilterApplied = fromDate || toDate;
+
+    const isWithinRange = (date) => {
+      const d = new Date(date);
+      return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+    };
+
+    const products = await Product.find().lean();
+
+    const productsWithSummary = products.map(product => {
+      // Agar date range diya ho to history se calculate karo
+      if (isDateFilterApplied) {
+        const filteredPurchase = product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
+        const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
+        const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
+        const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date)) || [];
+        const filteredTrash = product?.quantityTrash?.filter(t => isWithinRange(t.date)) || [];
+
+        const trashBox = filteredTrash
+          .filter(t => t.type === "box")
+          .reduce((sum, t) => sum + t.quantity, 0);
+
+        const trashUnit = filteredTrash
+          .filter(t => t.type === "unit")
+          .reduce((sum, t) => sum + t.quantity, 0);
+
+        const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
+        const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
+        const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
+        const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
+
+        const totalRemaining = Math.max(0, totalPurchase - totalSell - trashBox);
+        const unitRemaining = Math.max(0, unitPurchase - unitSell - trashUnit);
+
+        return {
+          ...product,
+          summary: {
+            totalPurchase,
+            totalSell,
+            totalRemaining,
+            unitPurchase,
+            unitSell,
+            unitRemaining,
+          }
+        };
+      }
+
+      // Agar date filter nahi hai to product ke fields ka use karo
+      return {
+        ...product,
+        summary: {
+          totalPurchase: product.totalPurchase || 0,
+          totalSell: product.totalSell || 0,
+          totalRemaining: product.remaining || 0,
+          unitPurchase: product.unitPurchase || 0,
+          unitSell: product.unitSell || 0,
+          unitRemaining: product.unitRemaining || 0,
+        }
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: productsWithSummary,
+    });
+
+  } catch (error) {
+    console.error("❌ Error fetching product summaries:", error);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+};
+
+
+const addToTrash = async (req, res) => {
+  try {
+    const { productId, quantity, type, reason } = req.body;
+
+    if (!productId || !quantity || !type) {
+      return res.status(400).json({ message: "Missing required fields." });
+    }
+
+    const product = await productModel.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found." });
+    }
+
+    // Trash entry
+    product.quantityTrash.push({
+      quantity,
+      type,
+      reason: reason || "expired",
+    });
+
+    // Adjust remaining or unitRemaining
+    if (type === "box") {
+      product.remaining = Math.max(0, product.remaining - quantity);
+    } else if (type === "unit") {
+      product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+    }
+
+    await product.save();
+
+    res.status(200).json({ message: "Trash updated successfully.", product });
+  } catch (err) {
+    console.error("Error adding to trash:", err);
+    res.status(500).json({ message: "Server error." });
+  }
+};
+
 module.exports = { 
     createProductCtrl, 
     getAllProductCtrl, 
@@ -593,6 +746,8 @@ module.exports = {
     updateProductPrice, 
     bulkDiscountApply,
     getWeeklyOrdersByProductCtrl,
-    updateTotalSellForAllProducts
+    updateTotalSellForAllProducts,
+    getAllProductsWithHistorySummary,
+    addToTrash
 
 };
