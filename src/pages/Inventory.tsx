@@ -91,24 +91,24 @@ const Inventory = () => {
   })
 
 
-  const getCurrentWeekRange = () => {
+const getCurrentWeekRange = () => {
   const today = new Date();
   const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-  // Adjust day to get Monday (start of week)
+  // Get Monday
   const monday = new Date(today);
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Shift back to Monday
+  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Shift to Monday
 
-  // Get Friday (end of week)
-  const friday = new Date(monday);
-  friday.setDate(monday.getDate() + 4);
+  // Get Sunday
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
 
-  // Format as yyyy-mm-dd (for input fields)
+  // Format as yyyy-mm-dd
   const format = (date: Date) => date.toISOString().split("T")[0];
 
   return {
     startDate: format(monday),
-    endDate: format(friday),
+    endDate: format(sunday),
   };
 };
 
