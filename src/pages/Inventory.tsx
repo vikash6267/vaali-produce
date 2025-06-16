@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import Navbar from "@/components/layout/Navbar"
 import Sidebar from "@/components/layout/Sidebar"
 import InventoryTable from "@/components/inventory/InventoryTable"
@@ -22,6 +22,12 @@ import {
   Filter,
   SortAsc,
   SortDesc,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  XCircle,
+  RotateCcw,
 } from "lucide-react"
 import { getLowStockProducts, type Product, createReorder, getReorders, type Reorder } from "@/lib/data"
 import { useToast } from "@/hooks/use-toast"
@@ -37,7 +43,9 @@ import PriceUpdateModal from "@/components/inventory/PriceUpdateModal"
 import PriceListUpdateModal from "@/components/inventory/PriceListUpdateModal"
 import BulkDiscountModal from "@/components/inventory/BulkDiscountModal"
 import { useNavigate } from "react-router-dom"
-import { getAllProductAPI,getAllProductSummaryAPI } from "@/services2/operations/product"
+import { getAllProductSummaryAPI } from "@/services2/operations/product"
+import { getAllCategoriesAPI } from "@/services2/operations/category"
+import { useDispatch } from "react-redux"
 
 interface FilterState {
   search: string
@@ -45,6 +53,15 @@ interface FilterState {
   sortBy: string
   sortOrder: "asc" | "desc"
   stockLevel: string
+  startDate: string
+  endDate: string
+}
+
+interface PaginationState {
+  page: number
+  limit: number
+  total: number
+  totalPages: number
 }
 
 const Inventory = () => {
@@ -63,6 +80,15 @@ const Inventory = () => {
   const { toast } = useToast()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const dispatch = useDispatch()
+
+  // Pagination State
+  const [pagination, setPagination] = useState<PaginationState>({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  })
 
   // Filter and Sort State
   const [filters, setFilters] = useState<FilterState>({
@@ -71,168 +97,109 @@ const Inventory = () => {
     sortBy: "name",
     sortOrder: "asc",
     stockLevel: "all",
+    startDate: "",
+    endDate: "",
   })
+
+  // Debounced search to avoid too many API calls
+  const [debouncedSearch, setDebouncedSearch] = useState("")
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(filters.search)
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [filters.search])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPagination((prev) => ({ ...prev, page: 1 }))
+  }, [debouncedSearch, filters.category, filters.stockLevel, filters.startDate, filters.endDate])
 
   const fetchProducts = async () => {
     setLoading(true)
     try {
-      const response = await getAllProductSummaryAPI()
-      console.log(response)
+      // Build query parameters
+      const queryParams = new URLSearchParams({
+        page: pagination.page.toString(),
+        limit: pagination.limit.toString(),
+        ...(debouncedSearch && { search: debouncedSearch }),
+        ...(filters.category !== "all" && { categoryId: filters.category }),
+        ...(filters.startDate && { startDate: filters.startDate }),
+        ...(filters.endDate && { endDate: filters.endDate }),
+        ...(filters.sortBy && { sortBy: filters.sortBy }),
+        ...(filters.sortOrder && { sortOrder: filters.sortOrder }),
+        ...(filters.stockLevel !== "all" && { stockLevel: filters.stockLevel }),
+      })
+
+      // Replace this with your actual paginated API call
+      const response = await getAllProductSummaryAPI(`?${queryParams.toString()}`)
+
+      console.log("Paginated response:", response)
+
       if (response) {
-        const updatedProducts = response.map((product) => ({
+        const updatedProducts = (response.products || response.data || response).map((product) => ({
           ...product,
           id: product._id,
           lastUpdated: product?.updatedAt,
-          // Mock order frequency data - replace with actual data from your API
           orderFrequency: Math.floor(Math.random() * 100),
           totalOrders: Math.floor(Math.random() * 50),
         }))
+
         setProducts(updatedProducts)
+        console.log(response)
+        // Update pagination info from response
+        setPagination((prev) => ({
+          ...prev,
+          total: response.total || response.totalCount || updatedProducts.length,
+          totalPages: response.totalPages || Math.ceil((response.total || updatedProducts.length) / prev.limit),
+        }))
       }
     } catch (error) {
       console.error("Error fetching products:", error)
+      toast({
+        title: "Error",
+        description: "Failed to fetch products. Please try again.",
+        variant: "destructive",
+      })
     } finally {
       setLoading(false)
     }
   }
 
+  // Fetch products when pagination or filters change
   useEffect(() => {
     fetchProducts()
-  }, [])
+  }, [
+    pagination.page,
+    pagination.limit,
+    debouncedSearch,
+    filters.category,
+    filters.stockLevel,
+    filters.startDate,
+    filters.endDate,
+    filters.sortBy,
+    filters.sortOrder,
+  ])
 
   // Get unique categories from products
-  const categories = useMemo(() => {
-    const uniqueCategories = [...new Set(products.map((product) => product.category))]
-    return uniqueCategories.filter(Boolean)
-  }, [products])
-
-  // Filter and sort products
-  const filteredAndSortedProducts = useMemo(() => {
-    let filtered = [...products]
-
-    // Search filter
-    if (filters.search) {
-      filtered = filtered.filter(
-        (product) =>
-          product.name?.toLowerCase().includes(filters.search.toLowerCase()) ||
-          product.category?.toLowerCase().includes(filters.search.toLowerCase()) ||
-          product.description?.toLowerCase().includes(filters.search.toLowerCase()),
-      )
+  const [categories, setCategories] = useState([])
+  const getAllCategories = async () => {
+    try {
+      const response = await dispatch(getAllCategoriesAPI())
+      console.log("Categories:", response)
+      // Ensure we're setting an array of category objects
+      setCategories(Array.isArray(response) ? response : [])
+    } catch (error) {
+      console.error("Error fetching categories:", error)
+      setCategories([])
     }
+  }
 
-    // Category filter
-    if (filters.category !== "all") {
-      filtered = filtered.filter((product) => product.category === filters.category)
-    }
-
-    // Stock level filter - improved quantity-based filtering
-    if (filters.stockLevel !== "all") {
-      switch (filters.stockLevel) {
-        case "out-of-stock":
-          filtered = filtered.filter((product) => Number(product.quantity) === 0)
-          break
-        case "low":
-          filtered = filtered.filter((product) => {
-            const qty = Number(product.quantity) || 0
-            const reorderLevel = Number(product.reorderLevel) || 10
-            return qty > 0 && qty <= reorderLevel
-          })
-          break
-        case "medium":
-          filtered = filtered.filter((product) => {
-            const qty = Number(product.quantity) || 0
-            const reorderLevel = Number(product.reorderLevel) || 10
-            return qty > reorderLevel && qty <= reorderLevel * 3
-          })
-          break
-        case "high":
-          filtered = filtered.filter((product) => {
-            const qty = Number(product.quantity) || 0
-            const reorderLevel = Number(product.reorderLevel) || 10
-            return qty > reorderLevel * 3
-          })
-          break
-        case "very-low":
-          filtered = filtered.filter((product) => {
-            const qty = Number(product.quantity) || 0
-            return qty > 0 && qty <= 5
-          })
-          break
-        case "critical":
-          filtered = filtered.filter((product) => {
-            const qty = Number(product.quantity) || 0
-            return qty > 0 && qty <= 2
-          })
-          break
-      }
-    }
-
-    // Sort products - FIXED SORTING LOGIC
-    filtered.sort((a, b) => {
-      let aValue, bValue
-      let result = 0
-
- switch (filters.sortBy) {
-  case "name":
-    aValue = (a.name || "").toLowerCase();
-    bValue = (b.name || "").toLowerCase();
-    result = aValue.localeCompare(bValue);
-    break;
-
-  case "category":
-    aValue = (a.category || "").toLowerCase();
-    bValue = (b.category || "").toLowerCase();
-    result = aValue.localeCompare(bValue);
-    break;
-
-  case "quantity":
-    aValue = parseFloat(a.quantity) || 0;
-    bValue = parseFloat(b.quantity) || 0;
-    result = aValue - bValue;
-    break;
-
-  case "price":
-    aValue = parseFloat(a.price) || 0;
-    bValue = parseFloat(b.price) || 0;
-    result = aValue - bValue;
-    break;
-
-  case "updatedAt":
-    aValue = new Date(a.updatedAt || 0).getTime();
-    bValue = new Date(b.updatedAt || 0).getTime();
-    result = aValue - bValue;
-    break;
-
-  case "totalOrder": // ✅ actual field name
-    aValue = parseFloat(a.totalOrder) || 0;
-    bValue = parseFloat(b.totalOrder) || 0;
-    result = aValue - bValue;
-    break;
-
-  default:
-    aValue = (a.name || "").toLowerCase();
-    bValue = (b.name || "").toLowerCase();
-    result = aValue.localeCompare(bValue);
-}
-
-
-      // Apply sort order (ascending or descending)
-      return filters.sortOrder === "desc" ? -result : result
-    })
-
-    console.log(
-      "Filtered and sorted products:",
-      filtered.length,
-      "Sort by:",
-      filters.sortBy,
-      "Order:",
-      filters.sortOrder,
-    )
-    return filtered
-  }, [products, filters])
-
-
-
+  useEffect(() => {
+    getAllCategories()
+  }, [])
 
   const lowStockProducts = getLowStockProducts()
 
@@ -262,27 +229,6 @@ const Inventory = () => {
     }))
   }
 
-  // Debug function to test sorting
-  const debugSort = () => {
-    console.log("Current filters:", filters)
-    console.log("Products count:", products.length)
-    console.log("Filtered count:", filteredAndSortedProducts.length)
-    console.log(
-      "First 3 products:",
-      filteredAndSortedProducts.slice(0, 3).map((p) => ({
-        name: p.name,
-        quantity: p.quantity,
-        price: p.price,
-        category: p.category,
-      })),
-    )
-  }
-
-  // Call debug function whenever filters change
-  useEffect(() => {
-    debugSort()
-  }, [filters, filteredAndSortedProducts])
-
   const clearFilters = () => {
     setFilters({
       search: "",
@@ -290,7 +236,25 @@ const Inventory = () => {
       sortBy: "name",
       sortOrder: "asc",
       stockLevel: "all",
+      startDate: "",
+      endDate: "",
     })
+    setPagination((prev) => ({ ...prev, page: 1 }))
+  }
+
+  // Pagination handlers
+  const handlePageChange = (newPage: number) => {
+    if (newPage >= 1 && newPage <= pagination.totalPages) {
+      setPagination((prev) => ({ ...prev, page: newPage }))
+    }
+  }
+
+  const handleLimitChange = (newLimit: string) => {
+    setPagination((prev) => ({
+      ...prev,
+      limit: Number.parseInt(newLimit),
+      page: 1, // Reset to first page when changing limit
+    }))
   }
 
   const handleExport = () => {
@@ -308,7 +272,8 @@ const Inventory = () => {
   }
 
   const handleAddProduct = (newProduct: Product) => {
-    setProducts((prev) => [...prev, newProduct])
+    // Refresh the current page to show the new product
+    fetchProducts()
     toast({
       title: "Product Added",
       description: `${newProduct.name} has been added to inventory`,
@@ -320,7 +285,8 @@ const Inventory = () => {
   }
 
   const handleUpdateProducts = (updatedProducts: Product[]) => {
-    setProducts(updatedProducts)
+    // Refresh the current page to show updated products
+    fetchProducts()
   }
 
   const handleOpenReorderDialog = (product: Product) => {
@@ -378,6 +344,72 @@ const Inventory = () => {
   const navigateToPriceList = () => {
     navigate("/price-list")
   }
+
+  // Pagination component
+  const PaginationControls = () => (
+    <div className="flex items-center justify-between px-2 py-4">
+      <div className="flex items-center space-x-2">
+        <p className="text-sm text-muted-foreground">
+          Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
+          {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} results
+        </p>
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-2">
+          <p className="text-sm font-medium">Rows per page</p>
+          <Select value={pagination.limit.toString()} onValueChange={handleLimitChange}>
+            <SelectTrigger className="h-8 w-[70px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent side="top">
+              {[10, 20, 30, 50, 100].map((pageSize) => (
+                <SelectItem key={pageSize} value={pageSize.toString()}>
+                  {pageSize}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center space-x-2">
+          <p className="text-sm font-medium">
+            Page {pagination.page} of {pagination.totalPages}
+          </p>
+
+          <div className="flex items-center space-x-1">
+            <Button variant="outline" size="sm" onClick={() => handlePageChange(1)} disabled={pagination.page === 1}>
+              <ChevronsLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.totalPages)}
+              disabled={pagination.page === pagination.totalPages}
+            >
+              <ChevronsRight className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
 
   return (
     <div className="flex h-screen overflow-hidden bg-muted/30">
@@ -443,7 +475,7 @@ const Inventory = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {/* Search Input */}
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
@@ -463,15 +495,30 @@ const Inventory = () => {
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
                       {categories.map((category) => (
-                        <SelectItem key={category} value={category}>
-                          {category}
+                        <SelectItem key={category._id || category.categoryName} value={category._id}>
+                          {category.categoryName}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
 
+                  {/* Date Range Filters */}
+                  <Input
+                    type="date"
+                    placeholder="Start Date"
+                    value={filters.startDate}
+                    onChange={(e) => handleFilterChange("startDate", e.target.value)}
+                  />
+
+                  <Input
+                    type="date"
+                    placeholder="End Date"
+                    value={filters.endDate}
+                    onChange={(e) => handleFilterChange("endDate", e.target.value)}
+                  />
+
                   {/* Stock Level Filter */}
-                  {/* <Select value={filters.stockLevel} onValueChange={(value) => handleFilterChange("stockLevel", value)}>
+                  <Select value={filters.stockLevel} onValueChange={(value) => handleFilterChange("stockLevel", value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="All Stock Levels" />
                     </SelectTrigger>
@@ -484,44 +531,37 @@ const Inventory = () => {
                       <SelectItem value="medium">Medium Stock (1-3x Reorder Level)</SelectItem>
                       <SelectItem value="high">High Stock (Above 3x Reorder Level)</SelectItem>
                     </SelectContent>
-                  </Select> */}
+                  </Select>
 
-                  {/* Sort By */}
-                  {/* <Select value={filters.sortBy} onValueChange={(value) => handleFilterChange("sortBy", value)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Sort By" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="name">Product Name</SelectItem>
-                      <SelectItem value="category">Category</SelectItem>
-                      <SelectItem value="quantity">Quantity</SelectItem>
-                      <SelectItem value="price">Price</SelectItem>
-                      <SelectItem value="lastUpdated">Last Updated</SelectItem>
-                      <SelectItem value="orderFrequency">Order Frequency</SelectItem>
-                      <SelectItem value="totalOrders">Total Orders</SelectItem>
-                    </SelectContent>
-                  </Select> */}
 
-                  {/* Sort Order Toggle */}
-                  {/* <Button variant="outline" onClick={handleSortOrderToggle} className="flex items-center gap-2">
-                    {filters.sortOrder === "asc" ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
-                    {filters.sortOrder === "asc" ? "Ascending" : "Descending"}
-                  </Button> */}
+                  <div className="flex items-center gap-4 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={clearFilters}
+                      className="bg-red-100 text-red-700 hover:bg-red-200 flex items-center gap-2"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Clear Filters
+                    </Button>
 
-                  {/* Clear Filters */}
-                  <Button
-                    variant="outline"
-                    onClick={clearFilters}
-                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  >
-                    Clear Filters
-                  </Button>
+                    <Button
+                      variant="outline"
+                      onClick={fetchProducts}
+                      className="bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-2"
+                    >
+                      <RotateCcw className="w-4 h-4" />
+                      Refresh
+                    </Button>
+                  </div>
+
                 </div>
 
                 {/* Filter Summary */}
                 <div className="mt-4 flex flex-wrap gap-2">
                   {filters.search && <Badge variant="secondary">Search: "{filters.search}"</Badge>}
-                  {filters.category !== "all" && <Badge variant="secondary">Category: {filters.category}</Badge>}
+                  {/* {filters.category !== "all" && <Badge variant="secondary">Category: {filters.category}</Badge>} */}
+                  {filters.startDate && <Badge variant="secondary">From: {filters.startDate}</Badge>}
+                  {filters.endDate && <Badge variant="secondary">To: {filters.endDate}</Badge>}
                   {filters.stockLevel !== "all" && (
                     <Badge variant="secondary">
                       Stock:{" "}
@@ -540,12 +580,12 @@ const Inventory = () => {
                                   : filters.stockLevel.replace("-", " ")}
                     </Badge>
                   )}
-                  {/* <Badge variant="secondary">
+                  <Badge variant="secondary">
                     Sort: {filters.sortBy.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase())} (
                     {filters.sortOrder === "asc" ? "A-Z" : "Z-A"})
-                  </Badge> */}
+                  </Badge>
                   <Badge variant="outline">
-                    Showing {filteredAndSortedProducts.length} of {products.length} products
+                    Showing {products.length} of {pagination.total} products
                   </Badge>
                 </div>
               </CardContent>
@@ -616,7 +656,7 @@ const Inventory = () => {
               selectedProducts={selectedProducts}
               onClearSelection={() => setSelectedProducts([])}
               onUpdateProducts={handleUpdateProducts}
-              products={filteredAndSortedProducts}
+              products={products}
               onReorder={handleBulkReorder}
               onPriceUpdate={handleOpenPriceList}
               onBulkDiscount={handleOpenBulkDiscount}
@@ -638,8 +678,11 @@ const Inventory = () => {
               </div>
 
               {loading ? (
-                <div className="flex justify-center items-center py-4">
-                  <Loader className="animate-spin text-gray-600" size={32} />
+                <div className="flex justify-center items-center py-8">
+                  <div className="flex flex-col items-center gap-2">
+                    <Loader className="animate-spin text-gray-600" size={32} />
+                    <p className="text-sm text-muted-foreground">Loading products...</p>
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -647,20 +690,27 @@ const Inventory = () => {
                     <Card>
                       <CardContent className="p-1 sm:p-6">
                         <InventoryTable
-                          products={filteredAndSortedProducts}
+                          products={products}
                           onProductsSelect={handleProductsSelect}
                           selectedProducts={selectedProducts}
                           onReorderProduct={handleOpenReorderDialog}
                           fetchProducts={fetchProducts}
                         />
                       </CardContent>
+
+                      {/* Pagination Controls */}
+                      {pagination.totalPages > 1 && (
+                        <div className="border-t">
+                          <PaginationControls />
+                        </div>
+                      )}
                     </Card>
                   </TabsContent>
                 </div>
               )}
 
               <TabsContent value="analytics">
-                <InventoryStats products={filteredAndSortedProducts} />
+                <InventoryStats products={products} />
               </TabsContent>
 
               <TabsContent value="reorders">

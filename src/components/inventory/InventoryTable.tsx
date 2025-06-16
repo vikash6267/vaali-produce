@@ -28,7 +28,11 @@ import { isAfter, isBefore, addDays } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 import AddProductForm from "./AddProductForm"
-import { getSingleProductOrderAPI } from "@/services2/operations/product"
+import { getSingleProductOrderAPI,trashProductQuanityAPI } from "@/services2/operations/product"
+import Swal from "sweetalert2"
+import { RootState } from "@/redux/store"
+import { useSelector } from "react-redux"
+import { toast } from 'react-toastify';
 
 interface Product {
   id: string
@@ -103,6 +107,7 @@ const [trashForm, setTrashForm] = useState({
   type: "box",
   reason: ""
 })
+  const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
@@ -228,40 +233,37 @@ const [trashForm, setTrashForm] = useState({
     }
   }
   
-  const handleTrashSubmit = async () => {
-  const { quantity, type, reason } = trashForm
+const handleTrashSubmit = async () => {
+  const { quantity, type, reason } = trashForm;
 
+  // 💬 Validate inputs with toast
   if (!quantity || !type || !reason) {
-    alert("Please fill all fields.")
-    return
+    toast.warning("Please fill out all fields before submitting.");
+    return;
   }
 
   try {
-    const res = await fetch("/api/products/trash", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    // 🛠️ Submit to API
+    await trashProductQuanityAPI(
+      {
         productId: summaryData.product._id,
         quantity: Number(quantity),
         type,
         reason,
-      }),
-    })
+      },
+      token
+    );
 
-    const data = await res.json()
 
-    if (res.ok) {
-      alert("Trash updated successfully.")
-      setSummaryPopup(false) // close popup
-      setTrashForm({ quantity: "", type: "box", reason: "" }) // reset form
-    } else {
-      alert(data.message || "Something went wrong.")
-    }
+    // 🔄 Reset UI
+    setSummaryPopup(false);
+    await fetchProducts()
+    setTrashForm({ quantity: "", type: "box", reason: "" });
   } catch (err) {
-    console.error(err)
-    alert("Error occurred while submitting.")
+    console.error("❌ Trash Submit Error:", err);
+    toast.error("Something went wrong while submitting."); // ❌ error toast
   }
-}
+};
 
 
   return (
@@ -495,7 +497,7 @@ const [trashForm, setTrashForm] = useState({
       </Dialog>
 
       {/* Summary Popup Dialog */}
-      <Dialog open={summaryPopup} onOpenChange={setSummaryPopup}>
+      <Dialog open={summaryPopup} onOpenChange={setSummaryPopup} >
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">

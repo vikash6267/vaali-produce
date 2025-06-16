@@ -623,36 +623,54 @@ const updateTotalSellForAllProducts = async (req, res) => {
 
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {
-    const { startDate, endDate } = req.query;
+    const {
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+      search = '',
+      categoryId = '',
+      sortBy = 'updatedAt', // Default sort
+      sortOrder = 'desc',
+      stockLevel = 'all', // "low", "out", "high", "all"
+    } = req.query;
 
+    console.log(req.query)
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
-
-    const isDateFilterApplied = fromDate || toDate;
 
     const isWithinRange = (date) => {
       const d = new Date(date);
       return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
     };
 
-    const products = await Product.find().lean();
+    const filter = {};
+    if (search) {
+      filter.name = { $regex: search, $options: "i" };
+    }
+    if (categoryId) {
+      filter.category = categoryId;
+    }
 
-    const productsWithSummary = products.map(product => {
-      // Agar date range diya ho to history se calculate karo
-      if (isDateFilterApplied) {
+    // Apply pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    // Fetch matching products
+    let products = await Product.find(filter).lean();
+
+    // Map with date-based summary
+    let productsWithSummary = products.map(product => {
+      const hasDateFilter = fromDate || toDate;
+
+      if (hasDateFilter) {
         const filteredPurchase = product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
         const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date)) || [];
         const filteredTrash = product?.quantityTrash?.filter(t => isWithinRange(t.date)) || [];
 
-        const trashBox = filteredTrash
-          .filter(t => t.type === "box")
-          .reduce((sum, t) => sum + t.quantity, 0);
-
-        const trashUnit = filteredTrash
-          .filter(t => t.type === "unit")
-          .reduce((sum, t) => sum + t.quantity, 0);
+        const trashBox = filteredTrash.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0);
+        const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
 
         const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
         const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
@@ -675,7 +693,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
         };
       }
 
-      // Agar date filter nahi hai to product ke fields ka use karo
+      // If no date filter, use stored summary
       return {
         ...product,
         summary: {
@@ -689,9 +707,39 @@ const getAllProductsWithHistorySummary = async (req, res) => {
       };
     });
 
+    // Apply stockLevel filtering after summary calculation
+    if (stockLevel !== "all") {
+      productsWithSummary = productsWithSummary.filter(p => {
+        const remaining = p.summary?.totalRemaining || 0;
+        if (stockLevel === "low") return remaining <= 5 && remaining > 0;
+        if (stockLevel === "out") return remaining === 0;
+        if (stockLevel === "high") return remaining > 5;
+        return true;
+      });
+    }
+
+    // Sorting
+    const sortedProducts = productsWithSummary.sort((a, b) => {
+      const fieldA = a[sortBy] || a.summary?.[sortBy];
+      const fieldB = b[sortBy] || b.summary?.[sortBy];
+      if (sortOrder === "asc") return fieldA > fieldB ? 1 : -1;
+      else return fieldA < fieldB ? 1 : -1;
+    });
+
+    // Total count after filtering
+    const total = sortedProducts.length;
+
+    // Paginate the sorted, filtered result
+    const paginated = sortedProducts.slice(skip, skip + parseInt(limit));
+
+    // Send response
     res.status(200).json({
       success: true,
-      data: productsWithSummary,
+      data: paginated,
+      total,
+      page: parseInt(page),
+      limit: parseInt(limit),
+      totalPages: Math.ceil(total / limit),
     });
 
   } catch (error) {
@@ -701,17 +749,25 @@ const getAllProductsWithHistorySummary = async (req, res) => {
 };
 
 
+
+
 const addToTrash = async (req, res) => {
   try {
     const { productId, quantity, type, reason } = req.body;
 
     if (!productId || !quantity || !type) {
-      return res.status(400).json({ message: "Missing required fields." });
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields.",
+      });
     }
 
     const product = await productModel.findById(productId);
     if (!product) {
-      return res.status(404).json({ message: "Product not found." });
+      return res.status(404).json({
+        success: false,
+        message: "Product not found.",
+      });
     }
 
     // Trash entry
@@ -730,12 +786,20 @@ const addToTrash = async (req, res) => {
 
     await product.save();
 
-    res.status(200).json({ message: "Trash updated successfully.", product });
+    res.status(200).json({
+      success: true,
+      message: "Trash updated successfully.",
+      product,
+    });
   } catch (err) {
     console.error("Error adding to trash:", err);
-    res.status(500).json({ message: "Server error." });
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
   }
 };
+
 
 module.exports = { 
     createProductCtrl, 

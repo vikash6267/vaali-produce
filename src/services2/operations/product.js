@@ -11,7 +11,8 @@ const { CREATE_PRODUCT,
     UPDATE_PRODUCT_PRICE,
     UPDATE_BULK_DISCOUNT,
     GET_PRODUCT_ORDER,
-    GET_ALL_PRODUCT_SUMMARY
+    GET_ALL_PRODUCT_SUMMARY,
+    TRASH_PRODUCT
 } = product
 
 export const createProductAPI = async (formData, token) => {
@@ -127,24 +128,23 @@ export const getAllProductAPI = async () => {
 
 };
 
-export const getAllProductSummaryAPI = async () => {
+export const getAllProductSummaryAPI = async (query = "") => {
+  try {
+    const response = await apiConnector("GET", `${GET_ALL_PRODUCT_SUMMARY}${query}`);
 
-    try {
-        const response = await apiConnector("GET", GET_ALL_PRODUCT_SUMMARY,)
-
-
-        if (!response?.data?.success) {
-            throw new Error(response?.data?.message || "Something went wrong!");
-        }
-console.log(response?.data)
-        return response?.data?.data || [];
-    } catch (error) {
-        console.error("GET Product API ERROR:", error);
-        toast.error(error?.response?.data?.message || "Failed to get product!");
-        return [];
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
     }
 
+    console.log("Product API response:", response?.data);
+    return response?.data || [];
+  } catch (error) {
+    console.error("GET Product API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to get product!");
+    return [];
+  }
 };
+
 
 
 
@@ -218,6 +218,8 @@ export const deleteProductAPI = async (id,) => {
 
 
 };
+
+
 export const updateProductAPI = async (id, formData, token) => {
 
     const toastId = toast.loading("Loading...");
@@ -225,6 +227,34 @@ export const updateProductAPI = async (id, formData, token) => {
 
     try {
         const response = await apiConnector("PUT", `${UPDATE_PRODUCT}/${id}`, formData, {
+            Authorization: `Bearer ${token}`,
+        });
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        console.log(response)
+        return response?.data;
+    } catch (error) {
+        console.error("UPDATE Product API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to Update product!");
+        return [];
+    } finally {
+
+        toast.dismiss(toastId);
+    }
+
+};
+
+export const trashProductQuanityAPI = async ( formData, token) => {
+
+    const toastId = toast.loading("Loading...");
+
+
+    try {
+        const response = await apiConnector("POST", `${TRASH_PRODUCT}`, formData, {
             Authorization: `Bearer ${token}`,
         });
 
