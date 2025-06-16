@@ -620,6 +620,32 @@ const updateTotalSellForAllProducts = async (req, res) => {
 //   }
 // };
 
+const resetAllProductStats = async () => {
+  try {
+    const products = await Product.find();
+
+    for (const product of products) {
+      product.quantity = 0;
+      product.totalPurchase = 0;
+      product.remaining = 0;
+      product.unitPurchase = 0;
+      product.unitRemaining = 0;
+
+      product.purchaseHistory = [];
+      product.salesHistory = [];
+      product.lbPurchaseHistory = [];
+      product.lbSellHistory = [];
+      product.quantityTrash = [];
+
+      await product.save();
+    }
+
+    console.log("✅ All product stats reset successfully.");
+  } catch (err) {
+    console.error("❌ Error resetting product stats:", err);
+  }
+};
+
 
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {
@@ -636,6 +662,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
     } = req.query;
 
     console.log(req.query)
+   
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 

@@ -92,7 +92,7 @@ console.log(isEditProduct)
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <TextField
+        {/* <TextField
           control={control}
           name="quantity"
           label="Quantity"
@@ -101,8 +101,8 @@ console.log(isEditProduct)
           step="1"
           description="Available quantity"
           placeholder="0"
-        />
-  {isEditProduct &&      <TextField
+        /> */}
+  {/* {isEditProduct &&      <TextField
           control={control}
           name="totalPurchase"
           label="Purchase "
@@ -111,7 +111,7 @@ console.log(isEditProduct)
           step="1"
           description="Total Purchase "
           placeholder="0"
-        />}
+        />} */}
 
         <TextField
           control={control}

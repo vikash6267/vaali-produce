@@ -90,6 +90,30 @@ const Inventory = () => {
     totalPages: 0,
   })
 
+
+  const getCurrentWeekRange = () => {
+  const today = new Date();
+  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+  // Adjust day to get Monday (start of week)
+  const monday = new Date(today);
+  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Shift back to Monday
+
+  // Get Friday (end of week)
+  const friday = new Date(monday);
+  friday.setDate(monday.getDate() + 4);
+
+  // Format as yyyy-mm-dd (for input fields)
+  const format = (date: Date) => date.toISOString().split("T")[0];
+
+  return {
+    startDate: format(monday),
+    endDate: format(friday),
+  };
+};
+
+const { startDate, endDate } = getCurrentWeekRange();
+
   // Filter and Sort State
   const [filters, setFilters] = useState<FilterState>({
     search: "",
@@ -97,8 +121,7 @@ const Inventory = () => {
     sortBy: "name",
     sortOrder: "asc",
     stockLevel: "all",
-    startDate: "",
-    endDate: "",
+    startDate, endDate
   })
 
   // Debounced search to avoid too many API calls
