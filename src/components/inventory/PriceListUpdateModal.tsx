@@ -58,9 +58,15 @@ useEffect(() => {
   const fetchData = async () => {
     try {
       const res = await getAllProductAPI();
-      console.log("Products:", res);
-      setProduct(res)
-      // do something with res (e.g., setProducts(res))
+
+      // Transform each product object
+      const transformedProducts = res.map(product => ({
+        ...product,
+        id: product.product_id || product._id, // give preference to product_id
+      }));
+
+      setProduct(transformedProducts);
+      console.log("Transformed Products:", transformedProducts);
     } catch (err) {
       console.error("Error fetching products:", err);
     }
@@ -68,6 +74,7 @@ useEffect(() => {
 
   fetchData();
 }, []);
+
   // Get unique categories
   const categories = ['all', ...Array.from(new Set(products.map(product => product.category)))];
   
