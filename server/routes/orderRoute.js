@@ -15,7 +15,8 @@ const {
     updateShippingController, 
     getDashboardData, 
     getPendingOrders,
-    invoiceMailCtrl
+    invoiceMailCtrl,
+    markOrderAsUnpaid
 
 } = require("../controllers/orderCtrl");
 
@@ -27,6 +28,7 @@ router.put("/update/:id", auth, updateOrderCtrl)
 router.put("/update-plate/:orderId", auth, updatePalletInfo)
 router.get("/user/:userId",  userDetailsWithOrder)
 router.put("/payment-update/:orderId",  updatePaymentDetails)
+router.put("/unpaid/:orderId",  markOrderAsUnpaid)
 router.put("/update-otype/:orderId",  updateOrderTypeCtrl)
 router.get("/statement/:userId",  getUserOrderStatement)
 

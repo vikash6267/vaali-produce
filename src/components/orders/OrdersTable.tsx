@@ -1,5 +1,3 @@
-"use client"
-
 import type React from "react"
 import { useEffect, useRef, useState } from "react"
 import { useNavigate } from "react-router-dom"
@@ -45,6 +43,7 @@ import {
   Badge,
   Eye,
   Ban,
+  MoveRight,
 } from "lucide-react"
 import { type Order, formatCurrency, formatDate } from "@/lib/data"
 import { cn } from "@/lib/utils"
@@ -58,7 +57,7 @@ import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import WorkOrderForm from "./WorkOrder"
 import { PaymentStatusPopup } from "./PaymentUpdateModel"
-import { deleteOrderAPI, getAllOrderAPI, updateOrderAPI } from "@/services2/operations/order"
+import { deleteOrderAPI, getAllOrderAPI, updateOrderAPI ,updateOrderUnpaidAPI} from "@/services2/operations/order"
 import Swal from "sweetalert2"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -230,6 +229,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
 
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`)
+  }
+  const handleUnpaid = async(order: Order) => {
+    console.log(order)
+    await updateOrderUnpaidAPI(order?._id,token)
+    // navigate(`/orders/edit/${order._id}`)
   }
 
   const handleDelete = async (id: string, orderNumber: string) => {
@@ -1140,6 +1144,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             <DropdownMenuItem onClick={() => handleEdit(order)}>
                               <Edit size={14} className="mr-2" />
                               Edit
+                            </DropdownMenuItem>
+                          )}
+                          {order?.paymentStatus != "pending" && !order?.isDelete && user.role === "admin" && (
+                            <DropdownMenuItem onClick={() => handleUnpaid(order)}>
+                              <MoveRight size={14} className="mr-2" />
+                              Mark as unpaid
                             </DropdownMenuItem>
                           )}
 
