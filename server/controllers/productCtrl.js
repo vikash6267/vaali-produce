@@ -32,11 +32,11 @@ const createProductCtrl = async (req, res) => {
             
         } = req.body;
 
+console.log(req.body)
       
-        if (!name || !category || !quantity || !price) {
+        if (!name || !category  || !price) {
             return res.status(400).json({ success: false, message: "All required fields must be filled." });
         }
-
 
         const newProduct = new productModel({
             name,
