@@ -5,7 +5,7 @@ exports.createPriceListTemplate = async (req, res) => {
   try {
     const { name, description, status, products, emailDistributionGroups, lastSent, emailSubject, emailBody } = req.body;
 
-    console.log(req.body)
+  
     if (!name || !Array.isArray(products) || products.length === 0) {
       return res.status(400).json({ success: false, message: "Name and at least one product are required." });
     }

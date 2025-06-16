@@ -87,25 +87,43 @@ const getAllProductCtrl = async (req, res) => {
       { $unwind: "$items" },
       {
         $group: {
-          _id: "$items.productId", 
-          totalOrder: { $sum: "$items.quantity" }, // or use $sum: 1 for just count
+          _id: "$items.productId",
+          totalOrder: { $sum: "$items.quantity" },
         }
       }
     ]);
 
-    // Step 3: Convert stats to a map for quick access
+    // Step 3: Convert stats to map
     const orderMap = {};
     orderStats.forEach(stat => {
       orderMap[stat._id.toString()] = stat.totalOrder;
     });
 
-    // Step 4: Attach totalOrder to each product and format category
-    const modifiedProducts = products.map(product => ({
-      ...product,
-      category: product.category?.categoryName || null,
-      totalOrder: orderMap[product._id.toString()] || 0,
-    }));
+    // Step 4: Remove unwanted fields from response
+    const modifiedProducts = products.map(product => {
+      const {
+        totalSell,
+        totalPurchase,
+        remaining,
+        unitPurchase,
+        unitRemaining,
+        unitSell,
+        purchaseHistory,
+        salesHistory,
+        lbPurchaseHistory,
+        lbSellHistory,
+        quantityTrash,
+        bulkDiscount,
+        category,
+        ...rest
+      } = product;
 
+      return {
+        ...rest,
+        category: category?.categoryName || null,
+        totalOrder: orderMap[product._id.toString()] || 0,
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -119,6 +137,7 @@ const getAllProductCtrl = async (req, res) => {
     });
   }
 };
+
 
 const getWeeklyOrdersByProductCtrl = async (req, res) => {
     try {
