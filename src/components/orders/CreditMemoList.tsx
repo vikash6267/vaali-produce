@@ -216,7 +216,7 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="text-center">
                     <p className="text-2xl font-bold text-blue-600">{creditMemos.length}</p>
                     <p className="text-sm text-muted-foreground">Total Credit Memos</p>
@@ -225,12 +225,12 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                     <p className="text-2xl font-bold text-green-600">{formatCurrency(totalCreditAmount)}</p>
                     <p className="text-sm text-muted-foreground">Total Credit Amount</p>
                   </div>
-                  <div className="text-center">
+                  {/* <div className="text-center">
                     <p className="text-2xl font-bold text-orange-600">
                       {creditMemos.filter((m) => m.status === "pending").length}
                     </p>
                     <p className="text-sm text-muted-foreground">Pending Approval</p>
-                  </div>
+                  </div> */}
                 </div>
               </CardContent>
             </Card>
@@ -250,10 +250,10 @@ export default function CreditMemoList({ open, onClose, order, token }: CreditMe
                         <div className="space-y-2">
                           <div className="flex items-center gap-3">
                             <h3 className="text-lg font-semibold">{memo.creditMemoNumber}</h3>
-                            <Badge className={`flex items-center gap-1 ${getStatusColor(memo.status)}`}>
+                            {/* <Badge className={`flex items-center gap-1 ${getStatusColor(memo.status)}`}>
                               {getStatusIcon(memo.status)}
                               {memo.status.charAt(0).toUpperCase() + memo.status.slice(1)}
-                            </Badge>
+                            </Badge> */}
                           </div>
 
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">

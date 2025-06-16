@@ -451,12 +451,7 @@ export default function CreditMemoForm({
         setCreditItems([])
       }
     } catch (error) {
-      console.error(`Error ${mode === "edit" ? "updating" : "creating"} credit memo:`, error)
-      toast({
-        title: "Error",
-        description: `Failed to ${mode} credit memo. Please try again.`,
-        variant: "destructive",
-      })
+    
     } finally {
       setLoading(false)
     }
