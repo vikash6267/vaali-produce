@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,7 +24,7 @@ import {
   Check,
   X
 } from 'lucide-react';
-import {updateProductPrice} from "@/services2/operations/product"
+import {updateProductPrice,getAllProductAPI} from "@/services2/operations/product"
 import { useSelector } from 'react-redux';
 import { RootState } from '@/redux/store';
 
@@ -42,7 +42,7 @@ type Direction = 'increase' | 'decrease';
 const PriceListUpdateModal: React.FC<PriceListUpdateModalProps> = ({
   isOpen,
   onClose,
-  products,
+
   onUpdateProducts,
 }) => {
   const [updateMethod, setUpdateMethod] = useState<UpdateMethod>('percentage');
@@ -51,9 +51,23 @@ const PriceListUpdateModal: React.FC<PriceListUpdateModalProps> = ({
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [editedPrices, setEditedPrices] = useState<Record<string, number>>({});
   const [isDirty, setIsDirty] = useState(false);
+  const [products, setProduct] = useState<Product[]>([]);
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
+useEffect(() => {
+  const fetchData = async () => {
+    try {
+      const res = await getAllProductAPI();
+      console.log("Products:", res);
+      setProduct(res)
+      // do something with res (e.g., setProducts(res))
+    } catch (err) {
+      console.error("Error fetching products:", err);
+    }
+  };
 
+  fetchData();
+}, []);
   // Get unique categories
   const categories = ['all', ...Array.from(new Set(products.map(product => product.category)))];
   
