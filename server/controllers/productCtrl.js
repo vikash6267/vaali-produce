@@ -836,7 +836,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
     let productsWithSummary = products.map(product => {
       const hasDateFilter = fromDate || toDate;
 
-      if (hasDateFilter) {
+      if (true) {
         const filteredPurchase = product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
         const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
@@ -851,8 +851,8 @@ const getAllProductsWithHistorySummary = async (req, res) => {
         const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
         const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
 
-        const totalRemaining = Math.max(0, totalPurchase - totalSell - trashBox);
-        const unitRemaining = Math.max(0, unitPurchase - unitSell - trashUnit);
+        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox);
+        const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit);
 
         return {
           ...product,
