@@ -430,9 +430,14 @@ const EditPurchaseOrderForm = () => {
                         type="number"
                         min="0"
                         step="1"
+                        disabled={item.qualityStatus === "approved"}
+
                         value={item.lb || ""}
                         onChange={(e) => handleLbChange(index, Number(e.target.value))}
                       />
+                        {item.qualityStatus === "approved" && (
+                        <p className="text-xs text-red-600 italic">Approved – can't edit</p>
+                      )}
                     </div>
 
                     <div className="col-span-2">
@@ -443,6 +448,7 @@ const EditPurchaseOrderForm = () => {
                           id={`unitPrice-${index}`}
                           type="number"
                           min="0"
+                        disabled={item.qualityStatus === "approved"}
                           step="0.01"
                           className="pl-8"
                           value={item.unitPrice || ""}

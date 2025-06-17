@@ -1,36 +1,36 @@
-const  PurchaseOrder =  require("../models/purchaseModel");
+const PurchaseOrder = require("../models/purchaseModel");
 const Product = require("../models/productModel");
 const Vendor = require('../models/vendorModel'); // adjust path
 const { default: mongoose } = require("mongoose");
 
 exports.createPurchaseOrder = async (req, res) => {
-    try {
-        const {
-            vendorId,
-            purchaseOrderNumber,
-            purchaseDate,
-            deliveryDate,
-            notes,
-            items,
-            totalAmount
-        } = req.body;
+  try {
+    const {
+      vendorId,
+      purchaseOrderNumber,
+      purchaseDate,
+      deliveryDate,
+      notes,
+      items,
+      totalAmount
+    } = req.body;
 
-        const newOrder = new PurchaseOrder({
-            vendorId,
-            purchaseOrderNumber,
-            purchaseDate,
-            deliveryDate,
-            notes,
-            items,
-            totalAmount
-        });
+    const newOrder = new PurchaseOrder({
+      vendorId,
+      purchaseOrderNumber,
+      purchaseDate,
+      deliveryDate,
+      notes,
+      items,
+      totalAmount
+    });
 
-        await newOrder.save();
+    await newOrder.save();
 
-        res.status(201).json({ success: true, message: 'Purchase order created successfully.', data: newOrder });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal server error', error });
-    }
+    res.status(201).json({ success: true, message: 'Purchase order created successfully.', data: newOrder });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error', error });
+  }
 };
 
 
@@ -95,7 +95,7 @@ exports.createPurchaseOrder = async (req, res) => {
 
 exports.getAllPurchaseOrders = async (req, res) => {
   try {
-    
+
     const search = req.query.search || "";
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 50;
@@ -107,8 +107,8 @@ exports.getAllPurchaseOrders = async (req, res) => {
 
     const matchStage = {};
 
-  
-console.log(paymentStatus)
+
+    console.log(paymentStatus)
     // Filter by payment status
     if (paymentStatus !== "all") {
       matchStage.paymentStatus = paymentStatus;
@@ -142,11 +142,11 @@ console.log(paymentStatus)
           ...matchStage,
           ...(search
             ? {
-                $or: [
-                  { purchaseOrderNumber: searchRegex },
-                  { "vendor.name": searchRegex },
-                ],
-              }
+              $or: [
+                { purchaseOrderNumber: searchRegex },
+                { "vendor.name": searchRegex },
+              ],
+            }
             : {}),
         },
       },
@@ -185,6 +185,10 @@ console.log(paymentStatus)
                 totalAmount: 1,
                 totalPaid: 1,
                 totalPending: { $subtract: ["$totalAmount", "$totalPaid"] },
+                vendor: {
+                  name: "$vendor.name",
+                  contactName: "$vendor.contactName"
+                }
               },
             },
           ],
@@ -230,52 +234,52 @@ console.log(paymentStatus)
 
 
 exports.getSinglePurchaseOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const order = await PurchaseOrder.findById(id).populate('vendorId').populate('items.productId');
+  try {
+    const { id } = req.params;
+    const order = await PurchaseOrder.findById(id).populate('vendorId').populate('items.productId');
 
-        if (!order) return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    if (!order) return res.status(404).json({ success: false, message: 'Purchase order not found' });
 
-        res.status(200).json({ success: true, data: order });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal server error', error });
-    }
+    res.status(200).json({ success: true, data: order });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error', error });
+  }
 };
 
 exports.updatePurchaseOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const {
-            vendorId,
-            purchaseOrderNumber,
-            purchaseDate,
-            deliveryDate,
-            notes,
-            items,
-            totalAmount
-        } = req.body.quantityData;
-console.log(items)
-        const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
-            id,
-            {
-                vendorId,
-                purchaseOrderNumber,
-                purchaseDate,
-                deliveryDate,
-                notes,
-                items,
-                totalAmount
-            },
-            { new: true }
-        );
+  try {
+    const { id } = req.params;
+    const {
+      vendorId,
+      purchaseOrderNumber,
+      purchaseDate,
+      deliveryDate,
+      notes,
+      items,
+      totalAmount
+    } = req.body.quantityData;
+    console.log(items)
+    const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
+      id,
+      {
+        vendorId,
+        purchaseOrderNumber,
+        purchaseDate,
+        deliveryDate,
+        notes,
+        items,
+        totalAmount
+      },
+      { new: true }
+    );
 
-        if (!updatedOrder) return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    if (!updatedOrder) return res.status(404).json({ success: false, message: 'Purchase order not found' });
 
-        res.status(200).json({ success: true, message: 'Purchase order updated successfully', data: updatedOrder });
-    } catch (error) {
-      console.log(error)
-        res.status(500).json({ success: false, message: 'Internal server error', error });
-    }
+    res.status(200).json({ success: true, message: 'Purchase order updated successfully', data: updatedOrder });
+  } catch (error) {
+    console.log(error)
+    res.status(500).json({ success: false, message: 'Internal server error', error });
+  }
 };
 
 
@@ -362,16 +366,16 @@ console.log(items)
 
 
 exports.deletePurchaseOrder = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const deleted = await PurchaseOrder.findByIdAndDelete(id);
+  try {
+    const { id } = req.params;
+    const deleted = await PurchaseOrder.findByIdAndDelete(id);
 
-        if (!deleted) return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    if (!deleted) return res.status(404).json({ success: false, message: 'Purchase order not found' });
 
-        res.status(200).json({ success: true, message: 'Purchase order deleted successfully' });
-    } catch (error) {
-        res.status(500).json({ success: false, message: 'Internal server error', error });
-    }
+    res.status(200).json({ success: true, message: 'Purchase order deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Internal server error', error });
+  }
 };
 
 
@@ -502,7 +506,6 @@ const updateHistoryEntry = (historyArray, date, key, value, lb = null) => {
 };
 
 // ✅ FULL CONTROLLER: updateItemQualityStatus
-
 
 exports.updateItemQualityStatus = async (req, res) => {
   try {
@@ -660,75 +663,75 @@ exports.updateItemQualityStatus = async (req, res) => {
 
 
 exports.updatePaymentDetailsPurchase = async (req, res) => {
-    const { orderId } = req.params;
-    const { method, transactionId, notes, paymentType, amountPaid } = req.body;
-  
-    console.log(req.body);
-  
-    try {
-      // Check for valid method
-      if (!["cash", "creditcard", "cheque"].includes(method)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid payment method. Allowed: 'cash' or 'creditcard'",
-        });
-      }
-  
-      // Validate based on method
-      if (method === "creditcard" && !transactionId) {
-        return res.status(400).json({
-          success: false,
-          message: "Transaction ID is required for credit card payments",
-        });
-      }
-  
-      if (method === "cash" && !notes) {
-        return res.status(400).json({
-          success: false,
-          message: "Notes are required for cash payments",
-        });
-      }
-  
-      // Prepare paymentDetails object
-      const paymentDetails = {
-        method,
-        ...(method === "creditcard" ? { transactionId } : {}),
-        ...(method === "cash" ? { notes } : {}),
-        ...(method === "cheque" ? { notes } : {}),
-        paymentDate: new Date(), // Yaha backend me hi current date daal do
-      };
-  
-      const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
-        orderId,
-        {
-          paymentDetails,
-          paymentStatus: paymentType === "full" ? "paid" : "partial",
-          paymentAmount: amountPaid,
-        },
-        { new: true }
-      );
-  
-      if (!updatedOrder) {
-        return res.status(404).json({
-          success: false,
-          message: "Order not found",
-        });
-      }
-  
-      return res.status(200).json({
-        success: true,
-        message: "Payment details updated successfully",
-        data: updatedOrder,
-      });
-    } catch (error) {
-      console.error("Error updating payment details:", error);
-      return res.status(500).json({
+  const { orderId } = req.params;
+  const { method, transactionId, notes, paymentType, amountPaid } = req.body;
+
+  console.log(req.body);
+
+  try {
+    // Check for valid method
+    if (!["cash", "creditcard", "cheque"].includes(method)) {
+      return res.status(400).json({
         success: false,
-        message: "Internal server error",
-        error: error.message,
+        message: "Invalid payment method. Allowed: 'cash' or 'creditcard'",
       });
     }
-  };
+
+    // Validate based on method
+    if (method === "creditcard" && !transactionId) {
+      return res.status(400).json({
+        success: false,
+        message: "Transaction ID is required for credit card payments",
+      });
+    }
+
+    if (method === "cash" && !notes) {
+      return res.status(400).json({
+        success: false,
+        message: "Notes are required for cash payments",
+      });
+    }
+
+    // Prepare paymentDetails object
+    const paymentDetails = {
+      method,
+      ...(method === "creditcard" ? { transactionId } : {}),
+      ...(method === "cash" ? { notes } : {}),
+      ...(method === "cheque" ? { notes } : {}),
+      paymentDate: new Date(), // Yaha backend me hi current date daal do
+    };
+
+    const updatedOrder = await PurchaseOrder.findByIdAndUpdate(
+      orderId,
+      {
+        paymentDetails,
+        paymentStatus: paymentType === "full" ? "paid" : "partial",
+        paymentAmount: amountPaid,
+      },
+      { new: true }
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Payment details updated successfully",
+      data: updatedOrder,
+    });
+  } catch (error) {
+    console.error("Error updating payment details:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal server error",
+      error: error.message,
+    });
+  }
+};
 
 
 

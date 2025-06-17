@@ -143,66 +143,81 @@ const createOrderCtrl = async (req, res) => {
       createdAt: orderDate, // Use the fixed date
     });
 
-   for (const item of items) {
+for (const item of items) {
   const { productId, quantity, pricingType } = item;
   if (!productId || quantity <= 0) continue;
 
   const product = await Product.findById(productId);
-  if (!product) continue;
+  if (!product) {
+    console.warn(`❌ Product not found: ${productId}`);
+    continue;
+  }
 
   const saleDate = orderDate || new Date();
 
-// Add to sales history
-if (pricingType === "unit") {
- 
+  console.log(`📦 Processing Product: ${product.name}`);
+  console.log(`➡ Pricing Type: ${pricingType}`);
+  console.log(`➡ Quantity Ordered: ${quantity}`);
+  console.log(`➡ unitPurchase: ${product.unitPurchase}`);
+  console.log(`➡ totalPurchase (Boxes): ${product.totalPurchase}`);
+  console.log(`➡ unitRemaining (Before): ${product.unitRemaining}`);
+  console.log(`➡ totalSell (Before): ${product.totalSell}`);
+  console.log(`➡ remaining (Boxes Left Before): ${product.remaining}`);
 
-  product.lbSellHistory.push({
-    date: saleDate,
-    weight: quantity,
-    lb: "unit",
-  });
-} else if (pricingType === "box") {
-  
-  const totalBoxes = product.totalPurchase || 1;
-    
-    const avgUnitsPerBox = product.unitPurchase / totalBoxes;
-    const estimatedUnitsUsed = avgUnitsPerBox * quantity; 
-
-    product.lbSellHistory.push({
-    date: saleDate,
-    weight: estimatedUnitsUsed,
-    lb: "box",
-  });
-  product.salesHistory.push({
-    date: saleDate,
-    quantity: quantity,
-  });
-
- 
-}
-
-
-
+  // UNIT ORDER
   if (pricingType === "unit") {
+    product.lbSellHistory.push({
+      date: saleDate,
+      weight: quantity,
+      lb: "unit",
+    });
+
     product.unitSell += quantity;
     product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
 
+    console.log(`✅ UNIT Order Processed`);
+    console.log(`➡ unitSell (After): ${product.unitSell}`);
+    console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
   }
 
+  // BOX ORDER
   else if (pricingType === "box") {
+    const totalBoxes = product.totalPurchase || 0;
+    const totalUnits = product.unitPurchase || 0;
+
+    const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+    const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+    console.log(`🧮 Calculated avgUnitsPerBox: ${avgUnitsPerBox}`);
+    console.log(`📉 Estimated Units Used from Boxes: ${estimatedUnitsUsed}`);
+
+    product.lbSellHistory.push({
+      date: saleDate,
+      weight: estimatedUnitsUsed,
+      lb: "box",
+    });
+
+    product.salesHistory.push({
+      date: saleDate,
+      quantity: quantity,
+    });
+
     product.totalSell += quantity;
     product.remaining = Math.max(0, product.remaining - quantity);
-
-    // Calculate average unit weight per box (approximation)
-    const totalBoxes = product.totalPurchase || 1; // avoid div by zero
-    const avgUnitsPerBox = product.unitPurchase / totalBoxes;
-
-    const estimatedUnitsUsed = avgUnitsPerBox * quantity;
     product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+
+    console.log(`✅ BOX Order Processed`);
+    console.log(`➡ totalSell (After): ${product.totalSell}`);
+    console.log(`➡ remaining (Boxes Left After): ${product.remaining}`);
+    console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
   }
 
   await product.save();
+  console.log(`💾 Product saved: ${product.name}\n------------------------`);
 }
+
+
+
 
     await newOrder.save();
 

@@ -139,10 +139,12 @@ const getAllProductCtrl = async (req, res) => {
 };
 
 
+
+
 const getWeeklyOrdersByProductCtrl = async (req, res) => {
     try {
       const { productId } = req.params;
-  
+
       if (!mongoose.Types.ObjectId.isValid(productId)) {
         return res.status(400).json({ success: false, message: "Invalid Product ID" });
       }
@@ -688,7 +690,109 @@ const resetAllProductStats = async () => {
     console.error("❌ Error resetting product stats:", err);
   }
 };
+const resetAndRebuildHistoryFromOrders = async () => {
+  try {
+    console.log("🧹 Resetting & rebuilding product history from 16 June...");
 
+    const fromDate = new Date(Date.UTC(2025, 5, 16, 0, 0, 0)); // 2025-06-16
+    const toDate = new Date(Date.UTC(2025, 5, 17, 0, 0, 0));   // 2025-06-17
+
+    // STEP 1: Get all orders for 16 June
+    const orders = await Order.find({
+      createdAt: {
+        $gte: fromDate,
+        $lt: toDate,
+      },
+    });
+
+    console.log(`🧾 Orders found: ${orders.length}`);
+
+    // STEP 2: Get all unique product IDs used in these orders
+    const productIds = new Set();
+    orders.forEach(order => {
+      order.items.forEach(item => {
+        if (item.productId) {
+          productIds.add(item.productId.toString());
+        }
+      });
+    });
+
+    console.log(`📦 Unique products used: ${productIds.size}`);
+
+    // STEP 3: Reset history for these products
+    for (const productId of productIds) {
+      const product = await Product.findById(productId);
+      if (!product) continue;
+
+      product.lbSellHistory = [];
+      product.salesHistory = [];
+      product.unitSell = 0;
+      product.totalSell = 0;
+
+      product.unitRemaining = product.unitPurchase;
+      product.remaining = product.totalPurchase;
+
+      await product.save();
+      console.log(`♻ Reset: ${product.name}`);
+    }
+
+    // STEP 4: Rebuild history from orders
+    for (const order of orders) {
+      const { items, createdAt: orderDate } = order;
+
+      for (const item of items) {
+        const { productId, quantity, pricingType } = item;
+        if (!productId || quantity <= 0) continue;
+
+        const product = await Product.findById(productId);
+        if (!product) continue;
+
+        const saleDate = orderDate;
+
+        if (pricingType === "unit") {
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: quantity,
+            lb: "unit",
+          });
+
+          product.unitSell += quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        }
+
+        if (pricingType === "box") {
+          const totalBoxes = product.totalPurchase || 0;
+          const totalUnits = product.unitPurchase || 0;
+
+          const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: estimatedUnitsUsed,
+            lb: "box",
+          });
+
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
+
+          product.totalSell += quantity;
+          product.remaining = Math.max(0, product.remaining - quantity);
+          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+        }
+
+        await product.save();
+        console.log(`✅ Updated: ${product.name}`);
+      }
+    }
+
+    console.log("🎉 Done resetting & rebuilding product history for 16 June.");
+  } catch (err) {
+    console.error("❌ Error in rebuild:", err);
+  }
+};
 
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {

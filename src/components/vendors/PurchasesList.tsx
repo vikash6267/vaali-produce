@@ -349,7 +349,7 @@ const PurchasesList = () => {
                     <TableCell
                     // onClick={() => fetchUserDetailsOrder(group?.id || group?._id)}
                     >
-                      {purchase.vendorName || purchase.vendor.contactName}
+                      {purchase.vendor.name || purchase.vendor.contactName}
                     </TableCell>
                     <TableCell>{new Date(purchase.createdAt).toLocaleDateString()}</TableCell>
                     <TableCell>{formatCurrency(purchase.totalAmount)}</TableCell>

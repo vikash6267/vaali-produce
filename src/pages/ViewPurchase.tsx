@@ -241,7 +241,7 @@ const ViewPurchaseOrder =()=> {
                   <TableRow key={index}>
                     <TableCell className="font-medium">{productName}</TableCell>
                     <TableCell>
-                      {item.quantity} {unitType}
+                      {item.quantity} 
                     </TableCell>
                     <TableCell>
                       {item.lb}
