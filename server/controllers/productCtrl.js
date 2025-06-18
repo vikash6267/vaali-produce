@@ -142,91 +142,88 @@ const getAllProductCtrl = async (req, res) => {
 
 
 const getWeeklyOrdersByProductCtrl = async (req, res) => {
-    try {
-      const { productId } = req.params;
+  try {
+    const { productId } = req.params;
+    const { startDate, endDate } = req.query;
 
-      if (!mongoose.Types.ObjectId.isValid(productId)) {
-        return res.status(400).json({ success: false, message: "Invalid Product ID" });
-      }
-  
-      // Fetch product details
-      const product = await Product.findById(productId).select("name image").lean();
-      if (!product) {
-        return res.status(404).json({ success: false, message: "Product not found" });
-      }
-  
-      const today = new Date();
-      const currentDay = today.getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
-  
-      // If today is Monday, return empty
-      if (currentDay === 1) {
-        return res.status(200).json({
-          success: true,
-          productId,
-          productTitle: product.name,
-          productImage: product.image || null,
-          totalOrdersThisWeek: 0,
-          buyers: []
-        });
-      }
-  
-      // Calculate start of the week (Monday)
-      const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
-      const startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - diffToMonday);
-      startOfWeek.setHours(0, 0, 0, 0);
-  
-      // End date is yesterday (not including today)
-      const endDate = new Date(today);
-      endDate.setDate(today.getDate() - 1);
-      endDate.setHours(23, 59, 59, 999);
-  
-      // Get orders for the product this week (until yesterday)
-      const orders = await Order.find({
-        createdAt: { $gte: startOfWeek },
-        "items.productId": productId,
-         orderType: "Regural"
-      })
-        .populate("store", "storeName ownerName")
-        .lean();
-  
-      let totalQuantity = 0;
-      const buyers = [];
-  
- orders.forEach(order => {
-  const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
-
-  order.items.forEach(item => {
-    if (item.productId?.toString() === productId && item.quantity > 0) {
-      totalQuantity += item.quantity;
-
-      buyers.push({
-        name: buyerName,
-        quantity: item.quantity,
-        orderDate: order.createdAt
-      });
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: "Invalid Product ID" });
     }
-  });
-});
 
-  
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "Start and End date required" });
+    }
+
+    const fromDate = new Date(`${startDate}T00:00:00.000Z`);
+    const toDate = new Date(`${endDate}T23:59:59.999Z`);
+
+    // Fetch product details
+    const product = await Product.findById(productId).select("name image").lean();
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+    // If today is Monday (1), return empty data
+    if (currentDay === 1) {
       return res.status(200).json({
         success: true,
         productId,
         productTitle: product.name,
         productImage: product.image || null,
-        totalOrdersThisWeek: totalQuantity,
-        buyers
-      });
-  
-    } catch (error) {
-      console.error("Error in getWeeklyOrdersByProductCtrl:", error);
-      return res.status(500).json({
-        success: false,
-        message: "Server Error",
+        totalOrdersThisWeek: 0,
+        buyers: []
       });
     }
-  };
+
+    // Fetch matching orders
+    const orders = await Order.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
+      "items.productId": productId,
+      orderType: "Regural"
+    })
+      .populate("store", "storeName ownerName")
+      .lean();
+
+    let totalQuantity = 0;
+    const buyers = [];
+
+    orders.forEach(order => {
+      const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
+
+      order.items.forEach(item => {
+        if (item.productId?.toString() === productId && item.quantity > 0) {
+          totalQuantity += item.quantity;
+          buyers.push({
+            name: buyerName,
+            quantity: item.quantity,
+            orderDate: order.createdAt
+          });
+        }
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      productId,
+      productTitle: product.name,
+      productImage: product.image || null,
+      totalOrdersThisWeek: totalQuantity,
+      buyers
+    });
+
+  } catch (error) {
+    console.error("Error in getWeeklyOrdersByProductCtrl:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
+
   
 
 
@@ -690,12 +687,14 @@ const resetAllProductStats = async () => {
     console.error("❌ Error resetting product stats:", err);
   }
 };
+
+
 const resetAndRebuildHistoryFromOrders = async () => {
   try {
     console.log("🧹 Resetting & rebuilding product history from 16 June...");
 
-    const fromDate = new Date(Date.UTC(2025, 5, 16, 0, 0, 0)); // 2025-06-16
-    const toDate = new Date(Date.UTC(2025, 5, 17, 0, 0, 0));   // 2025-06-17
+    const fromDate = new Date(Date.UTC(2025, 5, 15, 0, 0, 0)); // 2025-06-16
+    const toDate = new Date(Date.UTC(2025, 5, 19, 0, 0, 0));   // 2025-06-17
 
     // STEP 1: Get all orders for 16 June
     const orders = await Order.find({
@@ -809,7 +808,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
     } = req.query;
 
     console.log(req.query)
-   
+
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 

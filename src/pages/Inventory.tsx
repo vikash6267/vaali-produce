@@ -718,6 +718,8 @@ const { startDate, endDate } = getCurrentWeekRange();
                           selectedProducts={selectedProducts}
                           onReorderProduct={handleOpenReorderDialog}
                           fetchProducts={fetchProducts}
+                          startDate={filters.startDate}
+                          endDate={filters.endDate}
                         />
                       </CardContent>
 

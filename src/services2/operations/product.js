@@ -169,28 +169,22 @@ export const getSingleProductAPI = async (id) => {
     }
 
 };
-export const getSingleProductOrderAPI = async (id) => {
+export const getSingleProductOrderAPI = async (id, startDate, endDate) => {
+  try {
+    const response = await apiConnector("GET", `${GET_PRODUCT_ORDER}/${id}?startDate=${startDate}&endDate=${endDate}`);
 
-
-    try {
-        const response = await apiConnector("GET", `${GET_PRODUCT_ORDER}/${id}`)
-
-
-        if (!response?.data?.success) {
-            throw new Error(response?.data?.message || "Something went wrong!");
-        }
-       
-
-        return response?.data
-    } catch (error) {
-        console.error("GET Product API ERROR:", error);
-        toast.error(error?.response?.data?.message || "Failed to get product!");
-        return false;
-    } finally {
-
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
     }
 
+    return response?.data;
+  } catch (error) {
+    console.error("GET Product API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to get product!");
+    return false;
+  }
 };
+
 
 export const deleteProductAPI = async (id,) => {
     const toastId = toast.loading("Loading...");

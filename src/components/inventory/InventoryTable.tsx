@@ -79,6 +79,8 @@ interface InventoryTableProps {
   selectedProducts: string[]
   onReorderProduct: (product: Product) => void
   fetchProducts: () => void
+  endDate?:string
+  startDate?:string
 }
 
 const InventoryTable: React.FC<InventoryTableProps> = ({
@@ -87,6 +89,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   selectedProducts,
   onReorderProduct,
   fetchProducts,
+  startDate,endDate
 }) => {
   const [sortField, setSortField] = useState("name")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
@@ -180,12 +183,15 @@ const [trashForm, setTrashForm] = useState({
     return isBefore(expiryDate, today)
   }
 
-  const fetchProductOrder = async (id: string) => {
-    const response = await getSingleProductOrderAPI(id)
-    console.log(response)
-    setProductOrderData(response)
-    setOrderDetails(true)
-  }
+ const fetchProductOrder = async (id: string, ) => {
+  const response = await getSingleProductOrderAPI(id, startDate, endDate);
+  if (!response) return;
+
+  console.log("Fetched Order Data:", response);
+  setProductOrderData(response);
+  setOrderDetails(true);
+};
+
 
   // Handle summary popup
   const handleSummaryClick = (type: "purchased" | "sell" | "remaining", product: Product) => {
@@ -454,7 +460,7 @@ const handleTrashSubmit = async () => {
       <Dialog open={orderDetails} onOpenChange={setOrderDetails}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Order Details (Last Mon,Tue,Wed)</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">Order Details {startDate}- {endDate}</DialogTitle>
           </DialogHeader>
           {productOrderData && (
             <div className="space-y-4">
