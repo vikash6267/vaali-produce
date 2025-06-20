@@ -71,7 +71,7 @@ const createOrderCtrl = async (req, res) => {
       createdAt,
     } = req.body;
 
-    console.log(items);
+    console.log(createdAt);
 
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Order items are required" });
@@ -127,7 +127,8 @@ const createOrderCtrl = async (req, res) => {
       const month = now.getMonth();
       const day = now.getDate();
 
-      orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      // orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      orderDate = new Date();;
     }
 
     const newOrder = new orderModel({
@@ -140,7 +141,7 @@ const createOrderCtrl = async (req, res) => {
       total: total + shippinCost,
       orderType,
       shippinCost,
-      createdAt: orderDate, // Use the fixed date
+      createdAt: createdAt, // Use the fixed date
     });
 
 for (const item of items) {
@@ -308,7 +309,8 @@ const getAllOrderCtrl = async (req, res) => {
             : {}),
         },
       },
-      { $sort: { createdAt: -1 } },
+    { $sort: { createdAt: -1, orderNumber: -1 } }
+,
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],

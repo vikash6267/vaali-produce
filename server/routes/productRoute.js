@@ -12,7 +12,9 @@ const {
   getWeeklyOrdersByProductCtrl,
   updateTotalSellForAllProducts,
   getAllProductsWithHistorySummary,
-  addToTrash
+  addToTrash,
+  compareProductSalesWithOrders,
+  resetAndRebuildHistoryForSingleProductCtrl
 
   
    
@@ -34,5 +36,7 @@ router.put("/update/:id", updateProductCtrl)
 router.put("/update-price", updateProductPrice)
 router.put("/update-bulk-discounts", bulkDiscountApply)
 router.post("/trash", addToTrash);
+router.get("/com", compareProductSalesWithOrders);
+router.get('/reset-history/:productId', resetAndRebuildHistoryForSingleProductCtrl);
 
 module.exports = router

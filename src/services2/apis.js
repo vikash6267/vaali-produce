@@ -45,6 +45,7 @@ export const product = {
   UPDATE_PRODUCT_PRICE: BASE_URL + "/product/update-price",
   UPDATE_BULK_DISCOUNT: BASE_URL + "/product/update-bulk-discounts",
   GET_PRODUCT_BY_STORE: BASE_URL + "/product/get-by-store",
+ REFRESH_PRODUCT: BASE_URL + "/product/reset-history",
 }
 
 export const priceList = {

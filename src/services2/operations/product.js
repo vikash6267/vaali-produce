@@ -12,7 +12,8 @@ const { CREATE_PRODUCT,
     UPDATE_BULK_DISCOUNT,
     GET_PRODUCT_ORDER,
     GET_ALL_PRODUCT_SUMMARY,
-    TRASH_PRODUCT
+    TRASH_PRODUCT,
+    REFRESH_PRODUCT
 } = product
 
 export const createProductAPI = async (formData, token) => {
@@ -169,6 +170,31 @@ export const getSingleProductAPI = async (id) => {
     }
 
 };
+export const refreshSingleProductAPI = async (id, from, to) => {
+  try {
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+
+    const url = `${REFRESH_PRODUCT}/${id}?${params.toString()}`;
+
+    const response = await apiConnector("GET", url);
+
+    if (!response?.data) {
+      throw new Error("No data received from server");
+    }
+
+    toast.success("Product history refreshed successfully!");
+    return response.data;
+  } catch (error) {
+    console.error("❌ Refresh Product API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to refresh product history!");
+    return false;
+  }
+};
+
+
+
 export const getSingleProductOrderAPI = async (id, startDate, endDate) => {
   try {
     const response = await apiConnector("GET", `${GET_PRODUCT_ORDER}/${id}?startDate=${startDate}&endDate=${endDate}`);

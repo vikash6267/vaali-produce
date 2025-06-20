@@ -217,7 +217,7 @@ const OrderDetailsModal: React.FC<OrderDetailsModalProps> = ({ order, open, onCl
                   <div className="col-span-2 text-right">
                     {formatCurrency(item.unitPrice || item.price)}
                   </div>
-                  <div className="col-span-2 text-right">{order?.isDelete ? item.deletedQuantity : item.quantity}</div>
+                  <div className="col-span-2 text-right">{order?.isDelete ? item.deletedQuantity : item.quantity} {item.pricingType === "unit" ? "unit" : ""}</div>
                   <div className="col-span-2 text-right font-medium">
                     {order?.isDelete ? (
                       <>

@@ -141,6 +141,91 @@ const getAllProductCtrl = async (req, res) => {
 
 
 
+// const getWeeklyOrdersByProductCtrl = async (req, res) => {
+//   try {
+//     const { productId } = req.params;
+//     const { startDate, endDate } = req.query;
+
+//     // Validate inputs
+//     if (!mongoose.Types.ObjectId.isValid(productId)) {
+//       return res.status(400).json({ success: false, message: "Invalid Product ID" });
+//     }
+
+//     if (!startDate || !endDate) {
+//       return res.status(400).json({ success: false, message: "Start and End date required" });
+//     }
+
+//     const fromDate = new Date(`${startDate}T00:00:00.000Z`);
+//     const toDate = new Date(`${endDate}T23:59:59.999Z`);
+
+//     // Fetch product details
+//     const product = await Product.findById(productId).select("name image").lean();
+//     if (!product) {
+//       return res.status(404).json({ success: false, message: "Product not found" });
+//     }
+
+//     const today = new Date();
+//     const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+//     // If today is Monday (1), return empty data
+//     if (currentDay === 1) {
+//       return res.status(200).json({
+//         success: true,
+//         productId,
+//         productTitle: product.name,
+//         productImage: product.image || null,
+//         totalOrdersThisWeek: 0,
+//         buyers: []
+//       });
+//     }
+
+//     // Fetch matching orders
+//     const orders = await Order.find({
+//       createdAt: { $gte: fromDate, $lte: toDate },
+//       "items.productId": productId,
+//       orderType: "Regural"
+//     })
+//       .populate("store", "storeName ownerName")
+//       .lean();
+
+//     let totalQuantity = 0;
+//     const buyers = [];
+
+//     orders.forEach(order => {
+//       const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
+
+//       order.items.forEach(item => {
+//         if (item.productId?.toString() === productId && item.quantity > 0) {
+//           totalQuantity += item.quantity;
+//           buyers.push({
+//             name: buyerName,
+//             quantity: item.quantity,
+//             orderDate: order.createdAt
+//           });
+//         }
+//       });
+//     });
+
+//     return res.status(200).json({
+//       success: true,
+//       productId,
+//       productTitle: product.name,
+//       productImage: product.image || null,
+//       totalOrdersThisWeek: totalQuantity,
+//       buyers
+//     });
+
+//   } catch (error) {
+//     console.error("Error in getWeeklyOrdersByProductCtrl:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "Server Error",
+//     });
+//   }
+// };
+
+  
+
 const getWeeklyOrdersByProductCtrl = async (req, res) => {
   try {
     const { productId } = req.params;
@@ -195,7 +280,11 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
       const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
 
       order.items.forEach(item => {
-        if (item.productId?.toString() === productId && item.quantity > 0) {
+        if (
+          item.productId?.toString() === productId &&
+          item.quantity > 0 &&
+          item.pricingType === "box" // ✅ only count items with pricingType === "box"
+        ) {
           totalQuantity += item.quantity;
           buyers.push({
             name: buyerName,
@@ -223,9 +312,6 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
     });
   }
 };
-
-  
-
 
 
 
@@ -691,10 +777,11 @@ const resetAllProductStats = async () => {
 
 const resetAndRebuildHistoryFromOrders = async () => {
   try {
-    console.log("🧹 Resetting & rebuilding product history from 16 June...");
-
-    const fromDate = new Date(Date.UTC(2025, 5, 15, 0, 0, 0)); // 2025-06-16
-    const toDate = new Date(Date.UTC(2025, 5, 19, 0, 0, 0));   // 2025-06-17
+  
+    // const fromDate = new Date(Date.UTC(2025, 5, 14, 0, 0, 0)); // 2025-06-16
+    // const toDate = new Date(Date.UTC(2025, 5, 19, 0, 0, 0));   // 2025-06-17
+const fromDate = new Date("2025-06-14T00:00:00.000Z");
+const toDate = new Date("2030-06-19T23:59:59.999Z");
 
     // STEP 1: Get all orders for 16 June
     const orders = await Order.find({
@@ -793,6 +880,95 @@ const resetAndRebuildHistoryFromOrders = async () => {
   }
 };
 
+
+
+const resetAndRebuildHistoryForSingleProduct = async (productId, fromDateStr, toDateStr) => {
+  try {
+   const fromDate = new Date("2025-06-14T00:00:00.000Z");
+const toDate = new Date("2030-06-22T23:59:59.999Z");
+    // STEP 1: Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      console.log("❌ Product not found");
+      return;
+    }
+
+    // STEP 2: Reset product history
+    product.lbSellHistory = [];
+    product.salesHistory = [];
+    product.unitSell = 0;
+    product.totalSell = 0;
+    product.unitRemaining = product.unitPurchase;
+    product.remaining = product.totalPurchase;
+
+    await product.save();
+    console.log(`♻ Reset: ${product.name}`);
+
+    // STEP 3: Get orders in the date range where this product is used
+    const orders = await Order.find({
+      createdAt: {
+        $gte: fromDate,
+        $lte: toDate,
+      },
+      "items.productId": productId,
+    });
+
+    console.log(`🧾 Orders found using this product: ${orders.length}`);
+
+    // STEP 4: Rebuild history for this product
+    for (const order of orders) {
+      const saleDate = order.createdAt;
+
+      for (const item of order.items) {
+        if (!item.productId || item.productId.toString() !== productId) continue;
+
+        const { quantity, pricingType } = item;
+        if (quantity <= 0) continue;
+
+        if (pricingType === "unit") {
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: quantity,
+            lb: "unit",
+          });
+
+          product.unitSell += quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        }
+
+        if (pricingType === "box") {
+          const totalBoxes = product.totalPurchase || 0;
+          const totalUnits = product.unitPurchase || 0;
+          const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: estimatedUnitsUsed,
+            lb: "box",
+          });
+
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
+
+          product.totalSell += quantity;
+          product.remaining = Math.max(0, product.remaining - quantity);
+          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+        }
+      }
+    }
+
+    await product.save();
+    console.log(`✅ History rebuilt: ${product.name}`);
+  } catch (err) {
+    console.error("❌ Error in resetting single product history:", err);
+  }
+};
+
+
+
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {
     const {
@@ -808,7 +984,8 @@ const getAllProductsWithHistorySummary = async (req, res) => {
     } = req.query;
 
     console.log(req.query)
-
+    // await resetAndRebuildHistoryForSingleProduct("67eef50319235da88d49fa06")
+// await resetAndRebuildHistoryFromOrders()
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 
@@ -974,6 +1151,189 @@ const addToTrash = async (req, res) => {
 };
 
 
+
+
+
+
+
+
+
+const compareProductSalesWithOrders = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "startDate and endDate are required" });
+    }
+
+    const fromDate = new Date(`${startDate}T00:00:00.000Z`);
+    const toDate = new Date(`${endDate}T23:59:59.999Z`);
+
+    // 1. Fetch orders in date range
+    const orders = await Order.find({ createdAt: { $gte: fromDate, $lte: toDate } }).lean();
+    console.log(`🧾 Orders in range: ${orders.length}`);
+
+    const orderSalesMap = {};
+    const productOrderMap = {};
+
+    orders.forEach(order => {
+      const oid = order._id.toString();
+      order.items.forEach(item => {
+        if (item.productId) {
+          const pid = item.productId.toString();
+          orderSalesMap[pid] = (orderSalesMap[pid] || 0) + item.quantity;
+          productOrderMap[pid] = productOrderMap[pid] || new Set();
+          productOrderMap[pid].add(oid);
+        }
+      });
+    });
+
+    const products = await Product.find({}).select("name salesHistory").lean();
+    const debugResults = [];
+
+    for (const prod of products) {
+      const pid = prod._id.toString();
+      const orderQty = orderSalesMap[pid] || 0;
+
+      // Filter salesHistory entries in range
+      const historyEntries = (prod.salesHistory || []).filter(h => {
+        const d = new Date(h.date);
+        return d >= fromDate && d <= toDate;
+      });
+
+      const historyQty = historyEntries.reduce((s, h) => s + h.quantity, 0);
+
+      if (orderQty !== historyQty) {
+        // For each historyEntry, find matching orders on same day
+        const entriesWithOrders = await Promise.all(historyEntries.map(async (entry) => {
+          const entryDate = new Date(entry.date);
+          const start = new Date(entryDate.setHours(0, 0, 0, 0));
+          const end = new Date(entryDate.setHours(23, 59, 59, 999));
+
+          const matchingOrders = orders.filter(order =>
+            order.createdAt >= start &&
+            order.createdAt <= end &&
+            order.items.some(item => item.productId?.toString() === pid)
+          );
+
+          return {
+            ...entry,
+            matchedOrderIds: matchingOrders.map(o => o._id.toString()),
+          };
+        }));
+
+        debugResults.push({
+          productId: pid,
+          name: prod.name,
+          orderQty,
+          historyQty,
+          difference: orderQty - historyQty,
+          orderIds: Array.from(productOrderMap[pid] || []),
+          historyEntries: entriesWithOrders,
+        });
+      }
+    }
+
+    return res.json({ success: true, debugResults });
+  } catch (err) {
+    console.error("❗Error debugging sales:", err);
+    return res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+
+const resetAndRebuildHistoryForSingleProductCtrl = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { from, to } = req.query;
+console.log(req.params)
+    if (!productId) {
+      return res.status(400).json({ error: 'Product ID is required' });
+    }
+
+    const fromDate = new Date(from || "2025-06-14T00:00:00.000Z");
+    const toDate = new Date(to || "2030-06-22T23:59:59.999Z");
+
+    // STEP 1: Find the product
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+
+    // STEP 2: Reset product history
+    product.lbSellHistory = [];
+    product.salesHistory = [];
+    product.unitSell = 0;
+    product.totalSell = 0;
+    product.unitRemaining = product.unitPurchase;
+    product.remaining = product.totalPurchase;
+
+    await product.save();
+    console.log(`♻ Reset: ${product.name}`);
+
+    // STEP 3: Get relevant orders
+    const orders = await Order.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
+      'items.productId': productId,
+    });
+
+    console.log(`🧾 Orders found using this product: ${orders.length}`);
+
+    // STEP 4: Rebuild history
+    for (const order of orders) {
+      const saleDate = order.createdAt;
+
+      for (const item of order.items) {
+        if (!item.productId || item.productId.toString() !== productId) continue;
+
+        const { quantity, pricingType } = item;
+        if (quantity <= 0) continue;
+
+        if (pricingType === "unit") {
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: quantity,
+            lb: "unit",
+          });
+
+          product.unitSell += quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        }
+
+        if (pricingType === "box") {
+          const totalBoxes = product.totalPurchase || 0;
+          const totalUnits = product.unitPurchase || 0;
+          const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: estimatedUnitsUsed,
+            lb: "box",
+          });
+
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
+
+          product.totalSell += quantity;
+          product.remaining = Math.max(0, product.remaining - quantity);
+          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+        }
+      }
+    }
+
+    await product.save();
+    console.log(`✅ History rebuilt: ${product.name}`);
+    res.status(200).json({ message: `History reset and rebuilt for product: ${product.name}` });
+
+  } catch (err) {
+    console.error("❌ Error in resetting single product history:", err);
+    res.status(500).json({ error: "Internal server error", details: err.message });
+  }
+};
+
+
 module.exports = { 
     createProductCtrl, 
     getAllProductCtrl, 
@@ -985,6 +1345,8 @@ module.exports = {
     getWeeklyOrdersByProductCtrl,
     updateTotalSellForAllProducts,
     getAllProductsWithHistorySummary,
-    addToTrash
+    addToTrash,
+    resetAndRebuildHistoryForSingleProductCtrl,
+    compareProductSalesWithOrders
 
 };

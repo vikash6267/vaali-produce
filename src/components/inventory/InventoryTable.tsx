@@ -28,7 +28,11 @@ import { isAfter, isBefore, addDays } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 import AddProductForm from "./AddProductForm"
-import { getSingleProductOrderAPI,trashProductQuanityAPI } from "@/services2/operations/product"
+import { 
+  getSingleProductOrderAPI,
+  trashProductQuanityAPI,
+  refreshSingleProductAPI
+ } from "@/services2/operations/product"
 import Swal from "sweetalert2"
 import { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
@@ -464,14 +468,29 @@ const handleTrashSubmit = async () => {
           </DialogHeader>
           {productOrderData && (
             <div className="space-y-4">
-              <div className="flex items-center gap-4">
-                <img
-                  src={productOrderData.productImage || "/placeholder.svg"}
-                  alt={productOrderData.productTitle}
-                  className="w-16 h-16 object-cover rounded-md"
-                />
-                <h3 className="text-lg font-medium">{productOrderData.productTitle}</h3>
-              </div>
+             <div className="flex items-center justify-between gap-4">
+  {/* Left Side: Image and Title */}
+  <div className="flex items-center gap-4">
+    <img
+      src={productOrderData.productImage || "/placeholder.svg"}
+      alt={productOrderData.productTitle}
+      className="w-16 h-16 object-cover rounded-md"
+    />
+    <h3 className="text-lg font-medium">{productOrderData.productTitle}</h3>
+  </div>
+
+  {/* Right Side: Refresh Button */}
+  <button
+    onClick={async () => {
+      await refreshSingleProductAPI(productOrderData?.productId);
+      fetchProducts();
+    }}
+    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+  >
+    Refresh History
+  </button>
+</div>
+
 
               <div className="border rounded-md p-4">
                 <h4 className="font-medium mb-2">Buyers</h4>
