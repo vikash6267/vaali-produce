@@ -14,7 +14,8 @@ const {
   getAllProductsWithHistorySummary,
   addToTrash,
   compareProductSalesWithOrders,
-  resetAndRebuildHistoryForSingleProductCtrl
+  resetAndRebuildHistoryForSingleProductCtrl,
+  addToManually
 
   
    
@@ -36,6 +37,7 @@ router.put("/update/:id", updateProductCtrl)
 router.put("/update-price", updateProductPrice)
 router.put("/update-bulk-discounts", bulkDiscountApply)
 router.post("/trash", addToTrash);
+router.post("/addQuantity", addToManually);
 router.get("/com", compareProductSalesWithOrders);
 router.get('/reset-history/:productId', resetAndRebuildHistoryForSingleProductCtrl);
 

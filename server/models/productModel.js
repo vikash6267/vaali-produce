@@ -118,7 +118,15 @@ const ProductSchema = new mongoose.Schema(
                 date: { type: Date, default: Date.now }
             }
         ],
-
+        manuallyAddBox:   {
+                quantity: { type: Number, required: true,default:0 },
+                date: { type: Date, default: Date.now },
+                
+            },
+        manuallyAddUnit:   {
+                quantity: { type: Number, required: true,default:0 },
+                date: { type: Date, default: Date.now }
+            },
 
         unit: {
             type: String,

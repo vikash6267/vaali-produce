@@ -31,7 +31,8 @@ import AddProductForm from "./AddProductForm"
 import { 
   getSingleProductOrderAPI,
   trashProductQuanityAPI,
-  refreshSingleProductAPI
+  refreshSingleProductAPI,
+  addQuantityProductAPI
  } from "@/services2/operations/product"
 import Swal from "sweetalert2"
 import { RootState } from "@/redux/store"
@@ -110,6 +111,11 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   } | null>(null)
 
 const [trashForm, setTrashForm] = useState({
+  quantity: "",
+  type: "box",
+  reason: ""
+})
+const [addQuaForm, setAddQuaForm] = useState({
   quantity: "",
   type: "box",
   reason: ""
@@ -276,6 +282,43 @@ const handleTrashSubmit = async () => {
 };
 
 
+
+
+
+
+
+
+const handleAddQuantitySubmit = async () => {
+  const { quantity, type, reason } = addQuaForm;
+
+  // 💬 Validate inputs with toast
+  if (!quantity || !type ) {
+    toast.warning("Please fill out all fields before submitting.");
+    return;
+  }
+
+  try {
+    // 🛠️ Submit to API
+    await addQuantityProductAPI(
+      {
+        productId: summaryData.product._id,
+        quantity: Number(quantity),
+        type,
+        reason,
+      },
+      token
+    );
+
+
+    // 🔄 Reset UI
+    setSummaryPopup(false);
+    await fetchProducts()
+    setAddQuaForm({ quantity: "", type: "box", reason: "" });
+  } catch (err) {
+    console.error("❌ Trash Submit Error:", err);
+    toast.error("Something went wrong while submitting."); // ❌ error toast
+  }
+};
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -632,6 +675,91 @@ const handleTrashSubmit = async () => {
     </div>
   </div>
 )}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{getSummaryContent()?.title === "Remaining Details" && (
+  <div className="pt-4 border-t">
+    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
+      <Trash2 className="w-4 h-4" />
+      Add Quantity to Manually
+    </h4>
+
+    <div className="space-y-3">
+      {/* Quantity Input */}
+      <div>
+        <label className="block text-sm font-medium">Quantity</label>
+        <input
+          type="number"
+          min={1}
+          value={addQuaForm.quantity}
+          onChange={(e) => setAddQuaForm({ ...addQuaForm, quantity: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+        />
+      </div>
+
+      {/* Type Select */}
+      <div>
+        <label className="block text-sm font-medium">Type</label>
+        <select
+          value={addQuaForm.type}
+          onChange={(e) => setAddQuaForm({ ...addQuaForm, type: e.target.value })}
+          className="w-full px-3 py-2 border rounded-md text-sm"
+        >
+          <option value="box">Box</option>
+          <option value="unit">Unit</option>
+        </select>
+      </div>
+
+
+
+      {/* Submit Button */}
+      <button
+        onClick={handleAddQuantitySubmit}
+        className="w-full mt-2 bg-green-600 text-white py-2 rounded-md text-sm font-medium hover:bg-green-700"
+      >
+        Update Quantity
+      </button>
+    </div>
+  </div>
+)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
         </DialogContent>
       </Dialog>

@@ -13,7 +13,8 @@ const { CREATE_PRODUCT,
     GET_PRODUCT_ORDER,
     GET_ALL_PRODUCT_SUMMARY,
     TRASH_PRODUCT,
-    REFRESH_PRODUCT
+    REFRESH_PRODUCT,
+    QUANITY_ADD_PRODUCT
 } = product
 
 export const createProductAPI = async (formData, token) => {
@@ -288,6 +289,37 @@ export const trashProductQuanityAPI = async ( formData, token) => {
     } catch (error) {
         console.error("UPDATE Product API ERROR:", error);
         toast.error(error?.response?.data?.message || "Failed to Update product!");
+        return [];
+    } finally {
+
+        toast.dismiss(toastId);
+    }
+
+};
+
+
+
+
+export const addQuantityProductAPI = async ( formData, token) => {
+
+    const toastId = toast.loading("Loading...");
+
+
+    try {
+        const response = await apiConnector("POST", `${QUANITY_ADD_PRODUCT}`, formData, {
+            Authorization: `Bearer ${token}`,
+        });
+
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        console.log(response)
+        return response?.data;
+    } catch (error) {
+        console.error("QUANITY_ADD_PRODUCT  API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to QUANITY_ADD_PRODUCT!");
         return [];
     } finally {
 

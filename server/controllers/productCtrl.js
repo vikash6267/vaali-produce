@@ -1027,8 +1027,10 @@ const getAllProductsWithHistorySummary = async (req, res) => {
         const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
         const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
 
-        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox);
-        const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit);
+
+        // console.log(product.manuallyAddUnit.quantity)
+        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0));
+        const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0));
 
         return {
           ...product,
@@ -1150,6 +1152,59 @@ const addToTrash = async (req, res) => {
   }
 };
 
+
+
+
+const addToManually = async (req, res) => {
+  try {
+    const { productId, quantity, type, } = req.body;
+
+    if (!productId || !quantity || !type) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields.",
+      });
+    }
+
+    const product = await productModel.findById(productId);
+    if (!product) {
+      return res.status(404).json({
+        success: false,
+        message: "Product not found.",
+      });
+    }
+
+    const trashEntry = {
+      quantity,
+      date: new Date(),
+    };
+
+    if (type === 'box') {
+      product.manuallyAddBox = trashEntry;
+    } else if (type === 'unit') {
+      product.manuallyAddUnit = trashEntry;
+    } else {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid type. Must be 'box' or 'unit'.",
+      });
+    }
+
+    await product.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Trash updated successfully.",
+      product,
+    });
+  } catch (err) {
+    console.error("Error adding to trash:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error.",
+    });
+  }
+};
 
 
 
@@ -1347,6 +1402,7 @@ module.exports = {
     getAllProductsWithHistorySummary,
     addToTrash,
     resetAndRebuildHistoryForSingleProductCtrl,
-    compareProductSalesWithOrders
+    compareProductSalesWithOrders,
+    addToManually
 
 };
