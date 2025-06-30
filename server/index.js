@@ -54,6 +54,50 @@ app.use("/api/v1/credit-memo", require("./routes/creditMemosRoute"))
 
 
 
+const checkOrderTotals = async () => {
+  try {
+    const orders = await Order.find();
+
+    const mismatchedOrders = [];
+
+    for (const order of orders) {
+      let itemTotal = 0;
+
+      for (const item of order.items) {
+        const quantity = Number(item.quantity || 0);
+        const unitPrice = Number(item.unitPrice || 0);
+        itemTotal += quantity * unitPrice;
+      }
+
+      const shipping = Number(order.shippinCost || 0);
+      const calculatedTotal = itemTotal + shipping;
+      const savedTotal = Number(order.total || 0);
+
+      if (Math.round(calculatedTotal * 100) !== Math.round(savedTotal * 100)) {
+        mismatchedOrders.push({
+          orderId: order._id,
+          orderNumber: order.orderNumber,
+          calculatedTotal,
+          savedTotal,
+          difference: (calculatedTotal - savedTotal).toFixed(2),
+        });
+      }
+    }
+
+    if (mismatchedOrders.length === 0) {
+      console.log("✅ All orders have correct totals.");
+    } else {
+      console.log("❌ Mismatched Orders Found:\n");
+      console.table(mismatchedOrders);
+    }
+  } catch (error) {
+    console.error("Error checking order totals:", error);
+  } 
+};
+
+
+
+// checkOrderTotals();
 
 
 app.get("/", (req, res) => {

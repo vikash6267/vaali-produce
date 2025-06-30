@@ -1229,20 +1229,89 @@ const getUserOrderStatement = async (req, res) => {
   }
 };
 
+// const updateShippingController = async (req, res) => {
+//   try {
+//     // Extract the required values from the request body
+//     const { orderId, newShippingCost, plateCount } = req.body;
+
+//     // Validate input
+//     if (!orderId || !newShippingCost || !plateCount) {
+//       return res.status(400).json({
+//         success: false,
+//         message: "Please provide orderId, newShippingCost, and plateCount.",
+//       });
+//     }
+
+//     // Fetch order from the database
+//     const order = await orderModel.findById(orderId);
+//     if (!order) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Order not found.",
+//       });
+//     }
+
+//     // Store the old shipping cost
+//     const oldShippingCost = order.shippinCost;
+
+//     // Calculate new shipping cost by multiplying with plate count
+//     const calculatedShippingCost = newShippingCost * plateCount;
+
+//     // Update the order's shipping cost and total
+
+//     order.shippinCost = calculatedShippingCost; // New shipping cost
+//     order.total = order.total + (calculatedShippingCost - oldShippingCost); // Update total cost
+
+//     // Save the updated order in the database
+//     await order.save();
+
+//     // Respond with success message
+//     return res.status(200).json({
+//       success: true,
+//       message: `Shipping cost updated successfully. Old Shipping Cost: ${oldShippingCost}, New Shipping Cost: ${calculatedShippingCost}`,
+//       updatedOrder: order, // Optionally send updated order details
+//     });
+//   } catch (error) {
+//     console.error("Error updating shipping cost:", error);
+//     return res.status(500).json({
+//       success: false,
+//       message: "An error occurred while updating the shipping cost.",
+//     });
+//   }
+// };
+
+
+
+
+
+
+
+
+
 const updateShippingController = async (req, res) => {
   try {
-    // Extract the required values from the request body
     const { orderId, newShippingCost, plateCount } = req.body;
 
     // Validate input
-    if (!orderId || !newShippingCost || !plateCount) {
+    if (!orderId || newShippingCost == null || plateCount == null) {
       return res.status(400).json({
         success: false,
         message: "Please provide orderId, newShippingCost, and plateCount.",
       });
     }
 
-    // Fetch order from the database
+    // Parse numbers safely
+    const shippingPerPlate = parseFloat(newShippingCost);
+    const plateQty = parseInt(plateCount);
+
+    if (isNaN(shippingPerPlate) || isNaN(plateQty)) {
+      return res.status(400).json({
+        success: false,
+        message: "Shipping cost and plate count must be valid numbers.",
+      });
+    }
+
+    // Fetch order
     const order = await orderModel.findById(orderId);
     if (!order) {
       return res.status(404).json({
@@ -1251,25 +1320,34 @@ const updateShippingController = async (req, res) => {
       });
     }
 
-    // Store the old shipping cost
-    const oldShippingCost = order.shippinCost;
+    // Calculate item total
+    const items = order.items || [];
+    const itemTotal = items.reduce((sum, item) => {
+      const quantity = parseFloat(item.quantity || 0);
+      const price = parseFloat(item.unitPrice || 0);
+      return sum + (quantity * price);
+    }, 0);
 
-    // Calculate new shipping cost by multiplying with plate count
-    const calculatedShippingCost = newShippingCost * plateCount;
+    // Calculate new shipping cost
+    const calculatedShippingCost = shippingPerPlate * plateQty;
 
-    // Update the order's shipping cost and total
+    // Final total
+    const newTotal = itemTotal + calculatedShippingCost;
 
-    order.shippinCost = calculatedShippingCost; // New shipping cost
-    order.total = order.total + (calculatedShippingCost - oldShippingCost); // Update total cost
+    // Update the order
+    order.shippinCost = calculatedShippingCost;
+    order.total = newTotal;
+    order.plateCount = plateQty;
 
-    // Save the updated order in the database
     await order.save();
 
-    // Respond with success message
     return res.status(200).json({
       success: true,
-      message: `Shipping cost updated successfully. Old Shipping Cost: ${oldShippingCost}, New Shipping Cost: ${calculatedShippingCost}`,
-      updatedOrder: order, // Optionally send updated order details
+      message: "Order total recalculated and shipping updated.",
+      itemTotal,
+      shippingCost: calculatedShippingCost,
+      total: newTotal,
+      updatedOrder: order,
     });
   } catch (error) {
     console.error("Error updating shipping cost:", error);
@@ -1279,6 +1357,11 @@ const updateShippingController = async (req, res) => {
     });
   }
 };
+
+
+
+
+
 
 const getDashboardData = async (req, res) => {
   try {

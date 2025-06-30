@@ -80,7 +80,7 @@ const EditOrder = () => {
           paymentStatus: res.paymentStatus,
           subtotal: res.subtotal || res.total,
           tax: res.tax,
-          shipping: res.shipping,
+          shipping: res.shippinCost,
           discount: res.discount,
           total: res.total,
           notes: res.notes,
@@ -138,7 +138,7 @@ if(!orderId) return
       billingAddress,
       clientId: { value: data?.store },
       shippingAddress: sameAsBilling ? billingAddress : shippingAddress,
-      total: calculateTotal(),
+      total: calculateTotal() + order?.shipping,
       subtotal: calculateTotal(),
     };
 
@@ -231,6 +231,7 @@ if(!orderId) return
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
                 setStoreDetails={setStoreDetails}
+                shippingCost={order?.shipping}
 
               />
             </div>
