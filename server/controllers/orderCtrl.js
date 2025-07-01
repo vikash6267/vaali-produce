@@ -214,6 +214,7 @@ if (lastUpdated && lastUpdated.perLb && lastUpdated.newQuantity) {
     product.totalSell += quantity;
     product.remaining = Math.max(0, product.remaining - quantity);
     product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+    product.unitSell = Math.max(estimatedUnitsUsed);
 
     console.log(`✅ BOX Order Processed`);
     console.log(`➡ totalSell (After): ${product.totalSell}`);

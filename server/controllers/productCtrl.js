@@ -882,6 +882,95 @@ const toDate = new Date("2030-06-19T23:59:59.999Z");
 
 
 
+const resetSalesForLastTwoDays = async () => {
+  try {
+    const startDate = new Date("2025-06-30T00:00:00.000Z");
+    const endDate = new Date("2025-07-02T00:00:00.000Z"); // Non-inclusive
+
+    const products = await Product.find();
+
+
+    
+    for (const product of products) {
+      let unitSellDeleted = 0;
+      let totalSellDeleted = 0;
+      let unitFromBoxEstimation = 0;
+
+      // Filter lbSellHistory
+      const newLbSellHistory = product.lbSellHistory.filter((entry) => {
+        const entryDate = new Date(entry.date);
+        const isInRange = entryDate >= startDate && entryDate < endDate;
+        if (isInRange) {
+          if (entry.lb === "unit") {
+            unitSellDeleted += entry.weight;
+          } else if (entry.lb === "box") {
+            const totalBoxes = product.totalPurchase || 0;
+            const totalUnits = product.unitPurchase || 0;
+            const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+            unitFromBoxEstimation += avgUnitsPerBox * entry.weight;
+          }
+          return false; // Remove entry
+        }
+        return true; // Keep entry
+      });
+
+      // Filter salesHistory (box sales)
+      const newSalesHistory = product.salesHistory.filter((entry) => {
+        const entryDate = new Date(entry.date);
+        const isInRange = entryDate >= startDate && entryDate < endDate;
+        if (isInRange) {
+          totalSellDeleted += entry.quantity;
+          return false;
+        }
+        return true;
+      });
+
+      // Update product values
+      product.lbSellHistory = newLbSellHistory;
+      product.salesHistory = newSalesHistory;
+
+      product.unitSell = Math.max(0, product.unitSell - unitSellDeleted);
+      product.totalSell = Math.max(0, product.totalSell - totalSellDeleted);
+      product.unitRemaining += unitSellDeleted + unitFromBoxEstimation;
+      product.remaining += totalSellDeleted;
+
+      await product.save();
+      console.log(`🧹 Reset sales for: ${product.name}`);
+    }
+
+
+
+       for (const product of products) {
+      // Filter quantityTrash
+      product.quantityTrash = product.quantityTrash.filter(trash => {
+        const trashDate = new Date(trash.date);
+        return !(trashDate >= startDate && trashDate < endDate);
+      });
+
+
+        product.manuallyAddBox.quantity = 0;
+        product.manuallyAddBox.date = null;
+ 
+
+        product.manuallyAddUnit.quantity = 0;
+        product.manuallyAddUnit.date = null;
+      
+
+      await product.save();
+      console.log(`🧼 Cleaned trash/manual additions for: ${product.name}`);
+    }
+
+
+
+    console.log("✅ Sales reset for 30 June and 1 July completed.");
+  } catch (error) {
+    console.error("❌ Error resetting sales history:", error);
+  }
+};
+
+
+
+
 const resetAndRebuildHistoryForSingleProduct = async (productId, fromDateStr, toDateStr) => {
   try {
    const fromDate = new Date("2025-06-14T00:00:00.000Z");
@@ -968,6 +1057,23 @@ const toDate = new Date("2030-06-22T23:59:59.999Z");
 };
 
 
+const deleteOrdersForLastTwoDays = async () => {
+  try {
+    const startDate = new Date("2025-06-30T00:00:00.000Z");
+    const endDate = new Date("2025-07-02T00:00:00.000Z");
+
+    const result = await Order.deleteMany({
+      createdAt: {
+        $gte: startDate,
+        $lt: endDate,
+      },
+    });
+
+    console.log(`🗑️ Orders deleted: ${result.deletedCount} (from 30 June & 1 July 2025)`);
+  } catch (error) {
+    console.error("❌ Error deleting orders:", error);
+  }
+};
 
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {
@@ -986,6 +1092,8 @@ const getAllProductsWithHistorySummary = async (req, res) => {
     console.log(req.query)
     // await resetAndRebuildHistoryForSingleProduct("67eef50319235da88d49fa06")
 // await resetAndRebuildHistoryFromOrders()
+// await resetSalesForLastTwoDays()
+// await deleteOrdersForLastTwoDays()
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 
@@ -1029,7 +1137,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
 
 
         // console.log(product.manuallyAddUnit.quantity)
-        const totalRemaining = Math.max( product.totalPurchase - product.totalSell + (product?.manuallyAddBox?.quantity || 0));
+        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0));
         const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0));
 
         return {
