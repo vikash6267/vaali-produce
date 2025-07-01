@@ -1413,7 +1413,7 @@ console.log(req.params)
       return res.status(400).json({ error: 'Product ID is required' });
     }
 
-    const fromDate = new Date(from || "2025-06-14T00:00:00.000Z");
+    const fromDate = new Date(from || "2025-06-30T00:00:00.000Z");
     const toDate = new Date(to || "2030-06-22T23:59:59.999Z");
 
     // STEP 1: Find the product
