@@ -1029,7 +1029,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
 
 
         // console.log(product.manuallyAddUnit.quantity)
-        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0));
+        const totalRemaining = Math.max( product.totalPurchase - product.totalSell + (product?.manuallyAddBox?.quantity || 0));
         const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0));
 
         return {
