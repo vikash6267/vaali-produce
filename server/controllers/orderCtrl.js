@@ -314,8 +314,9 @@ const getAllOrderCtrl = async (req, res) => {
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],
-          totalCount: [{ $count: "count" }],
+          totalCount: [ { $match: { isDelete: { $ne: true } } },{ $count: "count" }],
           summary: [
+            { $match: { isDelete: { $ne: true } } },
             {
               $group: {
                 _id: null,

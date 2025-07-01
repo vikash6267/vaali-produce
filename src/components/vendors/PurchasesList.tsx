@@ -24,7 +24,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { formatCurrency } from "@/utils/formatters"
-import { getAllPurchaseOrdersAPI } from "@/services2/operations/purchaseOrder"
+import { getAllPurchaseOrdersAPI,deletePurchaseOrderAPI } from "@/services2/operations/purchaseOrder"
 import { PaymentStatusPopup } from "../orders/PaymentUpdateModel"
 import { Progress } from "@radix-ui/react-progress"
 import DateFilterDialog from "../orders/DateFilterPopup"
@@ -386,6 +386,10 @@ const PurchasesList = () => {
                           <DropdownMenuItem onClick={() => navigate(`/vendors/edit-purchase/${purchase.id}`)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit Purchase
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={async() => await deletePurchaseOrderAPI(purchase.id) }>
+                            <Edit className="mr-2 h-4 w-4" />
+                            Delete Purchase
                           </DropdownMenuItem>
 
                           {purchase.status === "quality-check" && (

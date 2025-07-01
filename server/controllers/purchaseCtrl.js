@@ -368,15 +368,33 @@ exports.updatePurchaseOrder = async (req, res) => {
 exports.deletePurchaseOrder = async (req, res) => {
   try {
     const { id } = req.params;
-    const deleted = await PurchaseOrder.findByIdAndDelete(id);
 
-    if (!deleted) return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    // Fetch the purchase order first
+    const purchaseOrder = await PurchaseOrder.findById(id);
+
+    if (!purchaseOrder) {
+      return res.status(404).json({ success: false, message: 'Purchase order not found' });
+    }
+
+    // Check if any item has qualityStatus === 'approved'
+    const hasApprovedItem = purchaseOrder.items.some(item => item.qualityStatus === 'approved');
+
+    if (hasApprovedItem) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete purchase order because one or more items have been approved.'
+      });
+    }
+
+    // Proceed to delete if no approved items
+    await PurchaseOrder.findByIdAndDelete(id);
 
     res.status(200).json({ success: true, message: 'Purchase order deleted successfully' });
   } catch (error) {
     res.status(500).json({ success: false, message: 'Internal server error', error });
   }
 };
+
 
 
 
