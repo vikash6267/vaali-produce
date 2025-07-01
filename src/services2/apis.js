@@ -84,6 +84,10 @@ export const order = {
   PENDING_ORDER_DATA: BASE_URL + "/order/pending",
   SEND_INVOICE_MAIL: BASE_URL + "/order/invoiceMail",
 
+
+  HARD_DELETE_ORDER: BASE_URL + "/order/hard-delete", // append /:id when using
+
+
 }
 export const crm = {
   CREATE_CONTACT_CRM: BASE_URL + "/crm/create",

@@ -17,7 +17,8 @@ const { CREATE_PRODUCT,
     DASHBOARD_DATA,
     PENDING_ORDER_DATA,
     SEND_INVOICE_MAIL,
-    UPDATE_PAYMENT_UNPAID_ORDER
+    UPDATE_PAYMENT_UNPAID_ORDER,
+    HARD_DELETE_ORDER
 } = order
 
 
@@ -400,11 +401,29 @@ export const deleteOrderAPI = async (id, token,reason) => {
             throw new Error(response?.data?.message || "Something went wrong!");
         }
 
-        toast.success("Order deleted successfully!");
+        toast.success("Order Voided successfully!");
         return response?.data?.deletedOrder || null;
     } catch (error) {
         console.error("DELETE ORDER API ERROR:", error);
-        toast.error(error?.response?.data?.message || "Failed to delete order!");
+        toast.error(error?.response?.data?.message || "Failed to voided order!");
+        return null;
+    }
+};
+export const deleteHardOrderAPI = async (id, token) => {
+    try {
+        const response = await apiConnector("DELETE", `${HARD_DELETE_ORDER}/${id}`, null, {
+            Authorization: `Bearer ${token}`,
+        });
+
+        if (!response?.data?.success) {
+            throw new Error(response?.data?.message || "Something went wrong!");
+        }
+
+        toast.success("Order Permanently Deleted successfully!");
+        return response?.data?.deletedOrder || null;
+    } catch (error) {
+        console.error("DELETE ORDER API ERROR:", error);
+        toast.error(error?.response?.data?.message || "Failed to Permanently Deleted order!");
         return null;
     }
 };

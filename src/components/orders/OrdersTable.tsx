@@ -57,7 +57,13 @@ import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import WorkOrderForm from "./WorkOrder"
 import { PaymentStatusPopup } from "./PaymentUpdateModel"
-import { deleteOrderAPI, getAllOrderAPI, updateOrderAPI ,updateOrderUnpaidAPI} from "@/services2/operations/order"
+import { 
+  deleteOrderAPI, 
+  getAllOrderAPI, 
+  updateOrderAPI ,
+  updateOrderUnpaidAPI,
+  deleteHardOrderAPI
+} from "@/services2/operations/order"
 import Swal from "sweetalert2"
 import jsPDF from "jspdf"
 import autoTable from "jspdf-autotable"
@@ -278,6 +284,44 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       }
     }
   }
+
+
+  const handleHardDelete = async (id: string, orderNumber: string) => {
+  const { isConfirmed } = await Swal.fire({
+    title: `Permanently delete order ${orderNumber}?`,
+    text: "This action cannot be undone. Are you sure?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonColor: "#d33",
+    cancelButtonColor: "#3085d6",
+    confirmButtonText: "Yes, delete permanently",
+  });
+
+  if (isConfirmed) {
+    try {
+      const deletedOrder = await deleteHardOrderAPI(id, token); // Make sure your API is correctly hooked
+      if (deletedOrder) {
+        onDelete(id);
+        fetchOrders();
+
+        Swal.fire({
+          icon: "success",
+          title: "Deleted!",
+          text: `Order ${orderNumber} has been permanently deleted.`,
+          timer: 2000,
+          showConfirmButton: false,
+        });
+      }
+    } catch (err) {
+      console.error("Delete error:", err);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "Something went wrong while deleting the order.",
+      });
+    }
+  }
+};
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -1220,6 +1264,15 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                             >
                               <Trash size={14} className="mr-2" />
                               Delete
+                            </DropdownMenuItem>
+                          )}
+                          {order?.isDelete && user.role === "admin" && (
+                            <DropdownMenuItem
+                              onClick={() => handleHardDelete(order?._id, order?.id)}
+                              className="text-red-600 hover:text-red-700 focus:text-red-700"
+                            >
+                              <Trash size={14} className="mr-2" />
+                              Delete Permanet
                             </DropdownMenuItem>
                           )}
                         </DropdownMenuContent>

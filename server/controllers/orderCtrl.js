@@ -915,14 +915,23 @@ const deleteOrderCtrl = async (req, res) => {
         product.unitRemaining += quantity;
 
         // Remove unit lbSellHistory
-        product.lbSellHistory = product.lbSellHistory.filter(
-          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "unit" && p.weight === quantity)
-        );
+        // product.lbSellHistory = product.lbSellHistory.filter(
+        //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "unit" && p.weight === quantity)
+        // );
+   
+     product.lbSellHistory.push({
+                date: Date.now(),
+                weight:-Math.abs(quantity) ,
+                lb: "unit"
+            })
 
         // Remove estimated box lbSellHistory
-        product.lbSellHistory = product.lbSellHistory.filter(
-          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "box" && p.weight === estimatedUnitsUsed)
-        );
+        // product.lbSellHistory = product.lbSellHistory.filter(
+        //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "box" && p.weight === estimatedUnitsUsed)
+        // );
+
+
+       
       }
 
       if (pricingType === "box") {
@@ -931,9 +940,19 @@ const deleteOrderCtrl = async (req, res) => {
         product.unitRemaining += estimatedUnitsUsed
 
         // Remove box sales history
-        product.salesHistory = product.salesHistory.filter(
-          (p) => !(p.date.toISOString() === saleDate.toISOString() && p.quantity === quantity)
-        );
+        // product.salesHistory = product.salesHistory.filter(
+        //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.quantity === quantity)
+        // );
+   product.salesHistory.push({
+  date: new Date(),
+  quantity: -Math.abs(quantity) // ensure negative value
+});
+ product.lbSellHistory.push({
+                date: Date.now(),
+                weight:-Math.abs(estimatedUnitsUsed) ,
+                lb: "box"
+            })
+
       }
 
       await product.save();
@@ -967,6 +986,41 @@ const deleteOrderCtrl = async (req, res) => {
   }
 };
 
+
+const deleteOrderHardCtrl = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const order = await orderModel.findById(id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (!order.isDelete) {
+      return res.status(400).json({
+        success: false,
+        message: "Only soft-deleted orders can be permanently deleted",
+      });
+    }
+
+    await orderModel.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "Order permanently deleted",
+    });
+  } catch (error) {
+    console.error("❌ Hard delete error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error while deleting order",
+    });
+  }
+};
 
 
 const updateOrderTypeCtrl = async (req, res) => {
@@ -1684,6 +1738,7 @@ module.exports = {
   userDetailsWithOrder,
   updatePaymentDetails,
   deleteOrderCtrl,
+  deleteOrderHardCtrl,
   updateOrderTypeCtrl,
   getUserOrderStatement,
   updateShippingController,

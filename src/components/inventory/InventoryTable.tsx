@@ -241,6 +241,7 @@ const [addQuaForm, setAddQuaForm] = useState({
           icon: <Archive className="h-6 w-6 text-orange-600" />,
           total: summary.totalRemaining || 0,
           unit: summary.unitRemaining || 0,
+          product:product,
           color: "text-orange-600",
           bgColor: "bg-orange-50",
         }
@@ -620,7 +621,7 @@ const handleAddQuantitySubmit = async () => {
           )}
 
           {/* Trash Quantity Update Form - Only for Remaining */}
-{getSummaryContent()?.title === "Remaining Details" && (
+{getSummaryContent()?.title === "Remaining Details SDG" && (
   <div className="pt-4 border-t">
     <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-red-600">
       <Trash2 className="w-4 h-4" />
@@ -701,7 +702,7 @@ const handleAddQuantitySubmit = async () => {
 
 
 
-{getSummaryContent()?.title === "Remaining Details" && (
+{getSummaryContent()?.title === "Remaining Details DFG" && (
   <div className="pt-4 border-t">
     <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
       <Trash2 className="w-4 h-4" />
@@ -735,7 +736,10 @@ const handleAddQuantitySubmit = async () => {
       </div>
 
 
-
+<div className=" flex flex-col">
+<p>  Previous Update Box  : {getSummaryContent()?.product?.manuallyAddBox?.quantity || 0}</p>
+<p>Previous Update Unit : {getSummaryContent()?.product?.manuallyAddUnit?.quantity || 0}</p>
+</div>
       {/* Submit Button */}
       <button
         onClick={handleAddQuantitySubmit}

@@ -16,7 +16,8 @@ const {
     getDashboardData, 
     getPendingOrders,
     invoiceMailCtrl,
-    markOrderAsUnpaid
+    markOrderAsUnpaid,
+    deleteOrderHardCtrl
 
 } = require("../controllers/orderCtrl");
 
@@ -24,6 +25,7 @@ router.post("/create", auth, createOrderCtrl)
 router.get("/getAll", auth,  getAllOrderCtrl)
 router.get("/get/:id", auth, getOrderForStoreCtrl)
 router.delete("/delete/:id", auth, deleteOrderCtrl)
+router.delete("/hard-delete/:id", auth, deleteOrderHardCtrl)
 router.put("/update/:id", auth, updateOrderCtrl)
 router.put("/update-plate/:orderId", auth, updatePalletInfo)
 router.get("/user/:userId",  userDetailsWithOrder)

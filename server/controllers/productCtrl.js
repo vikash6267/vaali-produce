@@ -1267,7 +1267,7 @@ const addToManually = async (req, res) => {
   try {
     const { productId, quantity, type, } = req.body;
 
-    if (!productId || !quantity || !type) {
+    if (!productId  || !type) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields.",
