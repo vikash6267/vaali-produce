@@ -226,92 +226,7 @@ const getAllProductCtrl = async (req, res) => {
 
   
 
-const getWeeklyOrdersByProductCtrl = async (req, res) => {
-  try {
-    const { productId } = req.params;
-    const { startDate, endDate } = req.query;
 
-    // Validate inputs
-    if (!mongoose.Types.ObjectId.isValid(productId)) {
-      return res.status(400).json({ success: false, message: "Invalid Product ID" });
-    }
-
-    if (!startDate || !endDate) {
-      return res.status(400).json({ success: false, message: "Start and End date required" });
-    }
-
-    const fromDate = new Date(`${startDate}T00:00:00.000Z`);
-    const toDate = new Date(`${endDate}T23:59:59.999Z`);
-
-    // Fetch product details
-    const product = await Product.findById(productId).select("name image").lean();
-    if (!product) {
-      return res.status(404).json({ success: false, message: "Product not found" });
-    }
-
-    const today = new Date();
-    const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
-
-    // If today is Monday (1), return empty data
-    if (currentDay === 1) {
-      return res.status(200).json({
-        success: true,
-        productId,
-        productTitle: product.name,
-        productImage: product.image || null,
-        totalOrdersThisWeek: 0,
-        buyers: []
-      });
-    }
-
-    // Fetch matching orders
-    const orders = await Order.find({
-      createdAt: { $gte: fromDate, $lte: toDate },
-      "items.productId": productId,
-      orderType: "Regural"
-    })
-      .populate("store", "storeName ownerName")
-      .lean();
-
-    let totalQuantity = 0;
-    const buyers = [];
-
-    orders.forEach(order => {
-      const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
-
-      order.items.forEach(item => {
-        if (
-          item.productId?.toString() === productId &&
-          item.quantity > 0 &&
-          item.pricingType === "box" // ✅ only count items with pricingType === "box"
-        ) {
-          totalQuantity += item.quantity;
-          buyers.push({
-            name: buyerName,
-            quantity: item.quantity,
-            orderDate: order.createdAt
-          });
-        }
-      });
-    });
-
-    return res.status(200).json({
-      success: true,
-      productId,
-      productTitle: product.name,
-      productImage: product.image || null,
-      totalOrdersThisWeek: totalQuantity,
-      buyers
-    });
-
-  } catch (error) {
-    console.error("Error in getWeeklyOrdersByProductCtrl:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Server Error",
-    });
-  }
-};
 
 
 
@@ -973,7 +888,7 @@ const resetSalesForLastTwoDays = async () => {
 
 const resetAndRebuildHistoryForSingleProduct = async (productId, fromDateStr, toDateStr) => {
   try {
-   const fromDate = new Date("2025-06-14T00:00:00.000Z");
+   const fromDate = new Date("2025-06-30T00:00:00.000Z");
 const toDate = new Date("2030-06-22T23:59:59.999Z");
     // STEP 1: Find the product
     const product = await Product.findById(productId);
@@ -1209,6 +1124,102 @@ const getAllProductsWithHistorySummary = async (req, res) => {
 };
 
 
+
+
+
+
+
+
+const getWeeklyOrdersByProductCtrl = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { startDate, endDate } = req.query;
+
+
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(productId)) {
+      return res.status(400).json({ success: false, message: "Invalid Product ID" });
+    }
+
+    if (!startDate || !endDate) {
+      return res.status(400).json({ success: false, message: "Start and End date required" });
+    }
+
+    const fromDate = new Date(`${startDate}T00:00:00.000Z`);
+    const toDate = new Date(`${endDate}T23:59:59.999Z`);
+
+    // Fetch product details
+    const product = await Product.findById(productId).select("name image").lean();
+    console.log(product)
+    if (!product) {
+      return res.status(404).json({ success: false, message: "Product not found" });
+    }
+
+    const today = new Date();
+    const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+
+    // If today is Monday (1), return empty data
+    if (currentDay === 1) {
+      return res.status(200).json({
+        success: true,
+        productId,
+        productTitle: product.name,
+        productImage: product.image || null,
+        totalOrdersThisWeek: 0,
+        buyers: []
+      });
+    }
+
+    // Fetch matching orders
+    const orders = await Order.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
+      "items.productId": productId,
+      orderType: "Regural"
+    })
+      .populate("store", "storeName ownerName")
+      .lean();
+
+    let totalQuantity = 0;
+    const buyers = [];
+
+    orders.forEach(order => {
+      const buyerName = order.store?.storeName || order.store?.ownerName || "Unknown";
+
+   
+      order.items.forEach(item => {
+        if (
+          item.productId?.toString() === productId &&
+          item.quantity > 0 &&
+          item.pricingType === "box" // ✅ only count items with pricingType === "box"
+        ) {
+          totalQuantity += item.quantity;
+          console.log(item);
+          buyers.push({
+            name: buyerName,
+            quantity: item.quantity,
+            orderDate: order.createdAt
+          });
+        }
+      });
+    });
+
+    return res.status(200).json({
+      success: true,
+      productId,
+      productTitle: product.name,
+      productImage: product.image || null,
+      totalOrdersThisWeek: totalQuantity,
+      buyers
+    });
+
+  } catch (error) {
+    console.error("Error in getWeeklyOrdersByProductCtrl:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server Error",
+    });
+  }
+};
 
 
 const addToTrash = async (req, res) => {

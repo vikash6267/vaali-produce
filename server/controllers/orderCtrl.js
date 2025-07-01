@@ -510,13 +510,17 @@ const updateOrderCtrl = async (req, res) => {
 const saleDate = existingOrder.createdAt || new Date();
 
 // Remove old sales history for this date
-product.salesHistory = product.salesHistory.filter(p => {
-  return new Date(p.date).toISOString() !== new Date(existingOrder.createdAt).toISOString();
-});
+const orderDateISO = new Date(existingOrder.createdAt).toISOString();
 
-product.lbSellHistory = product.lbSellHistory.filter(p => {
-  return new Date(p.date).toISOString() !== new Date(existingOrder.createdAt).toISOString();
-});
+// Remove only matching entries (pricingType-wise)
+product.salesHistory = product.salesHistory.filter(p =>
+  !(new Date(p.date).toISOString() === orderDateISO && oldItemsMap[product._id]?.pricingType === "box")
+);
+
+product.lbSellHistory = product.lbSellHistory.filter(p =>
+  !(new Date(p.date).toISOString() === orderDateISO && p.lb === oldItemsMap[product._id]?.pricingType)
+);
+
 
 // Add updated sales history
 if (pricingType === "unit") {
