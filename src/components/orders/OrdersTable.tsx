@@ -197,7 +197,13 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         setOrders(
           response.orders.map((order) => ({
             id: order?.orderNumber || `#${order._id.toString().slice(-5)}`,
-            date: new Date(order.createdAt).toLocaleDateString(),
+          date: new Date(order.createdAt).toLocaleDateString('en-US', {
+  timeZone: 'UTC', // ⬅️ Force UTC
+  year: 'numeric',
+  month: 'short',
+  day: 'numeric',
+}),
+
             clientName: order.store?.storeName || "Unknown",
             ...order,
           })),
