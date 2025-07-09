@@ -52,7 +52,9 @@ export const exportCreditMemoToPDF = (
     doc.setFont("helvetica", "bold")
     doc.setTextColor(80, 80, 80)
     doc.text(`Credit Memo #: ${creditMemo.id}`, leftX, yPos + 7)
-    doc.text(`Date: ${new Date(creditMemo.date).toLocaleDateString()}`, leftX, yPos + 11)
+  const memoDate = new Date(creditMemo.date);
+const formattedDate = `${String(memoDate.getDate()).padStart(2, '0')}/${String(memoDate.getMonth() + 1).padStart(2, '0')}/${memoDate.getFullYear()}`;
+doc.text(`Date: ${formattedDate}`, leftX, yPos + 11);
     doc.text(`Original Order #: ${creditMemo.originalOrderId}`, leftX, yPos + 15)
     doc.text(`Original Order Date: ${new Date(creditMemo.originalOrderDate).toLocaleDateString()}`, leftX, yPos + 19)
   }

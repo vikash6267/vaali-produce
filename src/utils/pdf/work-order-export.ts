@@ -29,11 +29,10 @@ export const exportWorkOrderToPDF = (order, options, isPreview = false) => {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text(`WO #: ${order.orderNumber}`, leftX, yPos + 7);
-    doc.text(
-      `Date: ${new Date(order.date).toLocaleDateString()}`,
-      leftX,
-      yPos + 11
-    );
+  const dateObj = new Date(order.date);
+const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+doc.text(`Date: ${formattedDate}`, leftX, yPos + 11);
+
   }
 
   // ----------- RIGHT SIDE: COMPANY DETAILS -----------
