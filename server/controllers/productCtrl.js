@@ -1107,6 +1107,20 @@ console.log(req.query)
    
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
+// Create UTC-safe Monday and Sunday
+const now = new Date();
+const day = now.getUTCDay(); // 0 (Sun) to 6 (Sat)
+const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((day + 6) % 7), 0, 0, 0));
+const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6, 23, 59, 59, 999));
+
+
+// Format to 'YYYY-MM-DD' only
+const formatDate = (date) => date.toISOString().split("T")[0];
+
+const isUsingDefaultDate =
+  formatDate(fromDate) === formatDate(monday) &&
+  formatDate(toDate) === formatDate(sunday);
+
 
     const isWithinRange = (date) => {
       const d = new Date(date);
@@ -1132,7 +1146,9 @@ console.log(req.query)
       const hasDateFilter = fromDate || toDate;
 
       if (true) {
-        const filteredPurchase = product?.purchaseHistory;
+        const filteredPurchase = isUsingDefaultDate
+    ? product?.purchaseHistory || []
+    : product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
         const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date)) || [];
@@ -1141,6 +1157,8 @@ console.log(req.query)
         const trashBox = filteredTrash.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0);
         const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
 
+
+        console.log(filteredPurchase)
         const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
         const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
         const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
