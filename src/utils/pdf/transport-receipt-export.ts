@@ -42,8 +42,10 @@ yPos = yPos +10
   doc.text(`Order #${order.id}${transportData.routeNumber ? ` • Route #${transportData.routeNumber}` : ''}`, MARGIN, yPos );
   
   const orderDate = new Date(order.date);
-  doc.text(`Date: ${orderDate.toLocaleDateString()}`, MARGIN, yPos+5);
-  
+const dateObj = new Date(orderDate);
+const formattedDate = `${String(dateObj.getMonth() + 1).padStart(2, '0')}/${String(dateObj.getDate()).padStart(2, '0')}/${dateObj.getFullYear()}`;
+doc.text(`Date: ${formattedDate}`, MARGIN, yPos + 5);
+
   doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(41, 98, 255);
@@ -77,9 +79,15 @@ yPos = yPos +10
   // Compact 2-column layout for transport details
   doc.text(`Driver: ${transportData.driverName}`, MARGIN + 4, yPos + 14);
   doc.text(`Vehicle: ${transportData.vehicleId}`, MARGIN + columnWidth/2, yPos + 14);
-  doc.text(`Departure: ${new Date(transportData.departureDate).toLocaleDateString()}`, MARGIN + 4, yPos + 21);
-  doc.text(`Est. Arrival: ${new Date(transportData.estimatedArrival).toLocaleDateString()}`, MARGIN + columnWidth/2, yPos + 21);
-  
+const departureDateObj = new Date(transportData.departureDate);
+const estimatedArrivalObj = new Date(transportData.estimatedArrival);
+
+const formattedDeparture = `${String(departureDateObj.getMonth() + 1).padStart(2, '0')}/${String(departureDateObj.getDate()).padStart(2, '0')}/${departureDateObj.getFullYear()}`;
+const formattedArrival = `${String(estimatedArrivalObj.getMonth() + 1).padStart(2, '0')}/${String(estimatedArrivalObj.getDate()).padStart(2, '0')}/${estimatedArrivalObj.getFullYear()}`;
+
+doc.text(`Departure: ${formattedDeparture}`, MARGIN + 4, yPos + 21);
+doc.text(`Est. Arrival: ${formattedArrival}`, MARGIN + columnWidth / 2, yPos + 21);
+
   if (receiptType === 'detailed' && transportData.temperatureRequirements) {
     doc.text(`Temp Req: ${transportData.temperatureRequirements}`, MARGIN + 4, yPos + 28);
   }
@@ -98,7 +106,10 @@ yPos = yPos +10
   // Compact 2-column layout for client details
   doc.text(`Name: ${order.clientName}`, MARGIN + columnWidth + 8, yPos + 14);
   doc.text(`ID: ${order.store._id}`, MARGIN + columnWidth + columnWidth/2, yPos + 14);
-  doc.text(`Order Date: ${new Date(order.date).toLocaleDateString()}`, MARGIN + columnWidth + 8, yPos + 21);
+const orderDateObj = new Date(order.date);
+const formattedOrderDate = `${String(orderDateObj.getMonth() + 1).padStart(2, '0')}/${String(orderDateObj.getDate()).padStart(2, '0')}/${orderDateObj.getFullYear()}`;
+doc.text(`Order Date: ${formattedOrderDate}`, MARGIN + columnWidth + 8, yPos + 21);
+
   doc.text(`Status: ${order.status.charAt(0).toUpperCase() + order.status.slice(1)}`, MARGIN + columnWidth + columnWidth/2, yPos + 21);
   
   if (transportData.deliveryLocation) {

@@ -62,8 +62,14 @@ export const exportInvoiceToPDF = (
     doc.setTextColor(80, 80, 80);
     doc.text(`Invoice #: ${order.id}`, leftX, yPos + 7);
    const dateObj = new Date(order.date);
-const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // Month (01-12)
+const day = String(dateObj.getDate()).padStart(2, '0');        // Day (01-31)
+const year = dateObj.getFullYear();                            // Year (e.g., 2025)
+
+const formattedDate = `${month}/${day}/${year}`;
+
 doc.text(`Date: ${formattedDate}`, leftX, yPos + 11);
+
     if (false && includePaymentTerms && dueDate) {
       const dueDateObj = new Date(dueDate);
       doc.text(`Due Date: ${dueDateObj.toLocaleDateString()}`, leftX, yPos + 15);

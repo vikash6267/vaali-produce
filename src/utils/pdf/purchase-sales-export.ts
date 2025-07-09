@@ -517,7 +517,9 @@ export const exportWeeklyProfitLossToPDF = (
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(150, 150, 150);
-  doc.text('Generated on ' + new Date().toLocaleDateString(), MARGIN, footerY);
+ const now = new Date();
+doc.text(`Generated on ${formattedDate}`, MARGIN, footerY);
+
   doc.text('Page 1 of 1', PAGE_WIDTH - MARGIN, footerY, { align: 'right' });
   
   return doc.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
@@ -676,7 +678,12 @@ export const exportExpenseReportToPDF = (
       const weekEnd = new Date(weekDate);
       weekEnd.setDate(weekDate.getDate() + 6);
       
-      const weekLabel = `${weekDate.toLocaleDateString()} - ${weekEnd.toLocaleDateString()}`;
+     const formatDate = (date) => {
+  return `${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')}/${date.getFullYear()}`;
+};
+
+const weekLabel = `${formatDate(weekDate)} - ${formatDate(weekEnd)}`;
+
       return { week: weekLabel, amount };
     }).sort((a, b) => a.week.localeCompare(b.week));
     
@@ -718,7 +725,10 @@ export const exportExpenseReportToPDF = (
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(150, 150, 150);
-  doc.text('Generated on ' + new Date().toLocaleDateString(), MARGIN, footerY);
+ const now = new Date();
+const formattedNow = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+doc.text(`Generated on ${formattedNow}`, MARGIN, footerY);
+143
   doc.text('Page 1 of 1', PAGE_WIDTH - MARGIN, footerY, { align: 'right' });
   
   return doc.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
@@ -960,7 +970,10 @@ export const exportFinancialReportToPDF = (
   doc.setFontSize(8);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(150, 150, 150);
-  doc.text('Generated on ' + new Date().toLocaleDateString(), MARGIN, footerY);
+ const now = new Date();
+const formattedNow = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+doc.text(`Generated on ${formattedNow}`, MARGIN, footerY);
+
   doc.text('Page 1 of 1', PAGE_WIDTH - MARGIN, footerY, { align: 'right' });
   
   return doc.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);

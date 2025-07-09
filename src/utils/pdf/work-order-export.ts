@@ -29,8 +29,12 @@ export const exportWorkOrderToPDF = (order, options, isPreview = false) => {
     doc.setFont("helvetica", "bold");
     doc.setTextColor(0, 0, 0);
     doc.text(`WO #: ${order.orderNumber}`, leftX, yPos + 7);
-  const dateObj = new Date(order.date);
-const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}/${String(dateObj.getMonth() + 1).padStart(2, '0')}/${dateObj.getFullYear()}`;
+const dateObj = new Date(order.date);
+const month = String(dateObj.getMonth() + 1).padStart(2, '0'); // 0-based month
+const day = String(dateObj.getDate()).padStart(2, '0');
+const year = dateObj.getFullYear();
+const formattedDate = `${month}/${day}/${year}`;
+
 doc.text(`Date: ${formattedDate}`, leftX, yPos + 11);
 
   }

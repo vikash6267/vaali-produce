@@ -49,13 +49,14 @@ export default function OrderPdfDownload({ orders }: { orders: Order[] }) {
     const newestDate = new Date(Math.max(...orderDates.map((date) => date.getTime())))
 
     // Format dates for display
-    const formatDate = (date: Date) => {
-      return date.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })
-    }
+ const formatDate = (date: Date) => {
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  return `${month} ${day}, ${year}`;
+};
+
 
     const dateRangeText = `Next Week Orders (${formatDate(oldestDate)} - ${formatDate(newestDate)})`
 
