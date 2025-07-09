@@ -298,8 +298,7 @@ const Inventory = () => {
       sortBy: "name",
       sortOrder: "asc",
       stockLevel: "all",
-      startDate: "",
-      endDate: "",
+    startDate, endDate
     })
     setPagination((prev) => ({ ...prev, page: 1 }))
   }
