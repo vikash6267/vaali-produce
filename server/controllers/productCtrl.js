@@ -990,6 +990,100 @@ const deleteOrdersForLastTwoDays = async () => {
   }
 };
 
+
+
+
+
+const resetAndRebuildHistoryForAllProducts = async (
+  from = "2025-06-30T00:00:00.000Z",
+  to = "2030-06-22T23:59:59.999Z"
+) => {
+  const fromDate = new Date(from);
+  const toDate = new Date(to);
+
+  const products = await Product.find({});
+  if (!products.length) return { updated: 0, message: "No products found" };
+
+  let updatedCount = 0;
+
+  for (const product of products) {
+    const productId = product._id.toString();
+
+    // Step 1: Reset product
+    product.lbSellHistory = [];
+    product.salesHistory = [];
+    product.unitSell = 0;
+    product.totalSell = 0;
+    product.unitRemaining = product.unitPurchase || 0;
+    product.remaining = product.totalPurchase || 0;
+
+    await product.save();
+    console.log(`♻ Reset: ${product.name}`);
+
+    // Step 2: Get relevant orders
+    const orders = await Order.find({
+      createdAt: { $gte: fromDate, $lte: toDate },
+      'items.productId': productId,
+    });
+
+    console.log(`🧾 ${orders.length} orders for product: ${product.name}`);
+
+    // Step 3: Rebuild history
+    for (const order of orders) {
+      const saleDate = order.createdAt;
+
+      for (const item of order.items) {
+        if (!item.productId || item.productId.toString() !== productId) continue;
+
+        const { quantity, pricingType } = item;
+        if (quantity <= 0) continue;
+
+        if (pricingType === "unit") {
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: quantity,
+            lb: "unit",
+          });
+
+          product.unitSell += quantity;
+          product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        }
+
+        if (pricingType === "box") {
+          const totalBoxes = product.totalPurchase || 0;
+          const totalUnits = product.unitPurchase || 0;
+          const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: estimatedUnitsUsed,
+            lb: "box",
+          });
+
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
+
+          product.totalSell += quantity;
+          product.remaining = Math.max(0, product.remaining - quantity);
+          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+        }
+      }
+    }
+
+    await product.save();
+    console.log(`✅ Rebuilt: ${product.name}`);
+    updatedCount++;
+  }
+
+  return {
+    updated: updatedCount,
+    message: `Rebuilt history for ${updatedCount} products`,
+  };
+};
+
 const getAllProductsWithHistorySummary = async (req, res) => {
   try {
     const {
@@ -1002,13 +1096,15 @@ const getAllProductsWithHistorySummary = async (req, res) => {
       sortBy = 'updatedAt', // Default sort
       sortOrder = 'desc',
       stockLevel = 'all', // "low", "out", "high", "all"
+      hard=false
     } = req.query;
 
-    console.log(req.query)
-    // await resetAndRebuildHistoryForSingleProduct("67eef50319235da88d49fa06")
-// await resetAndRebuildHistoryFromOrders()
-// await resetSalesForLastTwoDays()
-// await deleteOrdersForLastTwoDays()
+console.log(req.query)
+
+    if(hard === "true"){
+      await resetAndRebuildHistoryForAllProducts()
+    }
+   
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
 
@@ -1036,7 +1132,7 @@ const getAllProductsWithHistorySummary = async (req, res) => {
       const hasDateFilter = fromDate || toDate;
 
       if (true) {
-        const filteredPurchase = product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
+        const filteredPurchase = product?.purchaseHistory;
         const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
         const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
         const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date)) || [];

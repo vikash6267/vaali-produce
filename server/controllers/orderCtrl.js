@@ -45,7 +45,6 @@ const mailSender = async (
   }
 };
 
-
 const getNextOrderNumber = async () => {
   const counter = await Counter.findByIdAndUpdate(
     { _id: "order" },
@@ -128,7 +127,7 @@ const createOrderCtrl = async (req, res) => {
       const day = now.getDate();
 
       // orderDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
-      orderDate = new Date();;
+      orderDate = new Date();
     }
 
     const newOrder = new orderModel({
@@ -144,90 +143,95 @@ const createOrderCtrl = async (req, res) => {
       createdAt: createdAt, // Use the fixed date
     });
 
-for (const item of items) {
-  const { productId, quantity, pricingType } = item;
-  if (!productId || quantity <= 0) continue;
+    for (const item of items) {
+      const { productId, quantity, pricingType } = item;
+      if (!productId || quantity <= 0) continue;
 
-  const product = await Product.findById(productId);
-  if (!product) {
-    console.warn(`❌ Product not found: ${productId}`);
-    continue;
-  }
+      const product = await Product.findById(productId);
+      if (!product) {
+        console.warn(`❌ Product not found: ${productId}`);
+        continue;
+      }
 
-  const saleDate = orderDate || new Date();
+      const saleDate = orderDate || new Date();
 
-  console.log(`📦 Processing Product: ${product.name}`);
-  console.log(`➡ Pricing Type: ${pricingType}`);
-  console.log(`➡ Quantity Ordered: ${quantity}`);
-  console.log(`➡ unitPurchase: ${product.unitPurchase}`);
-  console.log(`➡ totalPurchase (Boxes): ${product.totalPurchase}`);
-  console.log(`➡ unitRemaining (Before): ${product.unitRemaining}`);
-  console.log(`➡ totalSell (Before): ${product.totalSell}`);
-  console.log(`➡ remaining (Boxes Left Before): ${product.remaining}`);
+      console.log(`📦 Processing Product: ${product.name}`);
+      console.log(`➡ Pricing Type: ${pricingType}`);
+      console.log(`➡ Quantity Ordered: ${quantity}`);
+      console.log(`➡ unitPurchase: ${product.unitPurchase}`);
+      console.log(`➡ totalPurchase (Boxes): ${product.totalPurchase}`);
+      console.log(`➡ unitRemaining (Before): ${product.unitRemaining}`);
+      console.log(`➡ totalSell (Before): ${product.totalSell}`);
+      console.log(`➡ remaining (Boxes Left Before): ${product.remaining}`);
 
-  // UNIT ORDER
-  if (pricingType === "unit") {
-    product.lbSellHistory.push({
-      date: saleDate,
-      weight: quantity,
-      lb: "unit",
-    });
+      // UNIT ORDER
+      if (pricingType === "unit") {
+        product.lbSellHistory.push({
+          date: saleDate,
+          weight: quantity,
+          lb: "unit",
+        });
 
-    product.unitSell += quantity;
-    product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
+        product.unitSell += quantity;
+        product.unitRemaining = Math.max(0, product.unitRemaining - quantity);
 
-    console.log(`✅ UNIT Order Processed`);
-    console.log(`➡ unitSell (After): ${product.unitSell}`);
-    console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
-  }
+        console.log(`✅ UNIT Order Processed`);
+        console.log(`➡ unitSell (After): ${product.unitSell}`);
+        console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
+      }
 
-  // BOX ORDER
-  else if (pricingType === "box") {
-    const totalBoxes = product.totalPurchase || 0;
-    const totalUnits = product.unitPurchase || 0;
-const lastUpdated = product.updatedFromOrders?.[product.updatedFromOrders.length - 1];
+      // BOX ORDER
+      else if (pricingType === "box") {
+        const totalBoxes = product.totalPurchase || 0;
+        const totalUnits = product.unitPurchase || 0;
+        const lastUpdated =
+          product.updatedFromOrders?.[product.updatedFromOrders.length - 1];
 
-    // const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
-    // const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+        // const avgUnitsPerBox = totalBoxes > 0 ? totalUnits / totalBoxes : 0;
+        // const estimatedUnitsUsed = avgUnitsPerBox * quantity;
 
-    let avgUnitsPerBox = 0;
-let estimatedUnitsUsed = 0;
+        let avgUnitsPerBox = 0;
+        let estimatedUnitsUsed = 0;
 
-if (lastUpdated && lastUpdated.perLb && lastUpdated.newQuantity) {
-  avgUnitsPerBox = lastUpdated.perLb; // perLb is already unit/box
-  estimatedUnitsUsed = avgUnitsPerBox * quantity;
-}
-    console.log(`🧮 Calculated avgUnitsPerBox: ${avgUnitsPerBox}`);
-    console.log(`📉 Estimated Units Used from Boxes: ${estimatedUnitsUsed}`);
+        if (lastUpdated && lastUpdated.perLb && lastUpdated.newQuantity) {
+          avgUnitsPerBox = lastUpdated.perLb; // perLb is already unit/box
+          estimatedUnitsUsed = avgUnitsPerBox * quantity;
+        }
+        console.log(`🧮 Calculated avgUnitsPerBox: ${avgUnitsPerBox}`);
+        console.log(
+          `📉 Estimated Units Used from Boxes: ${estimatedUnitsUsed}`
+        );
 
-    product.lbSellHistory.push({
-      date: saleDate,
-      weight: estimatedUnitsUsed,
-      lb: "box",
-    });
+        product.lbSellHistory.push({
+          date: saleDate,
+          weight: estimatedUnitsUsed,
+          lb: "box",
+        });
 
-    product.salesHistory.push({
-      date: saleDate,
-      quantity: quantity,
-    });
+        product.salesHistory.push({
+          date: saleDate,
+          quantity: quantity,
+        });
 
-    product.totalSell += quantity;
-    product.remaining = Math.max(0, product.remaining - quantity);
-    product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
-    product.unitSell = Math.max(estimatedUnitsUsed);
+        product.totalSell += quantity;
+        product.remaining = Math.max(0, product.remaining - quantity);
+        product.unitRemaining = Math.max(
+          0,
+          product.unitRemaining - estimatedUnitsUsed
+        );
+        product.unitSell = Math.max(estimatedUnitsUsed);
 
-    console.log(`✅ BOX Order Processed`);
-    console.log(`➡ totalSell (After): ${product.totalSell}`);
-    console.log(`➡ remaining (Boxes Left After): ${product.remaining}`);
-    console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
-  }
+        console.log(`✅ BOX Order Processed`);
+        console.log(`➡ totalSell (After): ${product.totalSell}`);
+        console.log(`➡ remaining (Boxes Left After): ${product.remaining}`);
+        console.log(`➡ unitRemaining (After): ${product.unitRemaining}`);
+      }
 
-  await product.save();
-  console.log(`💾 Product saved: ${product.name}\n------------------------`);
-}
-
-
-
+      await product.save();
+      console.log(
+        `💾 Product saved: ${product.name}\n------------------------`
+      );
+    }
 
     await newOrder.save();
 
@@ -302,20 +306,19 @@ const getAllOrderCtrl = async (req, res) => {
           ...matchStage,
           ...(search
             ? {
-              $or: [
-                { orderNumber: searchRegex },
-                { "store.storeName": searchRegex },
-              ],
-            }
+                $or: [
+                  { orderNumber: searchRegex },
+                  { "store.storeName": searchRegex },
+                ],
+              }
             : {}),
         },
       },
-    { $sort: { createdAt: -1, orderNumber: -1 } }
-,
+      { $sort: { createdAt: -1, orderNumber: -1 } },
       {
         $facet: {
           data: [{ $skip: skip }, { $limit: limit }],
-          totalCount: [ { $count: "count" }],
+          totalCount: [{ $count: "count" }],
           summary: [
             { $match: { isDelete: { $ne: true } } },
             {
@@ -482,12 +485,17 @@ const updateOrderCtrl = async (req, res) => {
 
     const existingOrder = await orderModel.findById(id);
     if (!existingOrder) {
-      return res.status(404).json({ success: false, message: "Order not found!" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found!" });
     }
 
     const oldItemsMap = {};
-    existingOrder.items.forEach(item => {
-      oldItemsMap[item.productId.toString()] = { quantity: item.quantity, pricingType: item.pricingType };
+    existingOrder.items.forEach((item) => {
+      oldItemsMap[item.productId.toString()] = {
+        quantity: item.quantity,
+        pricingType: item.pricingType,
+      };
     });
 
     // Update order fields (excluding items)
@@ -507,51 +515,61 @@ const updateOrderCtrl = async (req, res) => {
 
         const product = await Product.findById(productId);
         if (!product) continue;
-const saleDate = existingOrder.createdAt || new Date();
+        const saleDate = existingOrder.createdAt || new Date();
 
-// Remove old sales history for this date
-const orderDateISO = new Date(existingOrder.createdAt).toISOString();
+        // Remove old sales history for this date
+        const orderDateISO = new Date(existingOrder.createdAt).toISOString();
 
-// Remove only matching entries (pricingType-wise)
-product.salesHistory = product.salesHistory.filter(p =>
-  !(new Date(p.date).toISOString() === orderDateISO && oldItemsMap[product._id]?.pricingType === "box")
-);
+        // Remove only matching entries (pricingType-wise)
+        product.salesHistory = product.salesHistory.filter(
+          (p) =>
+            !(
+              new Date(p.date).toISOString() === orderDateISO &&
+              oldItemsMap[product._id]?.pricingType === "box"
+            )
+        );
 
-product.lbSellHistory = product.lbSellHistory.filter(p =>
-  !(new Date(p.date).toISOString() === orderDateISO && p.lb === oldItemsMap[product._id]?.pricingType)
-);
+        product.lbSellHistory = product.lbSellHistory.filter(
+          (p) =>
+            !(
+              new Date(p.date).toISOString() === orderDateISO &&
+              p.lb === oldItemsMap[product._id]?.pricingType
+            )
+        );
 
+        // Add updated sales history
+        if (pricingType === "unit") {
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
 
-// Add updated sales history
-if (pricingType === "unit") {
-  product.salesHistory.push({
-    date: saleDate,
-    quantity: quantity,
-  });
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: quantity,
+            lb: "unit",
+          });
+        } else if (pricingType === "box") {
+          const totalBoxes = product.totalPurchase || 1;
+          const avgUnitsPerBox = product.unitPurchase / totalBoxes;
+          const estimatedUnitsUsed = avgUnitsPerBox * quantity;
 
-  product.lbSellHistory.push({
-    date: saleDate,
-    weight: quantity,
-    lb: "unit",
-  });
-} else if (pricingType === "box") {
-  const totalBoxes = product.totalPurchase || 1;
-  const avgUnitsPerBox = product.unitPurchase / totalBoxes;
-  const estimatedUnitsUsed = avgUnitsPerBox * quantity;
+          product.salesHistory.push({
+            date: saleDate,
+            quantity: quantity,
+          });
 
-  product.salesHistory.push({
-    date: saleDate,
-    quantity: quantity,
-  });
+          product.lbSellHistory.push({
+            date: saleDate,
+            weight: estimatedUnitsUsed,
+            lb: "box",
+          });
+        }
 
-  product.lbSellHistory.push({
-    date: saleDate,
-    weight: estimatedUnitsUsed,
-    lb: "box",
-  });
-}
-
-        const old = oldItemsMap[productId.toString()] || { quantity: 0, pricingType };
+        const old = oldItemsMap[productId.toString()] || {
+          quantity: 0,
+          pricingType,
+        };
 
         // Reverse old impact
         if (old.pricingType === "unit") {
@@ -577,7 +595,10 @@ if (pricingType === "unit") {
           const totalBoxes = product.totalPurchase || 1;
           const avgUnitsPerBox = product.unitPurchase / totalBoxes;
           const estimatedUnitsUsed = avgUnitsPerBox * quantity;
-          product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+          product.unitRemaining = Math.max(
+            0,
+            product.unitRemaining - estimatedUnitsUsed
+          );
         }
 
         await product.save();
@@ -599,7 +620,6 @@ if (pricingType === "unit") {
     });
   }
 };
-
 
 const updatePalletInfo = async (req, res) => {
   const { orderId } = req.params;
@@ -839,10 +859,9 @@ const updatePaymentDetails = async (req, res) => {
   }
 };
 
-
 const markOrderAsUnpaid = async (req, res) => {
   const { orderId } = req.params;
-console.log(orderId)
+  console.log(orderId);
   try {
     const updatedOrder = await orderModel.findByIdAndUpdate(
       orderId,
@@ -876,22 +895,22 @@ console.log(orderId)
   }
 };
 
-
-
-
-
 const deleteOrderCtrl = async (req, res) => {
   const { id } = req.params;
   const { reason } = req.body;
 
   if (!reason) {
-    return res.status(400).json({ success: false, message: "Reason is required" });
+    return res
+      .status(400)
+      .json({ success: false, message: "Reason is required" });
   }
 
   try {
     const order = await orderModel.findById(id);
     if (!order) {
-      return res.status(404).json({ success: false, message: "Order not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
     }
 
     const amount = order.total ?? 0;
@@ -915,55 +934,51 @@ const deleteOrderCtrl = async (req, res) => {
       const estimatedUnitsUsed = avgUnitsPerBox * quantity;
 
       if (pricingType === "unit") {
-        product.unitSell -= quantity ;
+        product.unitSell -= quantity;
         product.unitRemaining += quantity;
 
         // Remove unit lbSellHistory
         // product.lbSellHistory = product.lbSellHistory.filter(
         //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "unit" && p.weight === quantity)
         // );
-   
-     product.lbSellHistory.push({
-                date: Date.now(),
-                weight:-Math.abs(quantity) ,
-                lb: "unit"
-            })
+
+        product.lbSellHistory.push({
+          date: Date.now(),
+          weight: -Math.abs(quantity),
+          lb: "unit",
+        });
 
         // Remove estimated box lbSellHistory
         // product.lbSellHistory = product.lbSellHistory.filter(
         //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.lb === "box" && p.weight === estimatedUnitsUsed)
         // );
-
-
-       
       }
 
       if (pricingType === "box") {
-        product.totalSell -= quantity
+        product.totalSell -= quantity;
         product.remaining += quantity;
-        product.unitRemaining += estimatedUnitsUsed
+        product.unitRemaining += estimatedUnitsUsed;
 
         // Remove box sales history
         // product.salesHistory = product.salesHistory.filter(
         //   (p) => !(p.date.toISOString() === saleDate.toISOString() && p.quantity === quantity)
         // );
-   product.salesHistory.push({
-  date: new Date(),
-  quantity: -Math.abs(quantity) // ensure negative value
-});
- product.lbSellHistory.push({
-                date: Date.now(),
-                weight:-Math.abs(estimatedUnitsUsed) ,
-                lb: "box"
-            })
-
+        product.salesHistory.push({
+          date: new Date(),
+          quantity: -Math.abs(quantity), // ensure negative value
+        });
+        product.lbSellHistory.push({
+          date: Date.now(),
+          weight: -Math.abs(estimatedUnitsUsed),
+          lb: "box",
+        });
       }
 
       await product.save();
     }
 
     // Zero out order items and preserve deleted info
-    order.items = order.items.map(item => {
+    order.items = order.items.map((item) => {
       const qty = item.quantity ?? 0;
       const price = item.unitPrice || item.price || 0;
       const total = item.total ?? qty * price;
@@ -973,7 +988,7 @@ const deleteOrderCtrl = async (req, res) => {
         deletedQuantity: qty,
         deletedTotal: total,
         quantity: 0,
-        total: 0
+        total: 0,
       };
     });
 
@@ -989,7 +1004,6 @@ const deleteOrderCtrl = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
 
 const deleteOrderHardCtrl = async (req, res) => {
   const { id } = req.params;
@@ -1026,7 +1040,6 @@ const deleteOrderHardCtrl = async (req, res) => {
   }
 };
 
-
 const updateOrderTypeCtrl = async (req, res) => {
   try {
     const { orderId } = req.params;
@@ -1041,12 +1054,10 @@ const updateOrderTypeCtrl = async (req, res) => {
 
     // Validate orderType
     if (!orderType || typeof orderType !== "string") {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "orderType is required and must be a string",
-        });
+      return res.status(400).json({
+        success: false,
+        message: "orderType is required and must be a string",
+      });
     }
 
     // Find and update the order
@@ -1129,12 +1140,10 @@ const getUserOrderStatement = async (req, res) => {
     const orders = await orderModel.find(query).sort({ createdAt: 1 });
 
     if (!orders.length) {
-      return res
-        .status(404)
-        .json({
-          success: false,
-          message: "No orders found with applied filters",
-        });
+      return res.status(404).json({
+        success: false,
+        message: "No orders found with applied filters",
+      });
     }
 
     // Generate summary and calculate totals
@@ -1226,15 +1235,17 @@ const getUserOrderStatement = async (req, res) => {
 
         // const customerEmail = "vikasmaheshwari6267@gmail.com" ;
         const customerEmail = user.email;
-        const subject = `Monthly Statement for ${user.storeName
-          } - ${new Date().toLocaleString("en-US", {
-            month: "long",
-            year: "numeric",
-          })}`;
+        const subject = `Monthly Statement for ${
+          user.storeName
+        } - ${new Date().toLocaleString("en-US", {
+          month: "long",
+          year: "numeric",
+        })}`;
         const message = `
           Dear ${user.ownerName || user.name},
 
-          Please find attached the monthly statement for your store "${user.storeName
+          Please find attached the monthly statement for your store "${
+            user.storeName
           }".
           This statement includes order details and payment status for the selected period.
 
@@ -1340,14 +1351,6 @@ const getUserOrderStatement = async (req, res) => {
 //   }
 // };
 
-
-
-
-
-
-
-
-
 const updateShippingController = async (req, res) => {
   try {
     const { orderId, newShippingCost, plateCount } = req.body;
@@ -1385,7 +1388,7 @@ const updateShippingController = async (req, res) => {
     const itemTotal = items.reduce((sum, item) => {
       const quantity = parseFloat(item.quantity || 0);
       const price = parseFloat(item.unitPrice || 0);
-      return sum + (quantity * price);
+      return sum + quantity * price;
     }, 0);
 
     // Calculate new shipping cost
@@ -1417,11 +1420,6 @@ const updateShippingController = async (req, res) => {
     });
   }
 };
-
-
-
-
-
 
 const getDashboardData = async (req, res) => {
   try {
@@ -1749,5 +1747,5 @@ module.exports = {
   getDashboardData,
   getPendingOrders,
   invoiceMailCtrl,
-  markOrderAsUnpaid
+  markOrderAsUnpaid,
 };

@@ -46,6 +46,7 @@ import { useNavigate } from "react-router-dom"
 import { getAllProductSummaryAPI } from "@/services2/operations/product"
 import { getAllCategoriesAPI } from "@/services2/operations/category"
 import { useDispatch } from "react-redux"
+import Swal from "sweetalert2"
 
 interface FilterState {
   search: string
@@ -91,28 +92,28 @@ const Inventory = () => {
   })
 
 
-const getCurrentWeekRange = () => {
-  const today = new Date();
-  const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const getCurrentWeekRange = () => {
+    const today = new Date();
+    const dayOfWeek = today.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
 
-  // Get Monday
-  const monday = new Date(today);
-  monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Shift to Monday
+    // Get Monday
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - ((dayOfWeek + 6) % 7)); // Shift to Monday
 
-  // Get Sunday
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
+    // Get Sunday
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
 
-  // Format as yyyy-mm-dd
-  const format = (date: Date) => date.toISOString().split("T")[0];
+    // Format as yyyy-mm-dd
+    const format = (date: Date) => date.toISOString().split("T")[0];
 
-  return {
-    startDate: format(monday),
-    endDate: format(sunday),
+    return {
+      startDate: format(monday),
+      endDate: format(sunday),
+    };
   };
-};
 
-const { startDate, endDate } = getCurrentWeekRange();
+  const { startDate, endDate } = getCurrentWeekRange();
 
   // Filter and Sort State
   const [filters, setFilters] = useState<FilterState>({
@@ -140,7 +141,7 @@ const { startDate, endDate } = getCurrentWeekRange();
     setPagination((prev) => ({ ...prev, page: 1 }))
   }, [debouncedSearch, filters.category, filters.stockLevel, filters.startDate, filters.endDate])
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (hard = false) => {
     setLoading(true)
     try {
       // Build query parameters
@@ -157,7 +158,7 @@ const { startDate, endDate } = getCurrentWeekRange();
       })
 
       // Replace this with your actual paginated API call
-      const response = await getAllProductSummaryAPI(`?${queryParams.toString()}`)
+      const response = await getAllProductSummaryAPI(`?${queryParams.toString()}&hard=${hard}`)
 
       console.log("Paginated response:", response)
 
@@ -190,6 +191,44 @@ const { startDate, endDate } = getCurrentWeekRange();
       setLoading(false)
     }
   }
+
+
+
+
+  const handleHardRefresh = async () => {
+    const result = await Swal.fire({
+      title: "Hard Refresh",
+      text: "This process may take time. Do you want to continue?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonText: "Yes, continue",
+      cancelButtonText: "Cancel",
+      background: "#f9fafb",
+      customClass: {
+        popup: "rounded-xl shadow-lg",
+      },
+    });
+
+    if (result.isConfirmed) {
+      setLoading(true);
+      try {
+        await fetchProducts();
+        Swal.fire({
+          title: "Refreshed!",
+          text: "Product list has been updated.",
+          icon: "success",
+          timer: 1500,
+          showConfirmButton: false,
+        });
+      } catch (err) {
+        Swal.fire("Error", "Failed to refresh products.", "error");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+  };
+
 
   // Fetch products when pagination or filters change
   useEffect(() => {
@@ -281,11 +320,61 @@ const { startDate, endDate } = getCurrentWeekRange();
   }
 
   const handleExport = () => {
+    if (products.length === 0) {
+      toast({
+        title: "No Data to Export",
+        description: "There are no products in the table to export.",
+        variant: "default",
+      });
+      return;
+    }
+
     toast({
       title: "Exporting Inventory",
-      description: "Your inventory data is being exported to CSV",
-    })
-  }
+      description: "Your inventory data is being exported to CSV...",
+    });
+
+    const headers = ["product name", "Purchased", "Sell", "Remaining", "Price"];
+    // Map your product data to match the CSV headers
+    console.log(products)
+    const csvData = products.map(product => {
+      // Assuming 'product' has properties like 'name', 'purchased', 'sold', 'quantity', 'price'
+      // You may need to adjust these property names based on your actual Product type structure
+      const productName = product.name || '';
+      const summary = product.summary || {};
+
+      const purchased = summary.totalPurchase || 0;
+      const sold = summary.totalSell || 0;
+      const remaining = summary.totalRemaining || 0;
+
+
+      const price = product.price || 0; // Price might still be directly on product
+
+
+      return [
+        `"${productName.replace(/"/g, '""')}"`, // Handle commas and quotes in product names
+        purchased,
+        sold,
+        remaining,
+        price
+      ].join(',');
+    });
+
+    const csvContent = [headers.join(','), ...csvData].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'inventory_data.csv');
+    link.click();
+
+    URL.revokeObjectURL(url); // Clean up the URL object
+    toast({
+      title: "Export Complete",
+      description: "Inventory data has been successfully downloaded.",
+      variant: "success",
+    });
+  };
 
   const handleImport = () => {
     toast({
@@ -386,7 +475,7 @@ const { startDate, endDate } = getCurrentWeekRange();
               <SelectValue />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 50, 100].map((pageSize) => (
+              {[10, 20, 30, 50, 100, 1000].map((pageSize) => (
                 <SelectItem key={pageSize} value={pageSize.toString()}>
                   {pageSize}
                 </SelectItem>
@@ -569,11 +658,22 @@ const { startDate, endDate } = getCurrentWeekRange();
 
                     <Button
                       variant="outline"
-                      onClick={fetchProducts}
+                      onClick={()=>fetchProducts()}
                       className="bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-2"
                     >
                       <RotateCcw className="w-4 h-4" />
                       Refresh
+                    </Button>
+
+
+                    <Button
+                      variant="outline"
+                      onClick={handleHardRefresh}
+                      disabled={loading}
+                      className="bg-blue-100 text-blue-700 hover:bg-blue-200 flex items-center gap-2"
+                    >
+                      <RotateCcw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
+                      {loading ? "Refreshing..." : "Hard Refresh"}
                     </Button>
                   </div>
 
