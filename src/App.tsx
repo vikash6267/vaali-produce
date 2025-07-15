@@ -46,6 +46,7 @@ import VendorInvoiceUpload from "./pages/VendorInvoiceUpload";
 import VendorPayment from "./pages/VendorPayment";
 import EditPurchaseOrder from "./pages/EditPurchaseOrder";
 import ViewPurchaseOrder from "./pages/ViewPurchase";
+import Map from "./components/admin/Map";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -61,12 +62,10 @@ export default function App() {
     return () => clearTimeout(loadingTimeout);
   }, []);
 
-
   useEffect(() => {
     if (authData?.token) {
       dispatch(fetchMyProfile(authData?.token));
     }
-
   }, []);
   const isAdmin = isAuthenticated && authData?.user?.role === "admin";
   const isMember = isAuthenticated && authData?.user?.role === "member";
@@ -78,7 +77,6 @@ export default function App() {
 
   return (
     <BrowserRouter>
-
       <Routes>
         {/* Open Routes */}
         <Route
@@ -351,19 +349,20 @@ export default function App() {
           }
         />
 
-
-
-
-
-
-
-
         {/* Vendors */}
         <Route
           path="/vendors"
           element={
             <PrivateRoute>
               <Vendors />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/map"
+          element={
+            <PrivateRoute>
+              <Map />
             </PrivateRoute>
           }
         />

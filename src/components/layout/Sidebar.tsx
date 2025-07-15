@@ -17,6 +17,7 @@ import {
   Settings,
   User2Icon,
   LucideLayoutDashboard,
+  LocateIcon,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
@@ -37,95 +38,90 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
   // Get user role from Redux state
   const userRole = user?.role || "member"; // Default to member if role is not available
 
-
-
-
-
-
-
   const adminNavigation = [
-  {
-    name: "Dashboard",
-    path: "/admin/dashboard",
-    icon: <LucideLayoutDashboard size={18} />,
-  },
-  {
-    name: "Inventory",
-    path: "/admin/inventory",
-    icon: <Package size={18} />,
-  },
-  {
-    name: "Members",
-    path: "/admin/members",
-    icon: <Users size={18} />,
-  },
-  {
-    name: "Store",
-    path: "/admin/store",
-    icon: <Store size={18} />,
-  },
-  {
-    name: "Orders",
-    path: "/admin/orders",
-    icon: <ShoppingCart size={18} />,
-  },
-  {
-    name: "CRM",
-    path: "/admin/crm",
-    icon: <Briefcase size={18} />,
-  },
-  {
-    name: "Vendors",
-    path: "/vendors",
-    icon: <User2Icon size={18} />,
-  },
-];
+    {
+      name: "Dashboard",
+      path: "/admin/dashboard",
+      icon: <LucideLayoutDashboard size={18} />,
+    },
+    {
+      name: "Inventory",
+      path: "/admin/inventory",
+      icon: <Package size={18} />,
+    },
+    {
+      name: "Members",
+      path: "/admin/members",
+      icon: <Users size={18} />,
+    },
+    {
+      name: "Store",
+      path: "/admin/store",
+      icon: <Store size={18} />,
+    },
+    {
+      name: "Orders",
+      path: "/admin/orders",
+      icon: <ShoppingCart size={18} />,
+    },
+    {
+      name: "CRM",
+      path: "/admin/crm",
+      icon: <Briefcase size={18} />,
+    },
+    {
+      name: "Vendors",
+      path: "/vendors",
+      icon: <User2Icon size={18} />,
+    },
+    {
+      name: "Map",
+      path: "/map",
+      icon: <LocateIcon size={18} />,
+    },
+  ];
 
-const memberNavigation = [
-  // Conditionally add "Orders" only if user is member and isOrder is true
-  ...(user?.role === "member" && user?.isOrder
-    ? [
-        {
-          name: "Orders",
-          path: "/admin/orders",
-          icon: <ShoppingCart size={18} />,
-        },
-      ]
-    : []),
-  {
-    name: "Products",
-    path: "/admin/inventory",
-    icon: <Package size={18} />,
-  },
-  {
-    name: "Vendors",
-    path: "/vendors",
-    icon: <User2Icon size={18} />,
-  },
-];
+  const memberNavigation = [
+    // Conditionally add "Orders" only if user is member and isOrder is true
+    ...(user?.role === "member" && user?.isOrder
+      ? [
+          {
+            name: "Orders",
+            path: "/admin/orders",
+            icon: <ShoppingCart size={18} />,
+          },
+        ]
+      : []),
+    {
+      name: "Products",
+      path: "/admin/inventory",
+      icon: <Package size={18} />,
+    },
+    {
+      name: "Vendors",
+      path: "/vendors",
+      icon: <User2Icon size={18} />,
+    },
+  ];
 
+  const storeNavigation = [
+    {
+      name: "Products",
+      path: "/store/products",
+      icon: <Package size={18} />,
+    },
+    {
+      name: "My Orders",
+      path: "/store/orders",
+      icon: <ShoppingCart size={18} />,
+    },
+    {
+      name: "Settings",
+      path: "/store/settings",
+      icon: <Settings size={18} />,
+    },
+  ];
 
-const storeNavigation = [
-  {
-    name: "Products",
-    path: "/store/products",
-    icon: <Package size={18} />,
-  },
-  {
-    name: "My Orders",
-    path: "/store/orders",
-    icon: <ShoppingCart size={18} />,
-  },
-  {
-    name: "Settings",
-    path: "/store/settings",
-    icon: <Settings size={18} />,
-  },
-];
-
-
-
-  
   // Select navigation items based on user role
   const getNavigationForRole = () => {
     switch (userRole) {
@@ -301,7 +297,11 @@ const storeNavigation = [
         )}
       </aside>
 
-      <div className={`  transition-all duration-300 ${ collapsed && !hovering ? "md:w-[90px]" : "w-[300px] "}`}>
+      <div
+        className={`  transition-all duration-300 ${
+          collapsed && !hovering ? "md:w-[90px]" : "w-[300px] "
+        }`}
+      >
         {/* Main Content Goes Here */}
       </div>
     </>

@@ -1,5 +1,4 @@
-
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 
 @tailwind base;
 @tailwind components;
@@ -116,28 +115,28 @@
   .glass-card {
     @apply bg-white/70 backdrop-blur-sm border border-white/20 shadow-glass rounded-lg;
   }
-  
+
   .nav-link {
     @apply flex items-center gap-2 px-3 py-2 rounded-md transition-all duration-200;
   }
-  
+
   .nav-link-active {
     @apply bg-primary/10 text-primary font-medium;
   }
-  
+
   .page-container {
     @apply px-3 py-4 sm:px-4 sm:py-6 md:p-6 max-w-7xl mx-auto w-full;
   }
-  
+
   .section-title {
     @apply text-lg sm:text-xl font-semibold tracking-tight mb-3 sm:mb-4;
   }
-  
+
   .animate-enter {
     @apply opacity-0 translate-y-4;
     animation: enter 0.4s ease forwards;
   }
-  
+
   @keyframes enter {
     to {
       @apply opacity-100 translate-y-0;
@@ -147,12 +146,12 @@
   .responsive-chart {
     @apply h-[250px] sm:h-[300px] md:h-[350px] w-full;
   }
-  
+
   /* Card improvements */
   .card-hover {
     @apply transition-all duration-300 hover:shadow-hover hover:-translate-y-1;
   }
-  
+
   /* Button touch target improvements */
   .touch-target {
     @apply min-h-[44px] min-w-[44px];
@@ -166,12 +165,12 @@
 
 /* Hide scrollbar for IE, Edge and Firefox */
 .hide-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
 }
 
 .font-inter {
-  font-family: 'Inter', sans-serif;
+  font-family: "Inter", sans-serif;
 }
 
 /* Add responsive text adjustments */
@@ -179,12 +178,14 @@
   .text-xs-adjust {
     font-size: 0.75rem;
   }
-  
+
   .text-sm-adjust {
     font-size: 0.875rem;
   }
-  
-  h1, h2, h3 {
+
+  h1,
+  h2,
+  h3 {
     word-break: break-word;
   }
 }
@@ -194,15 +195,15 @@
   .recharts-text.recharts-label {
     font-size: 10px;
   }
-  
+
   .recharts-text.recharts-cartesian-axis-tick-value {
     font-size: 10px;
   }
-  
+
   .recharts-legend-item-text {
     font-size: 10px;
   }
-  
+
   .recharts-tooltip-wrapper {
     max-width: 80vw;
   }
@@ -210,13 +211,13 @@
 
 /* Make touch targets bigger on mobile */
 @media (max-width: 768px) {
-  button, 
-  a, 
+  button,
+  a,
   input[type="checkbox"],
   input[type="radio"] {
     @apply touch-target;
   }
-  
+
   /* Improve spacing on mobile */
   .card {
     @apply overflow-hidden;
