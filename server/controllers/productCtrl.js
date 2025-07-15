@@ -1099,7 +1099,6 @@ const getAllProductsWithHistorySummary = async (req, res) => {
       hard=false
     } = req.query;
 
-console.log(req.query)
 
     if(hard === "true"){
       await resetAndRebuildHistoryForAllProducts()
@@ -1158,7 +1157,7 @@ const isUsingDefaultDate =
         const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
 
 
-        console.log(filteredPurchase)
+       
         const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
         const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
         const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);

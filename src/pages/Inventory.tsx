@@ -212,7 +212,7 @@ const Inventory = () => {
     if (result.isConfirmed) {
       setLoading(true);
       try {
-        await fetchProducts();
+        await fetchProducts(true);
         Swal.fire({
           title: "Refreshed!",
           text: "Product list has been updated.",
