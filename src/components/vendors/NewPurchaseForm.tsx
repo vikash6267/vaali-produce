@@ -18,6 +18,7 @@ import { getAllVendorsAPI } from "@/services2/operations/vendor"
 import { createPurchaseOrderAPI } from "@/services2/operations/purchaseOrder"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/redux/store"
+import Select2, { GroupBase, Options } from "react-select";
 
 // Mock vendor pricing data
 const mockVendorPricing = [
@@ -283,7 +284,19 @@ const NewPurchaseForm = () => {
     const product = products.find((p) => p.id === productId)
     return product ? product.unit : ""
   }
-
+  const productOptions: {
+    value: string;
+    label: string;
+    pricePerBox: number;
+    pricePerUnit: number;
+    shippinCost: number
+  }[] = products.map((product) => ({
+    value: product.id,
+    label: product.name,
+    pricePerBox: Number(product.pricePerBox),
+    pricePerUnit: Number(product.price), // Make sure this exists in product
+    shippinCost: Number(product.shippinCost || 0), // Make sure this exists in product
+  }));
   const isRecommendedVendor = (vendorId: string) => {
     return suggestedVendors.includes(vendorId)
   }
@@ -306,7 +319,29 @@ const NewPurchaseForm = () => {
           <CardContent className="space-y-6 pt-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
-                <div>
+              <div>
+  <Label htmlFor="vendor">Vendor</Label>
+  <Select2
+    options={vendors.map((vendor) => ({
+      value: vendor.id,
+      label: isRecommendedVendor(vendor.id)
+        ? `${vendor.name} (Recommended)`
+        : vendor.name,
+    }))}
+    value={vendors
+      .map((vendor) => ({
+        value: vendor.id,
+        label: isRecommendedVendor(vendor.id)
+          ? `${vendor.name} (Recommended)`
+          : vendor.name,
+      }))
+      .find((opt) => opt.value === vendorId)}
+    onChange={(selectedOption) => {
+      handleVendorChange(selectedOption.value);
+    }}
+  />
+</div>
+  <div>
                   <Label htmlFor="vendor">Vendor</Label>
                   <Select value={vendorId} onValueChange={handleVendorChange}>
                     <SelectTrigger id="vendor">
@@ -395,18 +430,15 @@ const NewPurchaseForm = () => {
                   <div key={index} className="grid grid-cols-12 gap-3 items-end">
                     <div className="col-span-4">
                       <Label htmlFor={`product-${index}`}>Product</Label>
-                      <Select value={item.productId} onValueChange={(value) => handleProductChange(index, value)}>
-                        <SelectTrigger id={`product-${index}`}>
-                          <SelectValue placeholder="Select a product" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {products.map((product) => (
-                            <SelectItem key={product.id} value={product.id}>
-                              {product.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Select2
+                        options={productOptions}
+                        value={productOptions.find((opt) => opt.value === item.productId)}
+                        onChange={(selectedOption) => {
+                          // Just send productId like before
+                          handleProductChange(index, selectedOption.value);
+                        }}
+                      />
+
                     </div>
 
                     <div className="col-span-1">
