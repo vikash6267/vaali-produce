@@ -67,7 +67,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   onCancel,
   onViewClientProfile,
   setStoreDetails,
-  shippingCost=0
+  shippingCost = 0
 }) => {
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState([]);
@@ -86,15 +86,15 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
         quantity: 1,
         unitPrice: 0,
         pricingType: "box",
-        shippinCost:0
+        shippinCost: 0
       },
     ]).map((item) => ({
       ...item,
-      pricingType: item.pricingType === "unit" ? "unit" : "box" ,
-      shippinCost:item.shippinCost || 0// force correct typing
+      pricingType: item.pricingType === "unit" ? "unit" : "box",
+      shippinCost: item.shippinCost || 0// force correct typing
     })),
   };
-  
+
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -141,7 +141,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   //     0
   //   );
   // };
-  
+
   // const calculateShipping = () => {
   //   const items = form.getValues("items");
   //   return Math.max(...items.map((item) => item.shippinCost || 0), 0);
@@ -155,9 +155,9 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
       (total, item) => total + item.quantity * item.unitPrice,
       0
     );
-    
+
   };
-  
+
   const calculateShipping = () => {
     const items = form.getValues("items");
     // return items.reduce(
@@ -166,21 +166,21 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     // );
     return shippingCost
   };
-  
+
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
   };
-  
+
 
   const getMaxShippingCost = () => {
     const items = form.getValues("items");
     if (!items || items.length === 0) return 0;
-  
+
     return Math.max(...items.map(item => item.shippinCost || 0));
   };
-  
-  
-  
+
+
+
 
   const fetchStores = async () => {
     setLoading(true);
@@ -231,7 +231,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     label: string;
     pricePerBox: number;
     pricePerUnit: number;
-    shippinCost:number
+    shippinCost: number
   }[] = products.map((product) => ({
     value: product.id,
     label: product.name,
@@ -239,14 +239,14 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     pricePerUnit: Number(product.price), // Make sure this exists in product
     shippinCost: Number(product.shippinCost || 0), // Make sure this exists in product
   }));
-  
 
 
-  useEffect(()=>{
 
-    
+  useEffect(() => {
+
+
     setStoreDetails(form.getValues("store"))
-  },[form.watch("store")])
+  }, [form.watch("store")])
 
 
 
@@ -326,143 +326,145 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
 
 
-     {form.watch("items").map((_, index) => {
-  return (
-    <div key={index} className="grid grid-cols-12 gap-2 mb-4 items-center">
-      {/* Product Select Dropdown */}
-      <div className="col-span-5">
-        <FormField
-          control={form.control}
-          name={`items.${index}.productId`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Product</FormLabel>
-              <FormControl>
-                <Select2
-                  options={productOptions}
-                  onChange={(selectedOption) => {
-                    const pricingType = form.getValues(`items.${index}.pricingType`);
-                    form.setValue(`items.${index}.productId`, selectedOption.value);
-                    form.setValue(`items.${index}.productName`, selectedOption.label);
-                    const unitPrice =
-                      pricingType === "unit"
-                        ? selectedOption.pricePerUnit
-                        : selectedOption.pricePerBox;
-                    form.setValue(`items.${index}.unitPrice`, unitPrice);
-                    form.setValue(`items.${index}.shippinCost`, selectedOption.shippinCost);
-                  }}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+          {form.watch("items").map((_, index) => {
+            return (
+              <div key={index} className="grid grid-cols-12 gap-2 mb-4 items-center">
+                {/* Product Select Dropdown */}
+                <div className="col-span-5">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.productId`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product</FormLabel>
+                        <FormControl>
+                          <Select2
+                            value={productOptions.find(option => option.value === field.value)}
+                            options={productOptions}
+                            onChange={(selectedOption) => {
+                              const pricingType = form.getValues(`items.${index}.pricingType`);
+                              form.setValue(`items.${index}.productId`, selectedOption.value);
+                              form.setValue(`items.${index}.productName`, selectedOption.label);
+                              const unitPrice =
+                                pricingType === "unit"
+                                  ? selectedOption.pricePerUnit
+                                  : selectedOption.pricePerBox;
+                              form.setValue(`items.${index}.unitPrice`, unitPrice);
+                              form.setValue(`items.${index}.shippinCost`, selectedOption.shippinCost);
+                            }}
+                          />
 
-  
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-      {/* Pricing Type Selector */}
-      <div className="col-span-2">
-        <FormField
-          control={form.control}
-          name={`items.${index}.pricingType`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Type</FormLabel>
-              <FormControl>
-                <Select
-                  value={field.value}
-                  onValueChange={(value) => {
-                    field.onChange(value);
-                    const selectedProduct = productOptions.find(
-                      (opt) => opt.value === form.getValues(`items.${index}.productId`)
-                    );
-                    if (selectedProduct) {
-                      const price =
-                        value === "box"
-                          ? selectedProduct.pricePerBox
-                          : selectedProduct.pricePerUnit;
-                      form.setValue(`items.${index}.unitPrice`, price);
-                    }
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="box">Per Box</SelectItem>
-                    <SelectItem value="unit">Per Unit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
 
-      {/* Quantity */}
-      <div className="col-span-1.5">
-        <FormField
-          control={form.control}
-          name={`items.${index}.quantity`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Qty</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(parseInt(e.target.value) || 0)
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
 
-      {/* Unit Price */}
-      <div className="col-span-2">
-        <FormField
-          control={form.control}
-          name={`items.${index}.unitPrice`}
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Price</FormLabel>
-              <FormControl>
-                <Input
-                  type="number"
-                  step="0.01"
-                  {...field}
-                  onChange={(e) =>
-                    field.onChange(parseFloat(e.target.value) || 0)
-                  }
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+                {/* Pricing Type Selector */}
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.pricingType`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Type</FormLabel>
+                        <FormControl>
+                          <Select
+                            value={field.value}
+                            onValueChange={(value) => {
+                              field.onChange(value);
+                              const selectedProduct = productOptions.find(
+                                (opt) => opt.value === form.getValues(`items.${index}.productId`)
+                              );
+                              if (selectedProduct) {
+                                const price =
+                                  value === "box"
+                                    ? selectedProduct.pricePerBox
+                                    : selectedProduct.pricePerUnit;
+                                form.setValue(`items.${index}.unitPrice`, price);
+                              }
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Type" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="box">Per Box</SelectItem>
+                              <SelectItem value="unit">Per Unit</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-      {/* Remove Item Button */}
-      <div className="col-span-0.5 flex items-center justify-center">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          onClick={() => removeItem(index)}
-          disabled={form.watch("items").length <= 1}
-        >
-          <Trash2 className="h-5 w-5" />
-        </Button>
-      </div>
-    </div>
-  );
-})}
+                {/* Quantity */}
+                <div className="col-span-1.5">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.quantity`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Qty</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseInt(e.target.value) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Unit Price */}
+                <div className="col-span-2">
+                  <FormField
+                    control={form.control}
+                    name={`items.${index}.unitPrice`}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Price</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                {/* Remove Item Button */}
+                <div className="col-span-0.5 flex items-center justify-center">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => removeItem(index)}
+                    disabled={form.watch("items").length <= 1}
+                  >
+                    <Trash2 className="h-5 w-5" />
+                  </Button>
+                </div>
+              </div>
+            );
+          })}
 
 
 
@@ -477,19 +479,19 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
 
           {/* Order Summary */}
           <div className="p-4 border rounded-md bg-gray-50 mt-4 space-y-2">
-  <div className="flex justify-between">
-    <span className="font-medium">Subtotal:</span>
-    <span>$ {calculateSubtotal().toFixed(2)}</span>
-  </div>
-  <div className="flex justify-between">
-    <span className="font-medium">Shipping:</span>
-    <span>$ {calculateShipping().toFixed(2)}</span>
-  </div>
-  <div className="flex justify-between text-lg font-semibold border-t pt-2">
-    <span>Total:</span>
-    <span>$ {calculateTotal().toFixed(2)}</span>
-  </div>
-</div>
+            <div className="flex justify-between">
+              <span className="font-medium">Subtotal:</span>
+              <span>$ {calculateSubtotal().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="font-medium">Shipping:</span>
+              <span>$ {calculateShipping().toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-lg font-semibold border-t pt-2">
+              <span>Total:</span>
+              <span>$ {calculateTotal().toFixed(2)}</span>
+            </div>
+          </div>
 
 
         </div>
