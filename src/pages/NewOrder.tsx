@@ -99,19 +99,19 @@ const NewOrder = () => {
     const requiredFields = ["name", "email", "phone", "address", "city", "postalCode", "country"];
     const checkEmptyFields = (address: any) =>
       requiredFields.some((field) => !address?.[field]);
-  
+
     const billingInvalid = checkEmptyFields(billingAddress);
     const shippingInvalid = sameAsBilling ? false : checkEmptyFields(shippingAddress);
-  
+
     if (billingInvalid || shippingInvalid) {
-  
+
       toast({
         title: "Incomplete Address",
         description: "Please fill all required address fields.",
-        variant:"destructive"
-      
+        variant: "destructive"
+
       });
-     
+
       return;
     }
 
@@ -215,7 +215,7 @@ const NewOrder = () => {
                 </>
               )}
 
-<OrderEditForm
+              <OrderEditForm
                 onSubmit={handleSubmitOrder}
                 onCancel={handleCancel}
                 setStoreDetails={setStoreDetails}
@@ -223,22 +223,22 @@ const NewOrder = () => {
               />
 
 
-<div>
-      <label>Order Number: (Optional)</label>
-      <Input
-        type="text"
-        placeholder="Enter Order Number"
-        value={orderNumber}
-        onChange={(e) => setOrderNumber(e.target.value)}
-      />
+              <div>
+                <label>Order Number: (Optional)</label>
+                <Input
+                  type="text"
+                  placeholder="Enter Order Number"
+                  value={orderNumber}
+                  onChange={(e) => setOrderNumber(e.target.value)}
+                />
 
-      <label>Order Date:  (Optional)</label>
-      <Input
-        type="date"
-        value={createdAt}
-        onChange={(e) => setCreatedAt(e.target.value)}
-      />
-            </div>
+                <label>Order Date:  (Optional)</label>
+                <Input
+                  type="date"
+                  value={createdAt}
+                  onChange={(e) => setCreatedAt(e.target.value)}
+                />
+              </div>
             </div>
           </div>
         </main>
