@@ -80,6 +80,7 @@ const bolSchema = z.object({
   consigneeCity: z.string().min(1, "City is required"),
   consigneeState: z.string().min(1, "State is required"),
   consigneeZip: z.string().min(1, "ZIP code is required"),
+  consigneePhone: z.string().optional(),
 
   carrierName: z.string().min(1, "Carrier name is required"),
   trailerNumber: z.string().min(1, "Trailer number is required"),
@@ -120,6 +121,7 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
       consigneeCity: order.shippingAddress.city,
       consigneeState: order.shippingAddress.country,
       consigneeZip: order.shippingAddress.postalCode,
+      consigneePhone: order.shippingAddress.phone,
 
       carrierName: "Vali Produce",
       trailerNumber: `TR-${Math.floor(1000 + Math.random() * 9000)}`,
@@ -168,6 +170,7 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
       consigneeCity: formData.consigneeCity,
       consigneeState: formData.consigneeState,
       consigneeZip: formData.consigneeZip,
+      consigneePhone: formData.consigneePhone,
       carrierName: formData.carrierName,
       trailerNumber: formData.trailerNumber,
       sealNumber: formData.sealNumber,
@@ -648,6 +651,11 @@ const BillOfLadingForm: React.FC<BillOfLadingFormProps> = ({
                     {form.getValues().consigneeCity},{" "}
                     {form.getValues().consigneeState}{" "}
                     {form.getValues().consigneeZip}
+                  </p>
+                    {form.getValues().consigneePhone}
+
+                  <p>
+
                   </p>
                 </div>
               </div>

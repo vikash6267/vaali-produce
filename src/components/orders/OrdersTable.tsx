@@ -57,10 +57,11 @@ import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
 import WorkOrderForm from "./WorkOrder"
 import { PaymentStatusPopup } from "./PaymentUpdateModel"
-import { 
-  deleteOrderAPI, 
-  getAllOrderAPI, 
-  updateOrderAPI ,
+import {
+  deleteOrderAPI,
+  getAllOrderAPI,
+
+  updateOrderAPI,
   updateOrderUnpaidAPI,
   deleteHardOrderAPI
 } from "@/services2/operations/order"
@@ -197,12 +198,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
         setOrders(
           response.orders.map((order) => ({
             id: order?.orderNumber || `#${order._id.toString().slice(-5)}`,
-          date: new Date(order.createdAt).toLocaleDateString('en-US', {
-  timeZone: 'UTC', // ⬅️ Force UTC
-  year: 'numeric',
-  month: 'short',
-  day: 'numeric',
-}),
+            date: new Date(order.createdAt).toLocaleDateString('en-US', {
+              timeZone: 'UTC', // ⬅️ Force UTC
+              year: 'numeric',
+              month: 'short',
+              day: 'numeric',
+            }),
 
             clientName: order.store?.storeName || "Unknown",
             ...order,
@@ -242,11 +243,37 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   const handleEdit = (order: Order) => {
     navigate(`/orders/edit/${order._id}`)
   }
-  const handleUnpaid = async(order: Order) => {
-    console.log(order)
-    await updateOrderUnpaidAPI(order?._id,token)
-    // navigate(`/orders/edit/${order._id}`)
-  }
+  const handleUnpaid = async (order: Order) => {
+    // 1. Confirmation dialog
+    const confirmed = await Swal.fire({
+      title: "Are you sure?",
+      text: `You are about to mark payment for order ${order.orderNumber} as unpaid. This action cannot be undone!`,
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, mark as unpaid!",
+    });
+
+    if (confirmed.isConfirmed) {
+      // 2. Show loading toast
+
+      try {
+        // 3. Call API
+        const updatedOrder = await updateOrderUnpaidAPI(order?._id, token);
+
+
+        // 5. UI refresh
+        if (updatedOrder) {
+          fetchOrders(); // Refresh orders list
+        }
+      } catch (error) {
+        console.error("UNPAID API ERROR:", error);
+
+      }
+    }
+  };
+
 
   const handleDelete = async (id: string, orderNumber: string) => {
     const { value: reason, isConfirmed } = await Swal.fire({
@@ -292,42 +319,46 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
   }
 
 
+
+
+
+
   const handleHardDelete = async (id: string, orderNumber: string) => {
-  const { isConfirmed } = await Swal.fire({
-    title: `Permanently delete order ${orderNumber}?`,
-    text: "This action cannot be undone. Are you sure?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonColor: "#d33",
-    cancelButtonColor: "#3085d6",
-    confirmButtonText: "Yes, delete permanently",
-  });
+    const { isConfirmed } = await Swal.fire({
+      title: `Permanently delete order ${orderNumber}?`,
+      text: "This action cannot be undone. Are you sure?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#d33",
+      cancelButtonColor: "#3085d6",
+      confirmButtonText: "Yes, delete permanently",
+    });
 
-  if (isConfirmed) {
-    try {
-      const deletedOrder = await deleteHardOrderAPI(id, token); // Make sure your API is correctly hooked
-      if (deletedOrder) {
-        onDelete(id);
-        fetchOrders();
+    if (isConfirmed) {
+      try {
+        const deletedOrder = await deleteHardOrderAPI(id, token); // Make sure your API is correctly hooked
+        if (deletedOrder) {
+          onDelete(id);
+          fetchOrders();
 
+          Swal.fire({
+            icon: "success",
+            title: "Deleted!",
+            text: `Order ${orderNumber} has been permanently deleted.`,
+            timer: 2000,
+            showConfirmButton: false,
+          });
+        }
+      } catch (err) {
+        console.error("Delete error:", err);
         Swal.fire({
-          icon: "success",
-          title: "Deleted!",
-          text: `Order ${orderNumber} has been permanently deleted.`,
-          timer: 2000,
-          showConfirmButton: false,
+          icon: "error",
+          title: "Error",
+          text: "Something went wrong while deleting the order.",
         });
       }
-    } catch (err) {
-      console.error("Delete error:", err);
-      Swal.fire({
-        icon: "error",
-        title: "Error",
-        text: "Something went wrong while deleting the order.",
-      });
     }
-  }
-};
+  };
 
   const handleViewDetails = (order: Order) => {
     setSelectedOrder(order)
@@ -965,9 +996,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
       <div className="flex justify-between items-center border-b">
         <div className="flex gap-2">
           <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-            }`}
+            className={`px-4 py-2 font-medium ${activeTab === "Regural" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+              }`}
             onClick={() => {
               setActiveTab("Regural")
               setCurrentPage(1)
@@ -976,9 +1006,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
             Regular Orders
           </button>
           <button
-            className={`px-4 py-2 font-medium ${
-              activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
-            }`}
+            className={`px-4 py-2 font-medium ${activeTab === "NextWeek" ? "border-b-2 border-primary text-primary" : "text-gray-500"
+              }`}
             onClick={() => {
               setActiveTab("NextWeek")
               setCurrentPage(1)
@@ -996,9 +1025,8 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
           <button
             onClick={handleExportClick}
             disabled={isPreparing}
-            className={`px-4 py-2 rounded text-white text-sm ${
-              isPreparing ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
-            } transition`}
+            className={`px-4 py-2 rounded text-white text-sm ${isPreparing ? "bg-gray-500 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700"
+              } transition`}
           >
             {isPreparing ? "Preparing..." : "Download CSV"}
           </button>
@@ -1323,7 +1351,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({
                 <SelectItem value="25">25</SelectItem>
                 <SelectItem value="50">50</SelectItem>
                 <SelectItem value="100">100</SelectItem>
-                
+
               </SelectContent>
             </Select>
           </div>

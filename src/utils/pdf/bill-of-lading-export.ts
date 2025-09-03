@@ -15,6 +15,7 @@ export const exportBillOfLadingToPDF = (
     consigneeName: string;
     consigneeAddress: string;
     consigneeCity: string;
+    consigneePhone?: string;
     consigneeState: string;
     consigneeZip: string;
     carrierName: string;
@@ -114,6 +115,7 @@ doc.addImage(logoUrl, "PNG", xCenter, 0, 0, 23);
     MARGIN + columnWidth + 8,
     yPos + 24
   );
+  doc.text(data?.consigneePhone, MARGIN + columnWidth + 8, yPos + 28);
 
   yPos += 36;
   addPageIfNeeded(28);

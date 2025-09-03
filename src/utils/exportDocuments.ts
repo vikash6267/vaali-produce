@@ -44,6 +44,7 @@ export interface BillOfLadingData {
   consigneeCity: string;
   consigneeState: string;
   consigneeZip: string;
+  consigneePhone?: string;
   carrierName: string;
   trailerNumber: string;
   sealNumber?: string;
