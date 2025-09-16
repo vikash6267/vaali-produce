@@ -1,6 +1,8 @@
 const orderModel = require("../models/orderModle");
+const purchaseModel = require("../models/purchaseModel");
 const mongoose = require("mongoose");
 const authModel = require("../models/authModel"); // Ensure the correct path for your Auth model
+const vendorModel = require("../models/vendorModel"); // Ensure the correct path for your Auth model
 const { generateStatementPDF } = require("../utils/generateOrder");
 const nodemailer = require("nodemailer");
 const { exportInvoiceToPDFBackend } = require("../templates/exportInvoice");
@@ -306,11 +308,11 @@ const getAllOrderCtrl = async (req, res) => {
           ...matchStage,
           ...(search
             ? {
-                $or: [
-                  { orderNumber: searchRegex },
-                  { "store.storeName": searchRegex },
-                ],
-              }
+              $or: [
+                { orderNumber: searchRegex },
+                { "store.storeName": searchRegex },
+              ],
+            }
             : {}),
         },
       },
@@ -564,7 +566,7 @@ const updateOrderCtrl = async (req, res) => {
 
     const oldItemsMap = {};
     existingOrder.items.forEach((item) => {
-      
+
       oldItemsMap[item.productId.toString()] = {
         quantity: item.quantity,
         pricingType: item.pricingType,
@@ -685,25 +687,25 @@ const updateOrderCtrl = async (req, res) => {
 
 
 
-for (const item of existingOrder.items) {
-  try {
-    if (!item.productId) {
-      console.warn("⚠️ Skipping item without productId:", item);
-      continue;
-    }
+    for (const item of existingOrder.items) {
+      try {
+        if (!item.productId) {
+          console.warn("⚠️ Skipping item without productId:", item);
+          continue;
+        }
 
-    console.log(`🔁 Rebuilding product history for: ${item.productId}`);
-    const result = await resetAndRebuildHistoryForSingleProduct(item.productId);
+        console.log(`🔁 Rebuilding product history for: ${item.productId}`);
+        const result = await resetAndRebuildHistoryForSingleProduct(item.productId);
 
-    if (result.success) {
-      console.log(`✅ Success: ${result.message}`);
-    } else {
-      console.error(`❌ Failed to rebuild for product ${item.productId}:`, result.error);
+        if (result.success) {
+          console.log(`✅ Success: ${result.message}`);
+        } else {
+          console.error(`❌ Failed to rebuild for product ${item.productId}:`, result.error);
+        }
+      } catch (err) {
+        console.error(`🔥 Error processing item ${item.productId}:`, err.message);
+      }
     }
-  } catch (err) {
-    console.error(`🔥 Error processing item ${item.productId}:`, err.message);
-  }
-}
 
 
 
@@ -1198,22 +1200,39 @@ const getUserOrderStatement = async (req, res) => {
         .json({ success: false, message: "User ID is required" });
     }
 
-    // Fetch user details
-    const user = await authModel
+    let user;
+    let isVendor = false;
+
+    // ✅ Pehle authModel me check karo (normal user)
+    user = await authModel
       .findById(userId)
-      .select(
-        "name storeName ownerName phone email address city state zipCode"
-      );
+      .select("name storeName ownerName phone email address city state zipCode");
+
+    // ✅ Agar user null hai to vendorModel me check karo
+    if (!user) {
+      user = await vendorModel
+        .findById(userId)
+        .select("name storeName ownerName phone email address city state zipCode");
+
+      if (user) {
+        isVendor = true;
+      }
+    }
 
     if (!user) {
       return res
         .status(404)
-        .json({ success: false, message: "User not found" });
+        .json({ success: false, message: "User/Vendor not found" });
     }
 
-    // Building query for orders
-    // Building query for orders
-    const query = { store: userId };
+    // ✅ Query build
+    let query = {};
+    if (isVendor) {
+      query.vendorId = userId; // vendor ke liye
+    } else {
+      query.store = userId; // user ke liye
+    }
+
     if (paymentStatus !== "all") {
       if (paymentStatus === "pending") {
         query.paymentStatus = { $in: ["pending", "partial"] };
@@ -1222,7 +1241,7 @@ const getUserOrderStatement = async (req, res) => {
       }
     }
 
-    // Date range query
+    // ✅ Date filter
     if (startMonth || endMonth) {
       query.createdAt = {};
       if (startMonth) {
@@ -1236,22 +1255,24 @@ const getUserOrderStatement = async (req, res) => {
       }
     }
 
-    // Fetch orders based on the query
-    const orders = await orderModel.find(query).sort({ createdAt: 1 });
+    // ✅ Model choose
+    const modelToUse = isVendor ? purchaseModel : orderModel;
+
+    const orders = await modelToUse.find(query).sort({ createdAt: 1 });
 
     if (!orders.length) {
       return res.status(404).json({
         success: false,
-        message: "No orders found with applied filters",
+        message: "No records found with applied filters",
       });
     }
 
-    // Generate summary and calculate totals
+    // ✅ Summary + Totals
     const summary = {};
     let totalPaid = 0,
       totalPending = 0,
-      totalProductsOrdered = 0;
-    let allTotalAmount = 0;
+      totalProductsOrdered = 0,
+      allTotalAmount = 0;
 
     orders.forEach((order) => {
       const created = new Date(order.createdAt);
@@ -1273,25 +1294,23 @@ const getUserOrderStatement = async (req, res) => {
         ? order.items.reduce((sum, item) => sum + (item.quantity || 1), 0)
         : 0;
 
-      // Determine the payment amount based on the status
       let paymentAmount = 0;
       if (order.paymentStatus === "paid") {
-        paymentAmount = order.total; // If paid, the total amount is the payment amount
+        paymentAmount = order.totalAmount || order.total || 0;
       } else if (order.paymentStatus === "partial") {
-        paymentAmount = order.paymentAmount || 0; // Use the payment amount if partial
+        paymentAmount = order.paymentAmount || 0;
       }
 
       summary[monthKey].orders.push({
-        orderNumber: order.orderNumber,
+        orderNumber: order.orderNumber || order.purchaseOrderNumber,
         date: created.toISOString(),
-        amount: order.total,
+        amount: order.totalAmount || order.total || 0,
         paymentStatus: order.paymentStatus,
-        paymentAmount: paymentAmount, // Use the calculated payment amount
+        paymentAmount: paymentAmount,
         productCount: itemCount,
       });
 
-      // Calculate paid and balance directly from paymentAmount
-      const totalAmount = parseFloat(order.total) || 0;
+      const totalAmount = parseFloat(order.totalAmount || order.total || 0);
       const paid = parseFloat(order.paymentAmount) || 0;
       const pending = totalAmount - paid;
 
@@ -1299,17 +1318,16 @@ const getUserOrderStatement = async (req, res) => {
       summary[monthKey].totalPaid += paid;
       summary[monthKey].totalPending += pending;
       summary[monthKey].totalProducts += itemCount;
+
       allTotalAmount += totalAmount;
       totalPaid += paid;
       totalPending += pending;
       totalProductsOrdered += itemCount;
     });
 
-    // Send mail if required
+    // ✅ Mail send (optional)
     if (sendMail == 1) {
       try {
-        console.log("Sending statement via email...");
-
         const responsePDF = await generateStatementPDF({
           user: {
             name: user.ownerName || user.name,
@@ -1333,44 +1351,40 @@ const getUserOrderStatement = async (req, res) => {
           closingBalance: totalPending,
         });
 
-        // const customerEmail = "vikasmaheshwari6267@gmail.com" ;
         const customerEmail = user.email;
-        const subject = `Monthly Statement for ${
-          user.storeName
-        } - ${new Date().toLocaleString("en-US", {
-          month: "long",
-          year: "numeric",
-        })}`;
+        const subject = `Monthly Statement for ${user.storeName || (isVendor ? "Vendor" : "User")
+          } - ${new Date().toLocaleString("en-US", {
+            month: "long",
+            year: "numeric",
+          })}`;
+
         const message = `
           Dear ${user.ownerName || user.name},
 
-          Please find attached the monthly statement for your store "${
-            user.storeName
+          Please find attached the monthly statement for "${user.storeName || (isVendor ? "your vendor account" : "your store")
           }".
-          This statement includes order details and payment status for the selected period.
+          This statement includes details and payment status for the selected period.
 
           Total Amount: ${allTotalAmount}
           Total Paid: ${totalPaid}
           Total Pending: ${totalPending}
           Total Products Ordered: ${totalProductsOrdered}
 
-          If you have any questions or need further assistance, please reach out to us.
-
           Best Regards,
           Vali Produce
         `;
 
         await mailSender(customerEmail, subject, message, responsePDF);
-        console.log("Email sent successfully to:", customerEmail);
       } catch (err) {
         console.error("Error while sending email:", err);
       }
     }
 
-    // Sending response with order summary
+    // ✅ Final response
     res.status(200).json({
       success: true,
-      message: "Order statement generated successfully",
+      message: "Statement generated successfully",
+      type: isVendor ? "vendor" : "user",
       data: {
         user: {
           name: user.ownerName || user.name,
@@ -1395,10 +1409,12 @@ const getUserOrderStatement = async (req, res) => {
       },
     });
   } catch (err) {
-    console.error("Error generating user statement:", err);
+    console.error("Error generating statement:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
 
 // const updateShippingController = async (req, res) => {
 //   try {

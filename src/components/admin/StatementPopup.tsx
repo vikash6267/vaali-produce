@@ -1,80 +1,100 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getStatement } from "@/services2/operations/order"
-import { generateStatementPDF } from "@/utils/pdf/generate-statement-pdf"
-import { format, subMonths } from "date-fns"
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getStatement } from "@/services2/operations/order";
+import { generateStatementPDF } from "@/utils/pdf/generate-statement-pdf";
+import { format, subMonths } from "date-fns";
 
 interface StatementFilterPopupProps {
-  isOpen: boolean
-  onClose: () => void
-  userId: string
-  token: string
+  isOpen: boolean;
+  onClose: () => void;
+  userId: string;
+  token: string;
+  vendor: any;
 }
 
-export const StatementFilterPopup = ({ isOpen, onClose, userId, token }: StatementFilterPopupProps) => {
-  const [paymentStatus, setPaymentStatus] = useState("all")
-  const [monthOptions, setMonthOptions] = useState<string[]>([])
+export const StatementFilterPopup = ({
+  isOpen,
+  onClose,
+  userId,
+  token,
+  vendor,
+}: StatementFilterPopupProps) => {
+  const [paymentStatus, setPaymentStatus] = useState("all");
+  const [monthOptions, setMonthOptions] = useState<string[]>([]);
 
-  const [monthRangeType, setMonthRangeType] = useState<"all" | "range">("all")
-  const [startMonth, setStartMonth] = useState("")
-  const [endMonth, setEndMonth] = useState("")
+  const [monthRangeType, setMonthRangeType] = useState<"all" | "range">("all");
+  const [startMonth, setStartMonth] = useState("");
+  const [endMonth, setEndMonth] = useState("");
 
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
 
   // Generate last 24 months list
   useEffect(() => {
-    const months: string[] = []
-    const now = new Date()
+    const months: string[] = [];
+    const now = new Date();
     for (let i = 0; i < 24; i++) {
-      const date = subMonths(now, i)
-      months.push(format(date, "yyyy-MM"))
+      const date = subMonths(now, i);
+      months.push(format(date, "yyyy-MM"));
     }
-    setMonthOptions(months)
-    setStartMonth(format(now, "yyyy-MM"))
-    setEndMonth(format(now, "yyyy-MM"))
-  }, [])
+    setMonthOptions(months);
+    setStartMonth(format(now, "yyyy-MM"));
+    setEndMonth(format(now, "yyyy-MM"));
+  }, []);
 
-const handleDownload = async (sendMail: boolean = false) => {
-  try {
-    setIsGeneratingPDF(true)
+  const handleDownload = async (sendMail: boolean = false) => {
+    try {
+      setIsGeneratingPDF(true);
 
-    let url = `${userId}?paymentStatus=${paymentStatus}`
+      let url = `${userId}?paymentStatus=${paymentStatus}`;
 
-    if (monthRangeType === "range") {
-      if (startMonth) url += `&startMonth=${startMonth}`
-      if (endMonth) url += `&endMonth=${endMonth}`
+      if (monthRangeType === "range") {
+        if (startMonth) url += `&startMonth=${startMonth}`;
+        if (endMonth) url += `&endMonth=${endMonth}`;
+      }
+
+      if (sendMail) {
+        url += `&send=1`;
+      } else {
+        url += `&send=0`;
+      }
+
+      const response = await getStatement(url, token);
+      console.log(response);
+      if (response) {
+        await generateStatementPDF(response, vendor);
+        onClose();
+      }
+    } catch (error) {
+      console.error("Error downloading statement:", error);
+    } finally {
+      setIsGeneratingPDF(false);
     }
-
-    if (sendMail) {
-      url += `&send=1`
-    } else {
-      url += `&send=0`
-    }
-
-    const response = await getStatement(url, token)
-    console.log(response)
-    if (response) {
-      await generateStatementPDF(response)
-      onClose()
-    }
-  } catch (error) {
-    console.error("Error downloading statement:", error)
-  } finally {
-    setIsGeneratingPDF(false)
-  }
-}
-
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Download Statement</DialogTitle>
+          <DialogTitle className="text-xl font-semibold">
+            Download Statement
+          </DialogTitle>
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
@@ -96,7 +116,10 @@ const handleDownload = async (sendMail: boolean = false) => {
           {/* Month Range Type */}
           <div className="grid gap-2">
             <Label htmlFor="month-type">Month Range</Label>
-            <Select value={monthRangeType} onValueChange={(val) => setMonthRangeType(val as "all" | "range")}>
+            <Select
+              value={monthRangeType}
+              onValueChange={(val) => setMonthRangeType(val as "all" | "range")}
+            >
               <SelectTrigger id="month-type">
                 <SelectValue placeholder="Select month filter type" />
               </SelectTrigger>
@@ -151,15 +174,23 @@ const handleDownload = async (sendMail: boolean = false) => {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={()=>handleDownload(false)} disabled={isGeneratingPDF}>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={() => handleDownload(false)}
+            disabled={isGeneratingPDF}
+          >
             {isGeneratingPDF ? "Generating PDF..." : "Download"}
           </Button>
-          <Button onClick={()=>handleDownload(true)} disabled={isGeneratingPDF}>
+          <Button
+            onClick={() => handleDownload(true)}
+            disabled={isGeneratingPDF}
+          >
             {isGeneratingPDF ? "Generating PDF..." : "Send Mail & Download"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
-  )
-}
+  );
+};
