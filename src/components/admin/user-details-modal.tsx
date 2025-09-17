@@ -135,6 +135,8 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder, ve
     })
   }
 
+  console.log(orders,"orders")
+
   // Direct download without filtering
   const downloadStatement = async (id: string) => {
     try {
@@ -323,7 +325,13 @@ const UserDetailsModal = ({ isOpen, onClose, userData, fetchUserDetailsOrder, ve
                                 <div className="font-medium">{order.orderNumber}</div>
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <Calendar className="h-3 w-3" />
-                                  {formatDate(order.createdAt)}
+                                    {new Date(order.purchaseDate || order.createdAt).toLocaleString('en-US', {
+    timeZone: 'America/New_York',  // USA Eastern Time
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    
+  })}
                                 </div>
                               </div>
                               <div className="flex items-center gap-3 mt-2 sm:mt-0">

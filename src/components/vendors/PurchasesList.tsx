@@ -351,7 +351,15 @@ const PurchasesList = () => {
                     >
                       {purchase.vendor.name || purchase.vendor.contactName}
                     </TableCell>
-                    <TableCell>{new Date(purchase.createdAt).toLocaleDateString()}</TableCell>
+<TableCell>
+  {new Date(purchase.purchaseDate || purchase.createdAt).toLocaleString('en-US', {
+    timeZone: 'America/New_York',  // USA Eastern Time
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    
+  })}
+</TableCell>
                     <TableCell>{formatCurrency(purchase.totalAmount)}</TableCell>
                     {/* <TableCell>
                       {getStatusBadge(purchase.status)}
