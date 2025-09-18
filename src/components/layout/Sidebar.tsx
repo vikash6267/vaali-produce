@@ -18,6 +18,7 @@ import {
   User2Icon,
   LucideLayoutDashboard,
   LocateIcon,
+  CreditCard,
 } from "lucide-react";
 import type { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
@@ -73,6 +74,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       name: "Vendors",
       path: "/vendors",
       icon: <User2Icon size={18} />,
+    },
+    {
+      name: "Accounting",
+      path: "/accounting",
+      icon: <CreditCard size={18} />, // 18px size
     },
     {
       name: "Map",

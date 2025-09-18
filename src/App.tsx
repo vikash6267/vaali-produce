@@ -47,6 +47,7 @@ import VendorPayment from "./pages/VendorPayment";
 import EditPurchaseOrder from "./pages/EditPurchaseOrder";
 import ViewPurchaseOrder from "./pages/ViewPurchase";
 import Map from "./components/admin/Map";
+import Accounting from "./pages/Accounting";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -345,6 +346,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <WebsiteGenerator />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/accounting"
+          element={
+            <PrivateRoute>
+              <Accounting />
             </PrivateRoute>
           }
         />
