@@ -39,7 +39,7 @@ const AccountingStoreTable = ({ loading, groups }: any) => {
     link.click();
     document.body.removeChild(link);
   };
-
+console.log(groups,"groups")
   return (
     <div className="p-4 overflow-x-auto bg-white rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-4">
@@ -67,6 +67,7 @@ const AccountingStoreTable = ({ loading, groups }: any) => {
                 <th className="px-6 py-4">Total Spent</th>
                 <th className="px-6 py-4">Total Paid</th>
                 <th className="px-6 py-4">Balance Due</th>
+                <th className="px-6 py-4">Last Pay Date</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -93,6 +94,20 @@ const AccountingStoreTable = ({ loading, groups }: any) => {
                       <td className="px-6 py-4">
                         ${details?.balanceDue?.toFixed(2) ?? "0.00"}
                       </td>
+                    <td className="px-6 py-4">
+  {details?.lastPayment?.payment?.paymentDate ? (
+    new Date(details.lastPayment.payment.paymentDate).toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    })
+  ) : (
+    "N/A"
+  )}
+</td>
+
+
                     </tr>
                   );
                 })

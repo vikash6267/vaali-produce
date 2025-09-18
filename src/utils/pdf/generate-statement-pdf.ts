@@ -57,7 +57,7 @@ export const generateStatementPDF = async (
     const MARGIN = 10;
     const PAGE_WIDTH = doc.internal.pageSize.getWidth();
     const PAGE_HEIGHT = doc.internal.pageSize.getHeight();
-    const usTimeZone = "America/New_York";
+    const usTimeZone = "UTC";
     const nowUS = toZonedTime(new Date(), usTimeZone);
     const agingDate = format(nowUS, "M/d/yyyy");
 

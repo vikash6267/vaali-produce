@@ -192,7 +192,7 @@ const UserDetailsModal = ({
     try {
       setIsGeneratingPDF(true);
       const response = await getStatement(id, token);
-
+console.log(response,'response')
       if (response) {
         await generateStatementPDF(response, vendor);
       }
@@ -404,7 +404,7 @@ const UserDetailsModal = ({
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                                   <Calendar className="h-3 w-3" />
                                     {new Date(order.purchaseDate || order.createdAt).toLocaleString('en-US', {
-    timeZone: 'America/New_York',  // USA Eastern Time
+    timeZone: 'UTC',  // USA Eastern Time
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

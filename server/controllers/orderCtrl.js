@@ -835,6 +835,34 @@ const userDetailsWithOrder = async (req, res) => {
               },
             },
           },
+          lastPayment: {
+            $first: {
+              $map: {
+                input: {
+                  $slice: [
+                    {
+                      $sortArray: {
+                        input: {
+                          $reduce: {
+                            input: "$orders",
+                            initialValue: [],
+                            in: { $concatArrays: ["$$value", ["$$this"]] },
+                          },
+                        },
+                        sortBy: { "paymentDetails.paymentDate": -1 },
+                      },
+                    },
+                    1,
+                  ],
+                },
+                as: "order",
+                in: {
+                  orderId: "$$order.orderId",
+                  payment: "$$order.paymentDetails",
+                },
+              },
+            },
+          },
         },
       },
       {
@@ -844,6 +872,7 @@ const userDetailsWithOrder = async (req, res) => {
           totalSpent: 1,
           totalPay: 1,
           balanceDue: 1,
+          lastPayment: 1,
           orders: 1,
           user: {
             _id: "$_id",
@@ -889,6 +918,7 @@ const userDetailsWithOrder = async (req, res) => {
     });
   }
 };
+
 
 const updatePaymentDetails = async (req, res) => {
   const { orderId } = req.params;
@@ -1242,18 +1272,37 @@ const getUserOrderStatement = async (req, res) => {
     }
 
     // ✅ Date filter
-    if (startMonth || endMonth) {
-      query.createdAt = {};
-      if (startMonth) {
-        const [year, month] = startMonth.split("-");
-        query.createdAt.$gte = new Date(`${year}-${month}-01`);
-      }
-      if (endMonth) {
-        const [year, month] = endMonth.split("-");
-        const endDate = new Date(year, Number(month), 0);
-        query.createdAt.$lte = endDate;
-      }
+   // ✅ Date filter
+if (startMonth || endMonth) {
+  if (isVendor) {
+    if (!query.purchaseDate) query.purchaseDate = {};   // initialize karo
+  } else {
+    if (!query.createdAt) query.createdAt = {};         // initialize karo
+  }
+
+  if (startMonth) {
+    const [year, month] = startMonth.split("-");
+    const startDate = new Date(`${year}-${month}-01`);
+
+    if (isVendor) {
+      query.purchaseDate.$gte = startDate;
+    } else {
+      query.createdAt.$gte = startDate;
     }
+  }
+
+  if (endMonth) {
+    const [year, month] = endMonth.split("-");
+    const endDate = new Date(year, Number(month), 0);
+
+    if (isVendor) {
+      query.purchaseDate.$lte = endDate;
+    } else {
+      query.createdAt.$lte = endDate;
+    }
+  }
+}
+
 
     // ✅ Model choose
     const modelToUse = isVendor ? purchaseModel : orderModel;
@@ -1275,7 +1324,7 @@ const getUserOrderStatement = async (req, res) => {
       allTotalAmount = 0;
 
     orders.forEach((order) => {
-      const created = new Date(order.createdAt);
+      const created = isVendor ? new Date(order.purchaseDate) : new Date(order.createdAt);
       const year = created.getFullYear();
       const month = (created.getMonth() + 1).toString().padStart(2, "0");
       const monthKey = `${year}-${month}`;
