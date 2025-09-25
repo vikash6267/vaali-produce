@@ -1,6 +1,13 @@
-import React from "react";
+import React, { useState } from "react";
+import { userWithOrderDetails } from "@/services2/operations/auth";
+import { useToast } from "@/hooks/use-toast";
+import UserDetailsModal from "./user-details-modal";
 
 const AccountingStoreTable = ({ loading, groups }: any) => {
+  const [selectedUserData, setSelectedUserData] = useState(null);
+  const [userDetailsOpen, setUserDetailsOpen] = useState(false);
+  const { toast } = useToast();
+
   // CSV Export Function
   const handleDownloadCSV = () => {
     if (!groups || groups.length === 0) return;
@@ -39,7 +46,22 @@ const AccountingStoreTable = ({ loading, groups }: any) => {
     link.click();
     document.body.removeChild(link);
   };
-console.log(groups,"groups")
+
+  const fetchUserDetailsOrder = async (id: any) => {
+    try {
+      const res = await userWithOrderDetails(id);
+      console.log(res);
+      setSelectedUserData(res);
+      setUserDetailsOpen(true);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch user details",
+        variant: "destructive",
+      });
+    }
+  };
+  console.log(groups, "groups");
   return (
     <div className="p-4 overflow-x-auto bg-white rounded-lg shadow-sm">
       <div className="flex justify-between items-center mb-4">
@@ -77,8 +99,11 @@ console.log(groups,"groups")
 
                   return (
                     <tr
+                      onClick={() =>
+                        fetchUserDetailsOrder(group?.id || group?._id)
+                      }
                       key={group?.id || group?._id}
-                      className="hover:bg-gray-50 transition-colors"
+                      className="hover:bg-gray-50 cursor-pointer transition-colors"
                     >
                       <td className="px-6 py-4 font-medium">
                         {group?.storeName ?? "N/A"}
@@ -94,20 +119,18 @@ console.log(groups,"groups")
                       <td className="px-6 py-4">
                         ${details?.balanceDue?.toFixed(2) ?? "0.00"}
                       </td>
-                    <td className="px-6 py-4">
-  {details?.lastPayment?.payment?.paymentDate ? (
-    new Date(details.lastPayment.payment.paymentDate).toLocaleDateString("en-US", {
-      timeZone: "UTC",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    })
-  ) : (
-    "N/A"
-  )}
-</td>
-
-
+                      <td className="px-6 py-4">
+                        {details?.lastPayment?.payment?.paymentDate
+                          ? new Date(
+                              details.lastPayment.payment.paymentDate
+                            ).toLocaleDateString("en-US", {
+                              timeZone: "UTC",
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                            })
+                          : "N/A"}
+                      </td>
                     </tr>
                   );
                 })
@@ -125,6 +148,12 @@ console.log(groups,"groups")
           </table>
         </div>
       )}
+      <UserDetailsModal
+        isOpen={userDetailsOpen}
+        onClose={() => setUserDetailsOpen(false)}
+        userData={selectedUserData}
+        fetchUserDetailsOrder={fetchUserDetailsOrder}
+      />
     </div>
   );
 };
