@@ -19,6 +19,7 @@ import { createPurchaseOrderAPI } from "@/services2/operations/purchaseOrder"
 import { useSelector } from "react-redux"
 import type { RootState } from "@/redux/store"
 import Select2, { GroupBase, Options } from "react-select";
+import Swal from "sweetalert2";
 
 // Mock vendor pricing data
 const mockVendorPricing = [
@@ -31,6 +32,7 @@ const mockVendorPricing = [
 
 interface PurchaseItemForm {
   productId: string
+  productName?: string
   quantity: number
   unitPrice: number
   totalPrice: number
@@ -55,7 +57,7 @@ const NewPurchaseForm = () => {
   const [deliveryDate, setDeliveryDate] = useState("")
   const [notes, setNotes] = useState("")
   const [items, setItems] = useState<PurchaseItemForm[]>([
-    { productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 },
+    { productName: "",productId: "", quantity: 0, unitPrice: 0, totalPrice: 0, lb: 0, totalWeight: 0 },
   ])
 
   const [totalAmount, setTotalAmount] = useState(0)
@@ -157,9 +159,12 @@ const NewPurchaseForm = () => {
     }
 
     const updatedItems = [...items]
+    console.log(product)
     updatedItems[index] = {
       ...updatedItems[index],
       productId,
+          productName: product.name, // ✅ Store the product name here
+
       unitPrice: price,
       totalPrice: updatedItems[index].quantity * price,
       totalWeight: updatedItems[index].quantity * updatedItems[index].lb,
@@ -244,41 +249,72 @@ const NewPurchaseForm = () => {
     setItems(updatedItems)
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault()
 
-    if (!vendorId) {
-      toast({
-        variant: "destructive",
-        title: "Missing vendor",
-        description: "Please select a vendor for this purchase.",
-      })
-      return
-    }
-
-    const invalidItems = items.filter((item) => !item.productId || item.quantity <= 0)
-    if (invalidItems.length > 0) {
-      toast({
-        variant: "destructive",
-        title: "Invalid items",
-        description: "Please ensure all items have a product selected and a quantity greater than zero.",
-      })
-      return
-    }
-
-    const payload = {
-      vendorId,
-      purchaseOrderNumber,
-      purchaseDate,
-      deliveryDate,
-      notes,
-      items,
-      totalAmount,
-    }
-    await createPurchaseOrderAPI(payload, token)
-
-    navigate("/vendors")
+  if (!vendorId) {
+    toast({
+      variant: "destructive",
+      title: "Missing vendor",
+      description: "Please select a vendor for this purchase.",
+    })
+    return
   }
+
+  const invalidItems = items.filter((item) => !item.productId || item.quantity <= 0)
+  if (invalidItems.length > 0) {
+    toast({
+      variant: "destructive",
+      title: "Invalid items",
+      description: "Please ensure all items have a product selected and a quantity greater than zero.",
+    })
+    return
+  }
+
+  // ✅ Show confirmation popup
+  const result = await Swal.fire({
+    title: "Save Purchase Order",
+    text: "Do you want to just save it, or save and send an email?",
+    icon: "question",
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonText: "Save Only",
+    denyButtonText: "Save & Send Mail",
+    cancelButtonText: "Cancel",
+  })
+
+  if (result.isDismissed) return // User cancelled
+
+  // ✅ Set mail param based on user choice
+  const mail = result.isDenied ? 1 : 0
+
+  const payload = {
+    vendorId,
+    purchaseOrderNumber,
+    purchaseDate,
+    deliveryDate,
+    notes,
+    items,
+    totalAmount,
+    mail, // ✅ Add mail param here
+  }
+
+  try {
+    await createPurchaseOrderAPI(payload, token)
+    toast({
+      title: "Success",
+      description: mail === 1 ? "Order saved and email sent!" : "Order saved successfully.",
+    })
+    navigate("/vendors")
+  } catch (err) {
+    toast({
+      variant: "destructive",
+      title: "Error",
+      description: "Something went wrong while creating the purchase order.",
+    })
+  }
+}
+
 
   const getProductUnitType = (productId: string) => {
     const product = products.find((p) => p.id === productId)

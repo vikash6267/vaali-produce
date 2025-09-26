@@ -2,6 +2,36 @@ const PurchaseOrder = require("../models/purchaseModel");
 const Product = require("../models/productModel");
 const Vendor = require('../models/vendorModel'); // adjust path
 const { default: mongoose } = require("mongoose");
+const nodemailer = require("nodemailer");
+const { generatePurchaseOrderPDF } = require("../utils/generatePurchaseOrderPDF");
+
+const sendOrderMail = async (to, subject, text, html, attachments = []) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      host: process.env.MAIL_HOST,
+      auth: {
+        user: process.env.MAIL_USER,
+        pass: process.env.MAIL_PASS,
+      },
+      secure: false,
+    });
+
+    const mailOptions = {
+      from: `"Vali Produce" <${process.env.MAIL_USER}>`,
+      to,
+      subject,
+      text,
+      html,
+      attachments, // 📎 <- add this
+    };
+
+    const info = await transporter.sendMail(mailOptions);
+    console.log("✅ Purchase order email sent:", info.response);
+  } catch (error) {
+    console.error("❌ Failed to send purchase order email:", error);
+  }
+};
+
 
 exports.createPurchaseOrder = async (req, res) => {
   try {
@@ -12,9 +42,13 @@ exports.createPurchaseOrder = async (req, res) => {
       deliveryDate,
       notes,
       items,
-      totalAmount
+      totalAmount,
+      mail
     } = req.body;
 
+    console.log(mail, "items");
+
+    // ✅ Save order
     const newOrder = new PurchaseOrder({
       vendorId,
       purchaseOrderNumber,
@@ -22,16 +56,102 @@ exports.createPurchaseOrder = async (req, res) => {
       deliveryDate,
       notes,
       items,
-      totalAmount
+      totalAmount,
     });
+    // await newOrder.save();
 
-    await newOrder.save();
+    // ✅ Get vendor details
+    const vendor =
+      (await Vendor.findById(vendorId).select("")) ||
+      (await authModel.findById(vendorId).select(""));
+console.log(vendor,"VENDOR DETAILS")
+    if (vendor && vendor.email && mail === 1 ) {
+      const orderDateFormatted = new Date(purchaseDate).toLocaleDateString("en-US");
+      const deliveryDateFormatted = new Date(deliveryDate).toLocaleDateString("en-US");
 
-    res.status(201).json({ success: true, message: 'Purchase order created successfully.', data: newOrder });
+      // 📊 Build HTML table
+      const itemsTable = items
+        .map(
+          (item, idx) => `
+            <tr>
+              <td style="padding:6px;border:1px solid #ccc;text-align:center;">${idx + 1}</td>
+              <td style="padding:6px;border:1px solid #ccc;">${item.productName}</td>
+              <td style="padding:6px;border:1px solid #ccc;text-align:center;">${item.quantity}</td>
+            </tr>`
+        )
+        .join("");
+
+      const emailSubject = `🧾 New Purchase Order: ${purchaseOrderNumber}`;
+      const emailText = `Hello ${vendor.name || "Vendor"}, a new purchase order (${purchaseOrderNumber}) has been created.`;
+      const emailHtml = `
+        <div style="font-family:Arial, sans-serif; line-height:1.6; color:#333;">
+          <h2 style="color:#2d7df4;">Purchase Order Confirmation</h2>
+          <p>Hello <b>${vendor.name || "Vendor"}</b>,</p>
+          <p>A new purchase order has been created. Details are below:</p>
+          <table style="width:100%;max-width:600px;margin-top:10px;">
+            <tr><td><b>Purchase Order #:</b></td><td>${purchaseOrderNumber}</td></tr>
+            <tr><td><b>Purchase Date:</b></td><td>${orderDateFormatted}</td></tr>
+            <tr><td><b>Delivery Date:</b></td><td>${deliveryDateFormatted}</td></tr>
+            <tr><td><b>Notes:</b></td><td>${notes || "-"}</td></tr>
+          </table>
+
+          <h3 style="margin-top:20px;">Order Items</h3>
+          <table style="width:100%;border-collapse:collapse;margin-top:5px;">
+            <thead>
+              <tr style="background:#f4f4f4;">
+                <th style="padding:6px;border:1px solid #ccc;">#</th>
+                <th style="padding:6px;border:1px solid #ccc;">Item</th>
+                <th style="padding:6px;border:1px solid #ccc;">Quantity</th>
+               
+              </tr>
+            </thead>
+            <tbody>${itemsTable}</tbody>
+          </table>
+
+        
+
+          <p style="margin-top:20px;">Thank you,<br/>Vali Produce Team</p>
+        </div>
+      `;
+
+      // 📄 Generate PDF with only name + quantity
+      const pdfBase64 = await generatePurchaseOrderPDF({
+        purchaseOrderNumber,
+        purchaseDate,
+        deliveryDate,
+        items: items.map(i => ({
+          productName: i.productName,
+          quantity: i.quantity,
+        })),
+        vendor,
+      });
+
+      // 📎 Attach PDF
+      const attachments = [
+        {
+          filename: `Purchase_Order_${purchaseOrderNumber}.pdf`,
+          content: Buffer.from(pdfBase64, "base64"),
+          contentType: "application/pdf",
+        },
+      ];
+
+      // 📩 Send Email
+      await sendOrderMail(vendor?.email, emailSubject, emailText, emailHtml, attachments);
+    } else {
+      console.warn("⚠️ No vendor email found, skipping email.");
+    }
+
+    res.status(201).json({
+      success: true,
+      message: "Purchase order created & emailed with PDF successfully.",
+      data: newOrder,
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Internal server error', error });
+    console.error("❌ Error creating purchase order:", error);
+    res.status(500).json({ success: false, message: "Internal server error", error });
   }
 };
+
 
 
 // exports.createPurchaseOrder = async (req, res) => {
