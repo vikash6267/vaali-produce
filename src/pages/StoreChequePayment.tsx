@@ -151,7 +151,7 @@ const StoreChequePayment = () => {
                               onClick={() => openAddChequeModal(store.id)}
                               className="px-3 py-1 bg-primary text-white rounded-md"
                             >
-                              Add Cheque
+                              Add Payment
                             </button>
                             <button
                               onClick={() => openDisplayChequeModal(store.id)}
