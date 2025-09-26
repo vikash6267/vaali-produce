@@ -17,11 +17,11 @@ export const endpoints = {
   UPDATE_PASSWORD_API : BASE_URL + "/auth/update-password",
   USER_WITH_ORDER :BASE_URL + "/order/user",
   VENDOR_WITH_ORDER :BASE_URL + "/purchase-orders/user",
-  
-
-
-
+  ADD_CHEQUES_API :BASE_URL + "/auth/addcheques",
+  EDIT_CHEQUE_API :BASE_URL + "/auth/editscheque",
+  GET_CHEQUE_API :BASE_URL + "/auth/cheques",
 }
+
 
 
 export const category = {

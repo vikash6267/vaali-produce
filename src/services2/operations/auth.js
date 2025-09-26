@@ -16,7 +16,10 @@ const {
   UPDATE_PASSWORD_API,
   USER_WITH_ORDER,
   DELETE_STORE_API,
-  VENDOR_WITH_ORDER
+  VENDOR_WITH_ORDER,
+  ADD_CHEQUES_API,
+  EDIT_CHEQUE_API,
+  GET_CHEQUE_API
 } = endpoints;
 
 export async function login(email, password, navigate, dispatch) {
@@ -455,3 +458,59 @@ export function fetchMyProfile(token,navigate) {
 }
 
 
+
+
+export const addChequesAPI = async (id, formData) => {
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${ADD_CHEQUES_API}/${id}`,
+      formData
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    toast.success("Cheque added successfully!");
+    return response?.data;
+  } catch (error) {
+    console.error("ADD CHEQUES API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to add cheque!");
+    return [];
+  }
+};
+
+
+export const editChequeAPI = async (id, chequeId, formData) => {
+  try {
+    const response = await apiConnector("PUT", `${EDIT_CHEQUE_API}/${id}/${chequeId}`, formData);
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    toast.success("Cheque updated successfully!");
+    return response?.data;
+  } catch (error) {
+    console.error("EDIT CHEQUE API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to update cheque!");
+    return [];
+  }
+};
+
+export const getChequesByStoreAPI = async (id) => {
+  try {
+    const response = await apiConnector("GET", `${GET_CHEQUE_API}/${id}`);
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    return response?.data?.cheques || [];
+  } catch (error) {
+    console.error("GET CHEQUES API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to fetch cheques!");
+    return [];
+  }
+};

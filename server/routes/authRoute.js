@@ -1,5 +1,5 @@
 const express = require("express")
-const { registerCtrl, loginCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl, getUserByEmailCtrl, fetchMyProfile, changePasswordCtrl, deleteStoreIfNoOrders } = require("../controllers/authCtrl")
+const { registerCtrl, loginCtrl, updatePermitionCtrl, addMemberCtrl, getAllMemberCtrl, updateStoreCtrl, getAllStoreCtrl, getUserByEmailCtrl, fetchMyProfile, changePasswordCtrl, deleteStoreIfNoOrders, addChequeToStoreCtrl, editChequeCtrl, getChequesByStoreCtrl } = require("../controllers/authCtrl")
 const { auth } = require("../middleware/auth")
 const router = express.Router()
 
@@ -16,6 +16,9 @@ router.delete("/delete-store/:id", deleteStoreIfNoOrders)
 
 router.put("/update-password",auth, changePasswordCtrl)
 router.get("/fetchMyProfile",auth,fetchMyProfile )
+router.post("/addcheques/:id", addChequeToStoreCtrl )
+router.put("/editscheque/:id/:chequeId", editChequeCtrl);
+router.get("/cheques/:id", getChequesByStoreCtrl);
 
 
 

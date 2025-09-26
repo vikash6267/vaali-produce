@@ -48,6 +48,7 @@ import EditPurchaseOrder from "./pages/EditPurchaseOrder";
 import ViewPurchaseOrder from "./pages/ViewPurchase";
 import Map from "./components/admin/Map";
 import Accounting from "./pages/Accounting";
+import StoreChequePayment from "./pages/StoreChequePayment";
 
 export default function App() {
   const [loading, setLoading] = useState(true);
@@ -372,6 +373,14 @@ export default function App() {
           element={
             <PrivateRoute>
               <Map />
+            </PrivateRoute>
+          }
+        />
+        <Route
+          path="/store-cheque-payment"
+          element={
+            <PrivateRoute>
+              <StoreChequePayment />
             </PrivateRoute>
           }
         />

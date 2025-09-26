@@ -449,6 +449,141 @@ console.log(storeId)
 };
 
 
+const addChequeToStoreCtrl = async (req, res) => {
+  try {
+    const { id } = req.params; // store id
+    const { images, amount, date, notes, chequeNumber } = req.body;
+if (!images) return res.status(400).json({ success: false, message: "Images are required" });
+    if (!amount) return res.status(400).json({ success: false, message: "Amount is required" });
+    if (!chequeNumber) return res.status(400).json({ success: false, message: "Cheque number is required" });
+    if (!notes) return res.status(400).json({ success: false, message: "Notes are required" });
+
+    const imagesArray = JSON.parse(images);
+
+    // Fetch the user first
+    const user = await authModel.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if chequeNumber already exists
+    const chequeExists = user.cheques.some(
+      (c) => c.chequeNumber === chequeNumber
+    );
+
+    if (chequeExists) {
+      return res.status(400).json({
+        success: false,
+        message: `Cheque number "${chequeNumber}" already exists for this store`,
+      });
+    }
+
+    // Create new cheque
+    const chequeData = {
+      images: imagesArray,
+      amount,
+      date: date ? new Date(date) : new Date(),
+      notes,
+      chequeNumber,
+    };
+
+    user.cheques.push(chequeData);
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Cheque added successfully",
+      user,
+    });
+  } catch (error) {
+    console.error("Error adding cheque:", error);
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+const editChequeCtrl = async (req, res) => {
+  try {
+    const { id, chequeId } = req.params; // user id and cheque id
+    const { images, amount, date, notes, chequeNumber } = req.body;
+if (!images) return res.status(400).json({ success: false, message: "Images are required" });
+    if (!amount) return res.status(400).json({ success: false, message: "Amount is required" });
+    if (!chequeNumber) return res.status(400).json({ success: false, message: "Cheque number is required" });
+    if (!notes) return res.status(400).json({ success: false, message: "Notes are required" });
+
+    const imagesArray = JSON.parse(images);
+
+    // Fetch the user first
+    const user = await authModel.findById(id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    // Check if chequeNumber already exists in other cheques
+    const chequeExists = user.cheques.some(
+      (ch) => ch.chequeNumber === chequeNumber && ch._id.toString() !== chequeId
+    );
+    if (chequeExists) {
+      return res.status(400).json({ success: false, message: "Cheque number must be unique" });
+    }
+
+    // Update the cheque
+    const updatedUser = await authModel.findOneAndUpdate(
+      { _id: id, "cheques._id": chequeId },
+      {
+        $set: {
+          "cheques.$.images": imagesArray,
+          "cheques.$.amount": amount,
+          "cheques.$.date": date ? new Date(date) : new Date(),
+          "cheques.$.notes": notes,
+          "cheques.$.chequeNumber": chequeNumber,
+        },
+      },
+      { new: true }
+    );
+
+    if (!updatedUser) {
+      return res.status(404).json({ success: false, message: "Cheque not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Cheque updated successfully",
+      user: updatedUser,
+    });
+  } catch (error) {
+    console.error("Error updating cheque:", error);
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+
+
+const getChequesByStoreCtrl = async (req, res) => {
+  try {
+    const { id } = req.params; // id से store fetch होगा
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "Store ID is required" });
+    }
+
+    const store = await authModel.findById(id).select("cheques");
+
+    if (!store) {
+      return res.status(404).json({ success: false, message: "Store not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      cheques: store.cheques || [],
+    });
+  } catch (error) {
+    console.error("Error fetching cheques:", error);
+    res.status(500).json({ success: false, message: "Server Error", error });
+  }
+};
+
+
 module.exports = {
   registerCtrl,
   loginCtrl,
@@ -460,5 +595,8 @@ module.exports = {
   getAllStoreCtrl,
   fetchMyProfile,
   changePasswordCtrl,
-  deleteStoreIfNoOrders
+  deleteStoreIfNoOrders,
+  addChequeToStoreCtrl,
+  editChequeCtrl,
+  getChequesByStoreCtrl
 };

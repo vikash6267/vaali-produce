@@ -81,6 +81,11 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
       icon: <CreditCard size={18} />, // 18px size
     },
     {
+      name: "Store Cheque Payment",
+      path: "/store-cheque-payment",
+      icon: <CreditCard size={18} />, // 18px size
+    },
+    {
       name: "Map",
       path: "/map",
       icon: <LocateIcon size={18} />,
