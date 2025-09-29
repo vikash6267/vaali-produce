@@ -351,7 +351,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
      const newQty = quantities[index];
   const orderId = productOrderData.buyers[index].orderId;
   const productId = productOrderData?.productId;
-
+if (newQty < 1) {
+    toast.error("❌ Quantity must be at least 1");
+    return;
+  }
   const updatedItem = await updateBuyerQuantityAPI({ orderId, productId, quantity: newQty }, token);
   console.log(newQty,orderId,productId)
   fetchProducts()
