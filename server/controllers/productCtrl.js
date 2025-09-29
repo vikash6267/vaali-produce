@@ -1272,16 +1272,16 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
     const currentDay = today.getDay(); // 0 (Sunday) to 6 (Saturday)
 
     // If today is Monday (1), return empty data
-    if (currentDay === 1) {
-      return res.status(200).json({
-        success: true,
-        productId,
-        productTitle: product.name,
-        productImage: product.image || null,
-        totalOrdersThisWeek: 0,
-        buyers: []
-      });
-    }
+    // if (currentDay === 1) {
+    //   return res.status(200).json({
+    //     success: true,
+    //     productId,
+    //     productTitle: product.name,
+    //     productImage: product.image || null,
+    //     totalOrdersThisWeek: 0,
+    //     buyers: []
+    //   });
+    // }
 
     // Fetch matching orders
     const orders = await Order.find({
@@ -1310,7 +1310,8 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
           buyers.push({
             name: buyerName,
             quantity: item.quantity,
-            orderDate: order.createdAt
+            orderDate: order.createdAt,
+            _id: order._id
           });
         }
       });
