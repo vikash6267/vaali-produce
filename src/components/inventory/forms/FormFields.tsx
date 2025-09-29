@@ -133,7 +133,7 @@ export const SelectField = ({
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              {options.map((option) => {
+              {options?.map((option) => {
                 // Ensure we never pass an empty string as value
                 const safeValue = isUnit
                   ? option

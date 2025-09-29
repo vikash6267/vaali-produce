@@ -24,8 +24,8 @@ function CategoriesManagement({ onclose, isopen }) {
     try {
     const res = await dispatch(getAllCategoriesAPI());
       console.log(res)
-      if (res?.success) {
-        setCategories(res.categories || []);
+      if (res) {
+        setCategories(res || []);
       }
     } catch (error) {
       console.error("Error fetching categories:", error);

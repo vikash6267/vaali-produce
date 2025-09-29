@@ -9,27 +9,26 @@ const { GET_CATEGORIES, CREATE_CATEGORY, UPDATE_CATEGORY, DELETE_CATEGORY } = ca
  * 📥 Get all categories
  */
 export const getAllCategoriesAPI = () => {
-  return async (dispatch) => {
-    dispatch(setLoading(true));
-    try {
-      const response = await apiConnector("GET", GET_CATEGORIES);
+    return async (dispatch) => {
+        try {
+            const response = await apiConnector("GET", GET_CATEGORIES)
 
-      if (!response?.data?.success) {
-        throw new Error(response?.data?.message || "Failed to fetch categories!");
-      }
+            // console.log("Category API RESPONSE:", response);
 
-      return {
-        success: true,
-        categories: response.data.categories || [],
-      };
-    } catch (error) {
-      console.error("GET CATEGORIES ERROR:", error);
-      toast.error(error?.response?.data?.message || "Failed to get categories!");
-      return { success: false, categories: [] };
-    } finally {
-      dispatch(setLoading(false));
-    }
-  };
+            if (!response?.data?.success) {
+                throw new Error(response?.data?.message || "Something went wrong!");
+            }
+
+            return response?.data?.categories || [];
+        } catch (error) {
+            console.error("CATEGORY API ERROR:", error);
+            toast.error(error?.response?.data?.message || "Failed to get category!");
+            return [];
+        } finally {
+            dispatch(setLoading(false));
+            // toast.dismiss(toastId);
+        }
+    };
 };
 
 /**
