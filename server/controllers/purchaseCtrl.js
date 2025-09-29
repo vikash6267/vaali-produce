@@ -58,7 +58,7 @@ exports.createPurchaseOrder = async (req, res) => {
       items,
       totalAmount,
     });
-    // await newOrder.save();
+    await newOrder.save();
 
     // ✅ Get vendor details
     const vendor =
