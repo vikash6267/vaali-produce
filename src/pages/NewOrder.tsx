@@ -159,13 +159,14 @@ const NewOrder = () => {
 
     console.log(order);
 
-    await createOrderAPI(order, token);
+   const res = await createOrderAPI(order, token);
 
-    toast({
-      title: "Order Created",
-      description: `Order ${data.orderId} has been created successfully`,
-    });
-    navigate("/admin/orders");
+   
+if(res){
+  console.log("PROCEESD")
+  navigate("/admin/orders");
+}
+    console.log(res)
   };
 
   const handleCancel = () => {

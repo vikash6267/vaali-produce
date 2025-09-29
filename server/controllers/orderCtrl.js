@@ -74,6 +74,8 @@ const createOrderCtrl = async (req, res) => {
 
     console.log(createdAt);
 
+
+
     if (!items || items.length === 0) {
       return res.status(400).json({ message: "Order items are required" });
     }
@@ -86,6 +88,51 @@ const createOrderCtrl = async (req, res) => {
         .status(400)
         .json({ message: "Total amount must be greater than zero" });
     }
+
+
+
+
+    // --- STEP 1: Check stock for all items using overall remaining ---
+    const insufficientStock = [];
+
+    for (const item of items) {
+      const { productId, quantity, pricingType } = item;
+      if (!productId || quantity <= 0) continue;
+
+      const product = await Product.findById(productId);
+      if (!product) {
+        insufficientStock.push({ productId, message: "Product not found" });
+        continue;
+      }
+
+      // Calculate overall remaining
+      const trashBox = product.quantityTrash?.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0) || 0;
+      const trashUnit = product.quantityTrash?.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0) || 0;
+
+      const totalRemaining = Math.max(0, (product.totalPurchase || 0) - (product.totalSell || 0) - trashBox + (product.manuallyAddBox?.quantity || 0));
+      const unitRemaining = Math.max(0, (product.unitPurchase || 0) - (product.unitSell || 0) - trashUnit + (product.manuallyAddUnit?.quantity || 0));
+
+      if ((pricingType === "box" && quantity > totalRemaining) || (pricingType === "unit" && quantity > unitRemaining)) {
+        insufficientStock.push({
+          productId,
+          name: product.name,
+          available: pricingType === "box" ? totalRemaining : unitRemaining,
+          requested: quantity,
+          type: pricingType,
+        });
+      }
+    }
+
+    // --- STEP 2: If any item exceeds stock, block order ---
+    if (insufficientStock.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Insufficient stock for some items",
+        insufficientStock,
+      });
+    }
+
+    
 
     const generateOrderNumber = () => {
       const randomNumber = Math.floor(100000 + Math.random() * 900000); // Generates a 6-digit random number

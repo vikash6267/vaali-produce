@@ -23,33 +23,148 @@ const { CREATE_PRODUCT,
 } = order
 
 
+import Swal from "sweetalert2";
+
 export const createOrderAPI = async (formData, token) => {
+  const toastId = toast.loading("Loading...");
 
-    const toastId = toast.loading("Loading...");
+  try {
+    const response = await apiConnector("POST", CREATE_ORDER, formData, {
+      Authorization: `Bearer ${token}`,
+    });
 
+    const data = response?.data;
 
-    try {
-        const response = await apiConnector("POST", CREATE_ORDER, formData, {
-            Authorization: `Bearer ${token}`,
-        });
-
-        if (!response?.data?.success) {
-            throw new Error(response?.data?.message || "Something went wrong!");
-        }
-
-
-        toast.success(response?.data?.message);
-
-        return response.data?.newOrder;
-    } catch (error) {
-        console.error("CREATE_ORDER  API ERROR:", error);
-        toast.error(error?.response?.data?.message || "Failed to CREATE_ORDER!");
-        return null;
-    } finally {
-
-        toast.dismiss(toastId);
+    if (!data?.success) {
+      throw new Error("te"|| "Something went wrong!");
     }
+
+    // --- Handle insufficient stock from backend ---
+    if (data.insufficientStock && data.insufficientStock.length > 0) {
+      const htmlTable = `
+        <table style="width:100%; text-align:left; border-collapse: collapse;">
+          <thead>
+            <tr>
+              <th style="border-bottom: 1px solid #ddd; padding: 5px;">Product</th>
+              <th style="border-bottom: 1px solid #ddd; padding: 5px;">Requested</th>
+              <th style="border-bottom: 1px solid #ddd; padding: 5px;">Available</th>
+              <th style="border-bottom: 1px solid #ddd; padding: 5px;">Type</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.insufficientStock
+              .map(
+                (item) => `
+                <tr style="background-color: ${item.requested > item.available ? "#f8d7da" : "transparent"};">
+                  <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.name}</td>
+                  <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.requested}</td>
+                  <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.available}</td>
+                  <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.type}</td>
+                </tr>
+              `
+              )
+              .join("")}
+          </tbody>
+        </table>
+      `;
+
+      const shortItemsList = data.insufficientStock
+        .map(
+          (item) =>
+            `• ${item.name} (requested: ${item.requested}, available: ${item.available})`
+        )
+        .join("<br>");
+
+      await Swal.fire({
+        icon: "error",
+        title: "Insufficient Stock",
+        html: `
+          ${htmlTable}
+          <br><strong>Cannot fulfill these items:</strong><br>
+          ${shortItemsList}
+        `,
+        width: "650px",
+        confirmButtonText: "OK",
+      });
+
+      return null; // Stop execution, do not proceed with order
+    }
+
+    // --- Success ---
+    toast.success(data.message);
+    return data.newOrder || false;
+
+} catch (error) {
+  console.error("CREATE_ORDER API ERROR:", error);
+
+  // --- Handle insufficient stock even if API throws 400 ---
+  const insufficientStock = error?.response?.data?.insufficientStock;
+  if (insufficientStock && insufficientStock.length > 0) {
+    const htmlTable = `
+      <table style="width:100%; text-align:left; border-collapse: collapse;">
+        <thead>
+          <tr>
+            <th style="border-bottom: 1px solid #ddd; padding: 5px;">Product</th>
+            <th style="border-bottom: 1px solid #ddd; padding: 5px;">Requested</th>
+            <th style="border-bottom: 1px solid #ddd; padding: 5px;">Available</th>
+            <th style="border-bottom: 1px solid #ddd; padding: 5px;">Type</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${insufficientStock
+            .map(
+              (item) => `
+              <tr style="background-color: ${
+                item.requested > item.available ? "#f8d7da" : "transparent"
+              };">
+                <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.name}</td>
+                <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.requested}</td>
+                <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.available}</td>
+                <td style="border-bottom: 1px solid #ddd; padding: 5px;">${item.type}</td>
+              </tr>
+            `
+            )
+            .join("")}
+        </tbody>
+      </table>
+    `;
+
+    const shortItemsList = insufficientStock
+      .map(
+        (item) =>
+          `• ${item.name} (requested: ${item.requested}, available: ${item.available})`
+      )
+      .join("<br>");
+
+    await Swal.fire({
+      icon: "error",
+      title: "Insufficient Stock",
+      html: `
+        ${htmlTable}
+        <br><strong>Cannot fulfill these items:</strong><br>
+        ${shortItemsList}
+      `,
+      width: "650px",
+      confirmButtonText: "OK",
+    });
+
+    return null;
+  }
+
+  // --- Default error if no stock info ---
+  await Swal.fire({
+    icon: "error",
+    title: "Order Failed",
+    text: error?.response?.data?.message || "Failed to create order!",
+  });
+
+  return null;
+}
+finally {
+    toast.dismiss(toastId);
+  }
 };
+
 
 
 export const getOrderAPI = async (id,token) => {
