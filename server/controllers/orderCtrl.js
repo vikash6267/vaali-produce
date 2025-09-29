@@ -1896,6 +1896,64 @@ const getPendingOrders = async (req, res) => {
   }
 };
 
+
+
+
+
+
+const updateBuyerQuantityCtrl = async (req, res) => {
+  try {
+    console.log("🟢 Request body:", req.body);
+
+    const { orderId, productId, quantity } = req.body;
+
+    if (!orderId || !productId || quantity == null) {
+      return res.status(400).json({ success: false, message: "orderId, productId, quantity required" });
+    }
+
+    const order = await orderModel.findById(orderId);
+    console.log("🛒 Fetched order:", order ? order._id : "Not found");
+    if (!order) return res.status(404).json({ success: false, message: "Order not found" });
+
+    const itemIndex = order.items.findIndex(
+      (item) => item.productId?.toString() === productId.toString()
+    );
+    console.log("🔍 Item index found:", itemIndex);
+    console.log("Order items:", order.items.map(i => ({ productId: i.productId, quantity: i.quantity })));
+
+    if (itemIndex === -1) {
+      return res.status(404).json({ success: false, message: "Product not found in order items" });
+    }
+
+    console.log(`Before update:`, order.items[itemIndex].quantity);
+    order.items[itemIndex].quantity = quantity;
+order.markModified("items"); // important for plain array of objects
+const savedOrder = await order.save();
+    console.log("📝 Order saved:", savedOrder.items[itemIndex]);
+
+    try {
+      if (!productId) {
+        console.warn("⚠️ Skipping item without productId");
+      }
+      const result = await resetAndRebuildHistoryForSingleProduct(productId);
+      console.log("Product history rebuild result:", result);
+    } catch (err) {
+      console.error("🔥 Error processing product history:", err);
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Quantity updated successfully",
+      updatedItem: savedOrder.items[itemIndex],
+    });
+
+  } catch (err) {
+    console.error("❌ updateBuyerQuantityCtrl error:", err);
+    return res.status(500).json({ success: false, message: "Server error", error: err.message });
+  }
+};
+
+
 module.exports = {
   createOrderCtrl,
   getAllOrderCtrl,
@@ -1913,4 +1971,5 @@ module.exports = {
   getPendingOrders,
   invoiceMailCtrl,
   markOrderAsUnpaid,
+  updateBuyerQuantityCtrl
 };

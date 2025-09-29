@@ -18,7 +18,8 @@ const { CREATE_PRODUCT,
     PENDING_ORDER_DATA,
     SEND_INVOICE_MAIL,
     UPDATE_PAYMENT_UNPAID_ORDER,
-    HARD_DELETE_ORDER
+    HARD_DELETE_ORDER,
+    UPDATE_ORDER_QUANTITY
 } = order
 
 
@@ -426,4 +427,35 @@ export const deleteHardOrderAPI = async (id, token) => {
         toast.error(error?.response?.data?.message || "Failed to Permanently Deleted order!");
         return null;
     }
+};
+
+
+
+export const updateBuyerQuantityAPI = async (formData, token) => {
+  const toastId = toast.loading("Updating quantity...");
+
+  try {
+    const response = await apiConnector(
+      "PATCH",
+      UPDATE_ORDER_QUANTITY,
+      formData,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    toast.success(response?.data?.message || "Quantity updated successfully");
+
+    return response.data?.updatedItem; // updated item return
+  } catch (error) {
+    console.error("UPDATE_ORDER_QUANTITY API ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to update quantity!");
+    return null;
+  } finally {
+    toast.dismiss(toastId);
+  }
 };

@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Badge } from "@/components/ui/badge"
@@ -26,14 +26,15 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 
 import { isAfter, isBefore, addDays } from "date-fns"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import {updateBuyerQuantityAPI} from "@/services2/operations/order"
 
 import AddProductForm from "./AddProductForm"
-import { 
+import {
   getSingleProductOrderAPI,
   trashProductQuanityAPI,
   refreshSingleProductAPI,
   addQuantityProductAPI
- } from "@/services2/operations/product"
+} from "@/services2/operations/product"
 import Swal from "sweetalert2"
 import { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
@@ -84,8 +85,8 @@ interface InventoryTableProps {
   selectedProducts: string[]
   onReorderProduct: (product: Product) => void
   fetchProducts: () => void
-  endDate?:string
-  startDate?:string
+  endDate?: string
+  startDate?: string
 }
 
 const InventoryTable: React.FC<InventoryTableProps> = ({
@@ -94,7 +95,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   selectedProducts,
   onReorderProduct,
   fetchProducts,
-  startDate,endDate
+  startDate, endDate
 }) => {
   const [sortField, setSortField] = useState("name")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
@@ -110,16 +111,16 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     product: Product
   } | null>(null)
 
-const [trashForm, setTrashForm] = useState({
-  quantity: "",
-  type: "box",
-  reason: ""
-})
-const [addQuaForm, setAddQuaForm] = useState({
-  quantity: "",
-  type: "box",
-  reason: ""
-})
+  const [trashForm, setTrashForm] = useState({
+    quantity: "",
+    type: "box",
+    reason: ""
+  })
+  const [addQuaForm, setAddQuaForm] = useState({
+    quantity: "",
+    type: "box",
+    reason: ""
+  })
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   const handleSort = (field: string) => {
@@ -193,14 +194,14 @@ const [addQuaForm, setAddQuaForm] = useState({
     return isBefore(expiryDate, today)
   }
 
- const fetchProductOrder = async (id: string, ) => {
-  const response = await getSingleProductOrderAPI(id, startDate, endDate);
-  if (!response) return;
+  const fetchProductOrder = async (id: string,) => {
+    const response = await getSingleProductOrderAPI(id, startDate, endDate);
+    if (!response) return;
 
-  console.log("Fetched Order Data:", response);
-  setProductOrderData(response);
-  setOrderDetails(true);
-};
+    console.log("Fetched Order Data:", response);
+    setProductOrderData(response);
+    setOrderDetails(true);
+  };
 
 
   // Handle summary popup
@@ -241,7 +242,7 @@ const [addQuaForm, setAddQuaForm] = useState({
           icon: <Archive className="h-6 w-6 text-orange-600" />,
           total: summary.totalRemaining || 0,
           unit: summary.unitRemaining || 0,
-          product:product,
+          product: product,
           color: "text-orange-600",
           bgColor: "bg-orange-50",
         }
@@ -249,77 +250,113 @@ const [addQuaForm, setAddQuaForm] = useState({
         return null
     }
   }
-  
-const handleTrashSubmit = async () => {
-  const { quantity, type, reason } = trashForm;
 
-  // 💬 Validate inputs with toast
-  if (!quantity || !type || !reason) {
-    toast.warning("Please fill out all fields before submitting.");
-    return;
+  const handleTrashSubmit = async () => {
+    const { quantity, type, reason } = trashForm;
+
+    // 💬 Validate inputs with toast
+    if (!quantity || !type || !reason) {
+      toast.warning("Please fill out all fields before submitting.");
+      return;
+    }
+
+    try {
+      // 🛠️ Submit to API
+      await trashProductQuanityAPI(
+        {
+          productId: summaryData.product._id,
+          quantity: Number(quantity),
+          type,
+          reason,
+        },
+        token
+      );
+
+
+      // 🔄 Reset UI
+      setSummaryPopup(false);
+      await fetchProducts()
+      setTrashForm({ quantity: "", type: "box", reason: "" });
+    } catch (err) {
+      console.error("❌ Trash Submit Error:", err);
+      toast.error("Something went wrong while submitting."); // ❌ error toast
+    }
+  };
+
+
+
+
+
+
+
+
+  const handleAddQuantitySubmit = async () => {
+    const { quantity, type, reason } = addQuaForm;
+
+    // 💬 Validate inputs with toast
+    if (!quantity || !type) {
+      toast.warning("Please fill out all fields before submitting.");
+      return;
+    }
+
+    try {
+      // 🛠️ Submit to API
+      await addQuantityProductAPI(
+        {
+          productId: summaryData.product._id,
+          quantity: Number(quantity),
+          type,
+          reason,
+        },
+        token
+      );
+
+
+      // 🔄 Reset UI
+      setSummaryPopup(false);
+      await fetchProducts()
+      setAddQuaForm({ quantity: "", type: "box", reason: "" });
+    } catch (err) {
+      console.error("❌ Trash Submit Error:", err);
+      toast.error("Something went wrong while submitting."); // ❌ error toast
+    }
+  };
+
+
+
+
+  const [editIndex, setEditIndex] = useState(null)
+  const [quantities, setQuantities] = useState({})
+
+  // जब डायलॉग खुले तो buyers की quantity को state में डाल दो
+  useEffect(() => {
+    if (productOrderData?.buyers) {
+      const initial = {}
+      productOrderData.buyers.forEach((b, i) => {
+        initial[i] = b.quantity
+      })
+      setQuantities(initial)
+    }
+  }, [productOrderData])
+
+  const handleQuantityChange = (index, value) => {
+    if (value < 0) return // negative ना होने दे
+    setQuantities((prev) => ({
+      ...prev,
+      [index]: value,
+    }))
   }
 
-  try {
-    // 🛠️ Submit to API
-    await trashProductQuanityAPI(
-      {
-        productId: summaryData.product._id,
-        quantity: Number(quantity),
-        type,
-        reason,
-      },
-      token
-    );
+  const saveQuantity = async (index) => {
+     const newQty = quantities[index];
+  const orderId = productOrderData.buyers[index].orderId;
+  const productId = productOrderData?.productId;
 
-
-    // 🔄 Reset UI
-    setSummaryPopup(false);
-    await fetchProducts()
-    setTrashForm({ quantity: "", type: "box", reason: "" });
-  } catch (err) {
-    console.error("❌ Trash Submit Error:", err);
-    toast.error("Something went wrong while submitting."); // ❌ error toast
+  const updatedItem = await updateBuyerQuantityAPI({ orderId, productId, quantity: newQty }, token);
+  console.log(newQty,orderId,productId)
+  fetchProducts()
+    
   }
-};
-
-
-
-
-
-
-
-
-const handleAddQuantitySubmit = async () => {
-  const { quantity, type, reason } = addQuaForm;
-
-  // 💬 Validate inputs with toast
-  if (!quantity || !type ) {
-    toast.warning("Please fill out all fields before submitting.");
-    return;
-  }
-
-  try {
-    // 🛠️ Submit to API
-    await addQuantityProductAPI(
-      {
-        productId: summaryData.product._id,
-        quantity: Number(quantity),
-        type,
-        reason,
-      },
-      token
-    );
-
-
-    // 🔄 Reset UI
-    setSummaryPopup(false);
-    await fetchProducts()
-    setAddQuaForm({ quantity: "", type: "box", reason: "" });
-  } catch (err) {
-    console.error("❌ Trash Submit Error:", err);
-    toast.error("Something went wrong while submitting."); // ❌ error toast
-  }
-};
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -508,33 +545,35 @@ const handleAddQuantitySubmit = async () => {
       <Dialog open={orderDetails} onOpenChange={setOrderDetails}>
         <DialogContent className="sm:max-w-[500px]">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Order Details {startDate}- {endDate}</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">
+              Order Details {startDate} - {endDate}
+            </DialogTitle>
           </DialogHeader>
+
           {productOrderData && (
             <div className="space-y-4">
-             <div className="flex items-center justify-between gap-4">
-  {/* Left Side: Image and Title */}
-  <div className="flex items-center gap-4">
-    <img
-      src={productOrderData.productImage || "/placeholder.svg"}
-      alt={productOrderData.productTitle}
-      className="w-16 h-16 object-cover rounded-md"
-    />
-    <h3 className="text-lg font-medium">{productOrderData.productTitle}</h3>
-  </div>
+              <div className="flex items-center justify-between gap-4">
+                {/* Left Side: Image and Title */}
+                <div className="flex items-center gap-4">
+                  <img
+                    src={productOrderData.productImage || "/placeholder.svg"}
+                    alt={productOrderData.productTitle}
+                    className="w-16 h-16 object-cover rounded-md"
+                  />
+                  <h3 className="text-lg font-medium">{productOrderData.productTitle}</h3>
+                </div>
 
-  {/* Right Side: Refresh Button */}
-  <button
-    onClick={async () => {
-      await refreshSingleProductAPI(productOrderData?.productId);
-      fetchProducts();
-    }}
-    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-  >
-    Refresh History
-  </button>
-</div>
-
+                {/* Right Side: Refresh Button */}
+                <button
+                  onClick={async () => {
+                    await refreshSingleProductAPI(productOrderData?.productId)
+                    fetchProducts()
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+                >
+                  Refresh History
+                </button>
+              </div>
 
               <div className="border rounded-md p-4">
                 <h4 className="font-medium mb-2">Buyers</h4>
@@ -542,12 +581,39 @@ const handleAddQuantitySubmit = async () => {
                   <div className="space-y-3">
                     {productOrderData.buyers.map((buyer, index) => (
                       <div key={index} className="border-b pb-2 last:border-b-0 last:pb-0">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="font-medium">{buyer.name}</span>
-                          <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
-                            {buyer.quantity}
-                          </span>
+
+                          {editIndex === index ? (
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="number"
+                                value={quantities[index]}
+                                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value))}
+                                className="w-20 border rounded px-2 py-1"
+                              />
+                              <button
+                                onClick={() => saveQuantity(index)}
+                                className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700"
+                              >
+                                Save
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                                {quantities[index] ?? buyer.quantity}
+                              </span>
+                              <button
+                                onClick={() => setEditIndex(index)}
+                                className="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs"
+                              >
+                                Manage
+                              </button>
+                            </div>
+                          )}
                         </div>
+
                         <div className="text-sm text-muted-foreground">
                           {new Date(buyer.orderDate).toLocaleDateString()} at{" "}
                           {new Date(buyer.orderDate).toLocaleTimeString()}
@@ -559,6 +625,7 @@ const handleAddQuantitySubmit = async () => {
                   <p className="text-muted-foreground">No orders in the last 7 days</p>
                 )}
               </div>
+
               <div>Total Orders - {productOrderData?.totalOrdersThisWeek}</div>
             </div>
           )}
@@ -572,7 +639,7 @@ const handleAddQuantitySubmit = async () => {
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
               {getSummaryContent()?.icon}
               {getSummaryContent()?.title}
-              
+
             </DialogTitle>
           </DialogHeader>
           {summaryData && (
@@ -621,63 +688,61 @@ const handleAddQuantitySubmit = async () => {
           )}
 
           {/* Trash Quantity Update Form - Only for Remaining */}
-{getSummaryContent()?.title === "Remaining Details SDG" && (
-  <div className="pt-4 border-t">
-    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-red-600">
-      <Trash2 className="w-4 h-4" />
-      Move Quantity to Trash
-    </h4>
+          {getSummaryContent()?.title === "Remaining Details SDG" && (
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-red-600">
+                <Trash2 className="w-4 h-4" />
+                Move Quantity to Trash
+              </h4>
 
-    <div className="space-y-3">
-      {/* Quantity Input */}
-      <div>
-        <label className="block text-sm font-medium">Quantity</label>
-        <input
-          type="number"
-          min={1}
-          value={trashForm.quantity}
-          onChange={(e) => setTrashForm({ ...trashForm, quantity: e.target.value })}
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        />
-      </div>
+              <div className="space-y-3">
+                {/* Quantity Input */}
+                <div>
+                  <label className="block text-sm font-medium">Quantity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={trashForm.quantity}
+                    onChange={(e) => setTrashForm({ ...trashForm, quantity: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                </div>
 
-      {/* Type Select */}
-      <div>
-        <label className="block text-sm font-medium">Type</label>
-        <select
-          value={trashForm.type}
-          onChange={(e) => setTrashForm({ ...trashForm, type: e.target.value })}
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        >
-          <option value="box">Box</option>
-          <option value="unit">Unit</option>
-        </select>
-      </div>
+                {/* Type Select */}
+                <div>
+                  <label className="block text-sm font-medium">Type</label>
+                  <select
+                    value={trashForm.type}
+                    onChange={(e) => setTrashForm({ ...trashForm, type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="box">Box</option>
+                    <option value="unit">Unit</option>
+                  </select>
+                </div>
 
-      {/* Reason Input */}
-      <div>
-        <label className="block text-sm font-medium">Reason</label>
-        <input
-          type="text"
-          value={trashForm.reason}
-          onChange={(e) => setTrashForm({ ...trashForm, reason: e.target.value })}
-          placeholder="e.g. Expired or Broken"
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        />
-      </div>
+                {/* Reason Input */}
+                <div>
+                  <label className="block text-sm font-medium">Reason</label>
+                  <input
+                    type="text"
+                    value={trashForm.reason}
+                    onChange={(e) => setTrashForm({ ...trashForm, reason: e.target.value })}
+                    placeholder="e.g. Expired or Broken"
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                </div>
 
-      {/* Submit Button */}
-      <button
-        onClick={handleTrashSubmit}
-        className="w-full mt-2 bg-red-600 text-white py-2 rounded-md text-sm font-medium hover:bg-red-700"
-      >
-        Update Trash
-      </button>
-    </div>
-  </div>
-)}
-
-
+                {/* Submit Button */}
+                <button
+                  onClick={handleTrashSubmit}
+                  className="w-full mt-2 bg-red-600 text-white py-2 rounded-md text-sm font-medium hover:bg-red-700"
+                >
+                  Update Trash
+                </button>
+              </div>
+            </div>
+          )}
 
 
 
@@ -702,54 +767,56 @@ const handleAddQuantitySubmit = async () => {
 
 
 
-{getSummaryContent()?.title === "Remaining Details DFG" && (
-  <div className="pt-4 border-t">
-    <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
-      <Trash2 className="w-4 h-4" />
-      Add Quantity to Manually
-    </h4>
-
-    <div className="space-y-3">
-      {/* Quantity Input */}
-      <div>
-        <label className="block text-sm font-medium">Quantity</label>
-        <input
-          type="number"
-          min={1}
-          value={addQuaForm.quantity}
-          onChange={(e) => setAddQuaForm({ ...addQuaForm, quantity: e.target.value })}
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        />
-      </div>
-
-      {/* Type Select */}
-      <div>
-        <label className="block text-sm font-medium">Type</label>
-        <select
-          value={addQuaForm.type}
-          onChange={(e) => setAddQuaForm({ ...addQuaForm, type: e.target.value })}
-          className="w-full px-3 py-2 border rounded-md text-sm"
-        >
-          <option value="box">Box</option>
-          <option value="unit">Unit</option>
-        </select>
-      </div>
 
 
-<div className=" flex flex-col">
-<p>  Previous Update Box  : {getSummaryContent()?.product?.manuallyAddBox?.quantity || 0}</p>
-<p>Previous Update Unit : {getSummaryContent()?.product?.manuallyAddUnit?.quantity || 0}</p>
-</div>
-      {/* Submit Button */}
-      <button
-        onClick={handleAddQuantitySubmit}
-        className="w-full mt-2 bg-green-600 text-white py-2 rounded-md text-sm font-medium hover:bg-green-700"
-      >
-        Update Quantity
-      </button>
-    </div>
-  </div>
-)}
+          {getSummaryContent()?.title === "Remaining Details DFG" && (
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
+                <Trash2 className="w-4 h-4" />
+                Add Quantity to Manually
+              </h4>
+
+              <div className="space-y-3">
+                {/* Quantity Input */}
+                <div>
+                  <label className="block text-sm font-medium">Quantity</label>
+                  <input
+                    type="number"
+                    min={1}
+                    value={addQuaForm.quantity}
+                    onChange={(e) => setAddQuaForm({ ...addQuaForm, quantity: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                </div>
+
+                {/* Type Select */}
+                <div>
+                  <label className="block text-sm font-medium">Type</label>
+                  <select
+                    value={addQuaForm.type}
+                    onChange={(e) => setAddQuaForm({ ...addQuaForm, type: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  >
+                    <option value="box">Box</option>
+                    <option value="unit">Unit</option>
+                  </select>
+                </div>
+
+
+                <div className=" flex flex-col">
+                  <p>  Previous Update Box  : {getSummaryContent()?.product?.manuallyAddBox?.quantity || 0}</p>
+                  <p>Previous Update Unit : {getSummaryContent()?.product?.manuallyAddUnit?.quantity || 0}</p>
+                </div>
+                {/* Submit Button */}
+                <button
+                  onClick={handleAddQuantitySubmit}
+                  className="w-full mt-2 bg-green-600 text-white py-2 rounded-md text-sm font-medium hover:bg-green-700"
+                >
+                  Update Quantity
+                </button>
+              </div>
+            </div>
+          )}
 
 
 

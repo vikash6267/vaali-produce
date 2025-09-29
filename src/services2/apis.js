@@ -86,6 +86,7 @@ export const order = {
 
 
   HARD_DELETE_ORDER: BASE_URL + "/order/hard-delete", // append /:id when using
+  UPDATE_ORDER_QUANTITY : BASE_URL + "/order/update-quantity", 
 
 
 }

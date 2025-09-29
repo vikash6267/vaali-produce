@@ -17,7 +17,8 @@ const {
     getPendingOrders,
     invoiceMailCtrl,
     markOrderAsUnpaid,
-    deleteOrderHardCtrl
+    deleteOrderHardCtrl,
+    updateBuyerQuantityCtrl
 
 } = require("../controllers/orderCtrl");
 
@@ -38,6 +39,9 @@ router.post("/update-shipping", updateShippingController);
 router.get("/dashboard", getDashboardData);
 router.get("/pending", getPendingOrders);
 router.post("/invoiceMail/:id", invoiceMailCtrl);
+
+
+router.patch("/update-quantity", updateBuyerQuantityCtrl);
 
 
 

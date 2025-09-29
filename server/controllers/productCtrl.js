@@ -1311,7 +1311,7 @@ const getWeeklyOrdersByProductCtrl = async (req, res) => {
             name: buyerName,
             quantity: item.quantity,
             orderDate: order.createdAt,
-            _id: order._id
+            orderId: order._id
           });
         }
       });
