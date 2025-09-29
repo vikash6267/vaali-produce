@@ -47,6 +47,7 @@ import { getAllProductSummaryAPI } from "@/services2/operations/product"
 import { getAllCategoriesAPI } from "@/services2/operations/category"
 import { useDispatch } from "react-redux"
 import Swal from "sweetalert2"
+import CategoriesManagement from "@/components/inventory/CategoriesManagement"
 
 interface FilterState {
   search: string
@@ -68,6 +69,7 @@ interface PaginationState {
 const Inventory = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [isAddProductOpen, setIsAddProductOpen] = useState(false)
+  const [isAddCateOpen, setIsAddCateOpen] = useState(false)
   const [activeTab, setActiveTab] = useState("products")
   const [products, setProducts] = useState([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
@@ -573,6 +575,10 @@ const Inventory = () => {
                     <Plus size={16} className="mr-2" />
                     Add Product
                   </Button>
+                  <Button onClick={() => setIsAddCateOpen(true)} className="bg-green-600">
+                    {/* <Plus size={16} className="mr-2" /> */}
+                    Manage Categories
+                  </Button>
                 </div>
               </PageHeader>
             </div>
@@ -950,6 +956,9 @@ const Inventory = () => {
               selectedProducts={selectedProducts}
               onUpdateProducts={handleUpdateProducts}
             />
+
+
+            <CategoriesManagement isopen={isAddCateOpen} onclose={setIsAddCateOpen}/>
           </div>
         </main>
       </div>

@@ -1,116 +1,128 @@
 import { apiConnector } from "../apiConnector";
 import { category } from "../apis";
-import { toast } from 'react-toastify';
+import { toast } from "react-toastify";
 import { setLoading } from "../../redux/authSlice";
 
-const { GET_CATEGORIES } = category
+const { GET_CATEGORIES, CREATE_CATEGORY, UPDATE_CATEGORY, DELETE_CATEGORY } = category;
 
-// export const createCategoryAPI = (formData, token) => {
-//     return async (dispatch) => {
-//         const toastId = toast.loading("Loading...");
-//         dispatch(setLoading(true));
-
-//         try {
-//             const response = await apiConnector("POST", CREATE_CATEGORY, formData, {
-//                 Authorization: `Bearer ${token}`,
-//             });
-
-//             // console.log("Category API RESPONSE:", response);
-
-//             if (!response?.data?.success) {
-//                 throw new Error(response?.data?.message || "Something went wrong!");
-//             }
-
-//             return response;
-//         } catch (error) {
-//             console.error("CATEGORY API ERROR:", error);
-//             toast.error(error?.response?.data?.message || "Failed to create category!");
-//             return null;
-//         } finally {
-//             dispatch(setLoading(false));
-//             toast.dismiss(toastId);
-//         }
-//     };
-// };
-
-
-
+/**
+ * 📥 Get all categories
+ */
 export const getAllCategoriesAPI = () => {
-    return async (dispatch) => {
-        try {
-            const response = await apiConnector("GET", GET_CATEGORIES)
+  return async (dispatch) => {
+    dispatch(setLoading(true));
+    try {
+      const response = await apiConnector("GET", GET_CATEGORIES);
 
-            // console.log("Category API RESPONSE:", response);
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Failed to fetch categories!");
+      }
 
-            if (!response?.data?.success) {
-                throw new Error(response?.data?.message || "Something went wrong!");
-            }
-
-            return response?.data?.categories || [];
-        } catch (error) {
-            console.error("CATEGORY API ERROR:", error);
-            toast.error(error?.response?.data?.message || "Failed to get category!");
-            return [];
-        } finally {
-            dispatch(setLoading(false));
-            // toast.dismiss(toastId);
-        }
-    };
+      return {
+        success: true,
+        categories: response.data.categories || [],
+      };
+    } catch (error) {
+      console.error("GET CATEGORIES ERROR:", error);
+      toast.error(error?.response?.data?.message || "Failed to get categories!");
+      return { success: false, categories: [] };
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
 };
 
-// export const deleteCategoriesAPI = (id, token) => {
-//     return async (dispatch) => {
-//         const toastId = toast.loading("Loading...");
-//         dispatch(setLoading(true));
+/**
+ * ➕ Create a new category
+ */
+export const addCategoryAPI = async(formData, token) => {
 
-//         try {
-//             const response = await apiConnector("DELETE", `${DELETE_CATEGORY}/${id}`, {}, {
-//                 Authorization: `Bearer ${token}`,
-//             });
+    const toastId = toast.loading("Adding category...");
 
+    try {
+      const response = await apiConnector("POST", CREATE_CATEGORY, formData, {
+        Authorization: `Bearer ${token}`,
+      });
 
-//             if (!response?.data?.success) {
-//                 throw new Error(response?.data?.message || "Something went wrong!");
-//             }
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Failed to create category!");
+      }
 
-//             return response?.data;
-//         } catch (error) {
-//             console.error("DELETE Sub CATEGORY API ERROR:", error);
-//             toast.error(error?.response?.data?.message || "Failed to delete Sub category!");
-//             return [];
-//         } finally {
-//             dispatch(setLoading(false));
-//             toast.dismiss(toastId);
-//         }
-//     };
-// };
-// export const updateCategoryAPI = (id, formData, token) => {
-//     return async (dispatch) => {
-//         const toastId = toast.loading("Loading...");
-//         dispatch(setLoading(true));
-
-//         try {
-//             const response = await apiConnector("PUT", `${UPDATE_CATEGORY}/${id}`, formData, {
-//                 Authorization: `Bearer ${token}`,
-//             });
+      toast.success("Category added successfully!");
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("CREATE CATEGORY ERROR:", error);
+      toast.error(error?.response?.data?.message || "Failed to create category!");
+      return { success: false };
+    } finally {
+      toast.dismiss(toastId);
+    }
+  };
 
 
-//             if (!response?.data?.success) {
-//                 throw new Error(response?.data?.message || "Something went wrong!");
-//             }
+/**
+ * ✏️ Update existing category
+ */
+export const updateCategoryAPI = (id, formData, token) => {
+  return async () => {
+    const toastId = toast.loading("Updating category...");
 
-//             return response?.data;
-//         } catch (error) {
-//             console.error("UPDATE CATEGORY API ERROR:", error);
-//             toast.error(error?.response?.data?.message || "Failed to Update category!");
-//             return [];
-//         } finally {
-//             dispatch(setLoading(false));
-//             toast.dismiss(toastId);
-//         }
-//     };
-// };
+    try {
+      const response = await apiConnector(
+        "PUT",
+        `${UPDATE_CATEGORY}/${id}`,
+        formData,
+        {
+          Authorization: `Bearer ${token}`,
+        }
+      );
 
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Failed to update category!");
+      }
 
+      toast.success("Category updated successfully!");
+      return { success: true, data: response.data };
+    } catch (error) {
+      console.error("UPDATE CATEGORY ERROR:", error);
+      toast.error(error?.response?.data?.message || "Failed to update category!");
+      return { success: false };
+    } finally {
+      toast.dismiss(toastId);
+    }
+  };
+};
 
+/**
+ * 🗑️ Delete category
+ */
+export const deleteCategoryAPI = (id, token) => {
+  return async () => {
+    const toastId = toast.loading("Deleting category...");
+
+    try {
+      const response = await apiConnector(
+        "DELETE",
+        `${DELETE_CATEGORY}/${id}`,
+        {},
+        {
+          Authorization: `Bearer ${token}`,
+        }
+      );
+
+      if (!response?.data?.success) {
+        throw new Error(response?.data?.message || "Failed to delete category!");
+      }
+
+      toast.success("Category deleted successfully!");
+      return { success: true };
+    } catch (error) {
+      console.error("DELETE CATEGORY ERROR:", error);
+      toast.error(error?.response?.data?.message || "Failed to delete category!");
+      return { success: false };
+    } finally {
+      toast.dismiss(toastId);
+    }
+  };
+};
 

@@ -25,10 +25,10 @@ export const endpoints = {
 
 
 export const category = {
-  // CREATE_CATEGORY: BASE_URL + "/category/create",
+  CREATE_CATEGORY: BASE_URL + "/category/create",
   GET_CATEGORIES: BASE_URL + "/category/getAll",
-  // DELETE_CATEGORY: BASE_URL + "/category/delete",
-  // UPDATE_CATEGORY: BASE_URL + "/category/update",
+  DELETE_CATEGORY: BASE_URL + "/category/delete",
+  UPDATE_CATEGORY: BASE_URL + "/category/update",
 }
 
 export const product = {
