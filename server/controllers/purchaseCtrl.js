@@ -46,7 +46,7 @@ exports.createPurchaseOrder = async (req, res) => {
       mail
     } = req.body;
 
-    console.log(mail, "items");
+    console.log(purchaseDate, "date");
 
     // ✅ Save order
     const newOrder = new PurchaseOrder({
@@ -66,8 +66,8 @@ exports.createPurchaseOrder = async (req, res) => {
       (await authModel.findById(vendorId).select(""));
 console.log(vendor,"VENDOR DETAILS")
     if (vendor && vendor.email && mail === 1 ) {
-      const orderDateFormatted = new Date(purchaseDate).toLocaleDateString("en-US");
-      const deliveryDateFormatted = new Date(deliveryDate).toLocaleDateString("en-US");
+     const orderDateFormatted = new Date(`${purchaseDate}T00:00:00`).toLocaleDateString("en-US");
+const deliveryDateFormatted = new Date(`${deliveryDate}T00:00:00`).toLocaleDateString("en-US");
 
       // 📊 Build HTML table
       const itemsTable = items
@@ -117,7 +117,7 @@ console.log(vendor,"VENDOR DETAILS")
       // 📄 Generate PDF with only name + quantity
       const pdfBase64 = await generatePurchaseOrderPDF({
         purchaseOrderNumber,
-        purchaseDate,
+        purchaseDate:new Date(`${purchaseDate}T00:00:00`).toLocaleDateString("en-US"),
         deliveryDate,
         items: items.map(i => ({
           productName: i.productName,
