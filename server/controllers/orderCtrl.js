@@ -93,44 +93,68 @@ const createOrderCtrl = async (req, res) => {
 
 
     // --- STEP 1: Check stock for all items using overall remaining ---
-    const insufficientStock = [];
+ const now = new Date();
+const day = now.getUTCDay(); // 0 (Sun) - 6 (Sat)
+const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((day + 6) % 7), 0, 0, 0));
+const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6, 23, 59, 59, 999));
 
-    for (const item of items) {
-      const { productId, quantity, pricingType } = item;
-      if (!productId || quantity <= 0) continue;
+let insufficientStock = [];
 
-      const product = await Product.findById(productId);
-      if (!product) {
-        insufficientStock.push({ productId, message: "Product not found" });
-        continue;
-      }
+for (const item of items) {
+  const { productId, quantity, pricingType } = item;
+  if (!productId || quantity <= 0) continue;
 
-      // Calculate overall remaining
-      const trashBox = product.quantityTrash?.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0) || 0;
-      const trashUnit = product.quantityTrash?.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0) || 0;
+  const product = await Product.findById(productId);
+  if (!product) {
+    insufficientStock.push({ productId, message: "Product not found" });
+    continue;
+  }
 
-      const totalRemaining = Math.max(0, (product.totalPurchase || 0) - (product.totalSell || 0) - trashBox + (product.manuallyAddBox?.quantity || 0));
-      const unitRemaining = Math.max(0, (product.unitPurchase || 0) - (product.unitSell || 0) - trashUnit + (product.manuallyAddUnit?.quantity || 0));
+  // ✅ Week-wise totalSell and unitSell calculate:
+  const weeklyBoxSell = (product.salesHistory || [])
+    .filter(s => s.date && new Date(s.date) >= monday && new Date(s.date) <= sunday && s.type === "box")
+    .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
-      if ((pricingType === "box" && quantity > totalRemaining) || (pricingType === "unit" && quantity > unitRemaining)) {
-        insufficientStock.push({
-          productId,
-          name: product.name,
-          available: pricingType === "box" ? totalRemaining : unitRemaining,
-          requested: quantity,
-          type: pricingType,
-        });
-      }
-    }
+  const weeklyUnitSell = (product.lbSellHistory || [])
+    .filter(s => s.date && new Date(s.date) >= monday && new Date(s.date) <= sunday && s.type === "unit")
+    .reduce((sum, s) => sum + (s.quantity || 0), 0);
 
-    // --- STEP 2: If any item exceeds stock, block order ---
-    if (insufficientStock.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Insufficient stock for some items",
-        insufficientStock,
-      });
-    }
+  // ✅ Total trash quantities
+  const trashBox = product.quantityTrash?.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0) || 0;
+  const trashUnit = product.quantityTrash?.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0) || 0;
+
+  // ✅ Calculate weekly remaining stock
+  const totalRemaining = Math.max(
+    0,
+    (product.totalPurchase || 0) - weeklyBoxSell - trashBox + (product.manuallyAddBox?.quantity || 0)
+  );
+  const unitRemaining = Math.max(
+    0,
+    (product.unitPurchase || 0) - weeklyUnitSell - trashUnit + (product.manuallyAddUnit?.quantity || 0)
+  );
+
+  // ✅ Check stock availability for current week
+  if ((pricingType === "box" && quantity > totalRemaining) || (pricingType === "unit" && quantity > unitRemaining)) {
+    insufficientStock.push({
+      productId,
+      name: product.name,
+      available: pricingType === "box" ? totalRemaining : unitRemaining,
+      requested: quantity,
+      type: pricingType,
+      weekRange: `${monday.toISOString().split("T")[0]} to ${sunday.toISOString().split("T")[0]}`
+    });
+  }
+}
+
+// --- STEP 2: Block order if insufficient stock ---
+if (insufficientStock.length > 0) {
+  return res.status(400).json({
+    success: false,
+    message: "Insufficient stock for some items (week-wise check)",
+    insufficientStock,
+  });
+}
+
 
     
 
