@@ -1096,36 +1096,27 @@ const getAllProductsWithHistorySummary = async (req, res) => {
       sortBy = 'updatedAt', // Default sort
       sortOrder = 'desc',
       stockLevel = 'all', // "low", "out", "high", "all"
-      hard=false
+      hard = false
     } = req.query;
 
-
-    if(hard === "true"){
-      await resetAndRebuildHistoryForAllProducts()
+    // ✅ Hard rebuild trigger
+    if (hard === "true") {
+      await resetAndRebuildHistoryForAllProducts();
     }
-   
+
+    // ✅ Prepare date filters (UTC-safe)
     const fromDate = startDate ? new Date(`${startDate}T00:00:00.000Z`) : null;
     const toDate = endDate ? new Date(`${endDate}T23:59:59.999Z`) : null;
-// Create UTC-safe Monday and Sunday
-const now = new Date();
-const day = now.getUTCDay(); // 0 (Sun) to 6 (Sat)
-const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((day + 6) % 7), 0, 0, 0));
-const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6, 23, 59, 59, 999));
 
-
-// Format to 'YYYY-MM-DD' only
-const formatDate = (date) => date.toISOString().split("T")[0];
-
-const isUsingDefaultDate =
-  formatDate(fromDate) === formatDate(monday) &&
-  formatDate(toDate) === formatDate(sunday);
-
-
+    // ✅ Range check function
     const isWithinRange = (date) => {
       const d = new Date(date);
-      return (!fromDate || d >= fromDate) && (!toDate || d <= toDate);
+      if (fromDate && d < fromDate) return false;
+      if (toDate && d > toDate) return false;
+      return true;
     };
 
+    // ✅ Build DB filter
     const filter = {};
     if (search) {
       filter.name = { $regex: search, $options: "i" };
@@ -1134,68 +1125,76 @@ const isUsingDefaultDate =
       filter.category = categoryId;
     }
 
-    // Apply pagination
+    // ✅ Pagination setup
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    // Fetch matching products
+    // ✅ Fetch products
     let products = await Product.find(filter).lean();
 
-    // Map with date-based summary
+    // ✅ Add summary for each product
     let productsWithSummary = products.map(product => {
       const hasDateFilter = fromDate || toDate;
 
-      if (true) {
-        const filteredPurchase = isUsingDefaultDate
-    ? product?.purchaseHistory || []
-    : product?.purchaseHistory?.filter(p => isWithinRange(p.date)) || [];
-        const filteredSell = product?.salesHistory?.filter(s => isWithinRange(s.date)) || [];
-        const filteredUnitPurchase = product?.lbPurchaseHistory?.filter(p => isWithinRange(p.date)) || [];
-        const filteredUnitSell = product?.lbSellHistory?.filter(s => isWithinRange(s.date)) || [];
-        const filteredTrash = product?.quantityTrash?.filter(t => isWithinRange(t.date)) || [];
+      // ✅ Filter histories based on date
+      const filteredPurchase = hasDateFilter
+        ? (product?.purchaseHistory || []).filter(p => isWithinRange(p.date))
+        : (product?.purchaseHistory || []);
 
-        const trashBox = filteredTrash.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0);
-        const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
+      const filteredSell = hasDateFilter
+        ? (product?.salesHistory || []).filter(s => isWithinRange(s.date))
+        : (product?.salesHistory || []);
 
+      const filteredUnitPurchase = hasDateFilter
+        ? (product?.lbPurchaseHistory || []).filter(p => isWithinRange(p.date))
+        : (product?.lbPurchaseHistory || []);
 
-       
-        const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
-        const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
-        const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
-        const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
+      const filteredUnitSell = hasDateFilter
+        ? (product?.lbSellHistory || []).filter(s => isWithinRange(s.date))
+        : (product?.lbSellHistory || []);
 
+      const filteredTrash = hasDateFilter
+        ? (product?.quantityTrash || []).filter(t => isWithinRange(t.date))
+        : (product?.quantityTrash || []);
 
-        // console.log(product.manuallyAddUnit.quantity)
-        const totalRemaining = Math.max( totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0));
-        const unitRemaining = Math.max( unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0));
+      // ✅ Trash calculations
+      const trashBox = filteredTrash
+        .filter(t => t.type === "box")
+        .reduce((sum, t) => sum + t.quantity, 0);
 
-        return {
-          ...product,
-          summary: {
-            totalPurchase,
-            totalSell,
-            totalRemaining,
-            unitPurchase,
-            unitSell,
-            unitRemaining,
-          }
-        };
-      }
+      const trashUnit = filteredTrash
+        .filter(t => t.type === "unit")
+        .reduce((sum, t) => sum + t.quantity, 0);
 
-      // If no date filter, use stored summary
+      // ✅ Totals
+      const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
+      const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
+      const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
+      const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
+
+      const totalRemaining = Math.max(
+        totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0),
+        0
+      );
+
+      const unitRemaining = Math.max(
+        unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0),
+        0
+      );
+
       return {
         ...product,
         summary: {
-          totalPurchase: product.totalPurchase || 0,
-          totalSell: product.totalSell || 0,
-          totalRemaining: product.remaining || 0,
-          unitPurchase: product.unitPurchase || 0,
-          unitSell: product.unitSell || 0,
-          unitRemaining: product.unitRemaining || 0,
-        }
+          totalPurchase,
+          totalSell,
+          totalRemaining,
+          unitPurchase,
+          unitSell,
+          unitRemaining,
+        },
       };
     });
 
-    // Apply stockLevel filtering after summary calculation
+    // ✅ Stock filter
     if (stockLevel !== "all") {
       productsWithSummary = productsWithSummary.filter(p => {
         const remaining = p.summary?.totalRemaining || 0;
@@ -1206,21 +1205,29 @@ const isUsingDefaultDate =
       });
     }
 
-    // Sorting
+    // ✅ Sorting
     const sortedProducts = productsWithSummary.sort((a, b) => {
       const fieldA = a[sortBy] || a.summary?.[sortBy];
       const fieldB = b[sortBy] || b.summary?.[sortBy];
-      if (sortOrder === "asc") return fieldA > fieldB ? 1 : -1;
-      else return fieldA < fieldB ? 1 : -1;
+
+      if (typeof fieldA === "string" && typeof fieldB === "string") {
+        return sortOrder === "asc"
+          ? fieldA.localeCompare(fieldB)
+          : fieldB.localeCompare(fieldA);
+      } else {
+        return sortOrder === "asc"
+          ? (fieldA || 0) - (fieldB || 0)
+          : (fieldB || 0) - (fieldA || 0);
+      }
     });
 
-    // Total count after filtering
+    // ✅ Total count after filtering
     const total = sortedProducts.length;
 
-    // Paginate the sorted, filtered result
+    // ✅ Pagination
     const paginated = sortedProducts.slice(skip, skip + parseInt(limit));
 
-    // Send response
+    // ✅ Final response
     res.status(200).json({
       success: true,
       data: paginated,
@@ -1228,6 +1235,7 @@ const isUsingDefaultDate =
       page: parseInt(page),
       limit: parseInt(limit),
       totalPages: Math.ceil(total / limit),
+      appliedDateFilter: { startDate, endDate },
     });
 
   } catch (error) {
@@ -1235,6 +1243,7 @@ const isUsingDefaultDate =
     res.status(500).json({ success: false, message: "Server Error" });
   }
 };
+
 
 
 

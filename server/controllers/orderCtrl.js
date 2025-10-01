@@ -92,11 +92,29 @@ const createOrderCtrl = async (req, res) => {
 
 
 
-    // --- STEP 1: Check stock for all items using overall remaining ---
- const now = new Date();
+// --- STEP 1: Check stock for all items using overall remaining ---
+const now = new Date();
 const day = now.getUTCDay(); // 0 (Sun) - 6 (Sat)
-const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((day + 6) % 7), 0, 0, 0));
-const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6, 23, 59, 59, 999));
+
+// Monday and Sunday of current week (UTC)
+const monday = new Date(Date.UTC(
+  now.getUTCFullYear(),
+  now.getUTCMonth(),
+  now.getUTCDate() - ((day + 6) % 7),
+  0, 0, 0, 0
+));
+const sunday = new Date(Date.UTC(
+  monday.getUTCFullYear(),
+  monday.getUTCMonth(),
+  monday.getUTCDate() + 6,
+  23, 59, 59, 999
+));
+
+// UTC-safe range check
+const isWithinRange = (date) => {
+  const d = new Date(date);
+  return d >= monday && d <= sunday;
+};
 
 let insufficientStock = [];
 
@@ -104,36 +122,39 @@ for (const item of items) {
   const { productId, quantity, pricingType } = item;
   if (!productId || quantity <= 0) continue;
 
-  const product = await Product.findById(productId);
+  const product = await Product.findById(productId).lean();
   if (!product) {
     insufficientStock.push({ productId, message: "Product not found" });
     continue;
   }
 
-  // ✅ Week-wise totalSell and unitSell calculate:
-  const weeklyBoxSell = (product.salesHistory || [])
-    .filter(s => s.date && new Date(s.date) >= monday && new Date(s.date) <= sunday && s.type === "box")
-    .reduce((sum, s) => sum + (s.quantity || 0), 0);
+  // --- Filter purchase/sell/trash based on current UTC week ---
+  const filteredPurchase = (product?.purchaseHistory || []).filter(p => isWithinRange(p.date));
+  const filteredSell = (product?.salesHistory || []).filter(s => isWithinRange(s.date));
+  const filteredUnitPurchase = (product?.lbPurchaseHistory || []).filter(p => isWithinRange(p.date));
+  const filteredUnitSell = (product?.lbSellHistory || []).filter(s => isWithinRange(s.date));
+  const filteredTrash = (product?.quantityTrash || []).filter(t => isWithinRange(t.date));
 
-  const weeklyUnitSell = (product.lbSellHistory || [])
-    .filter(s => s.date && new Date(s.date) >= monday && new Date(s.date) <= sunday && s.type === "unit")
-    .reduce((sum, s) => sum + (s.quantity || 0), 0);
+  // --- Calculate totals ---
+  const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
+  const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
+  const unitPurchase = filteredUnitPurchase.reduce((sum, p) => sum + p.weight, 0);
+  const unitSell = filteredUnitSell.reduce((sum, s) => sum + s.weight, 0);
 
-  // ✅ Total trash quantities
-  const trashBox = product.quantityTrash?.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0) || 0;
-  const trashUnit = product.quantityTrash?.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0) || 0;
+  const trashBox = filteredTrash.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0);
+  const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
 
-  // ✅ Calculate weekly remaining stock
+  // --- Weekly remaining stock (same as getAllProductsWithHistorySummary) ---
   const totalRemaining = Math.max(
-    0,
-    (product.totalPurchase || 0) - weeklyBoxSell - trashBox + (product.manuallyAddBox?.quantity || 0)
+    totalPurchase - totalSell - trashBox + (product?.manuallyAddBox?.quantity || 0),
+    0
   );
   const unitRemaining = Math.max(
-    0,
-    (product.unitPurchase || 0) - weeklyUnitSell - trashUnit + (product.manuallyAddUnit?.quantity || 0)
+    unitPurchase - unitSell - trashUnit + (product?.manuallyAddUnit?.quantity || 0),
+    0
   );
 
-  // ✅ Check stock availability for current week
+  // --- Check if requested quantity exceeds remaining ---
   if ((pricingType === "box" && quantity > totalRemaining) || (pricingType === "unit" && quantity > unitRemaining)) {
     insufficientStock.push({
       productId,
@@ -144,6 +165,8 @@ for (const item of items) {
       weekRange: `${monday.toISOString().split("T")[0]} to ${sunday.toISOString().split("T")[0]}`
     });
   }
+
+  console.log(`${product.name} - Box Remaining: ${totalRemaining}, Unit Remaining: ${unitRemaining}`);
 }
 
 // --- STEP 2: Block order if insufficient stock ---
@@ -155,7 +178,7 @@ if (insufficientStock.length > 0) {
   });
 }
 
-
+ 
     
 
     const generateOrderNumber = () => {
