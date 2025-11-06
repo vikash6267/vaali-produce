@@ -158,11 +158,13 @@ export const exportInvoiceToPDF = (
     formatCurrency(item.quantity * (item.unitPrice || item.price)),
   ]);
 
- autoTable(doc, {
+let totalPagesExp = "{total_pages_count_string}";
+
+autoTable(doc, {
   startY: yPos,
   head: [tableHeaders],
   body: tableRows,
-  margin: { left: MARGIN, right: MARGIN, top: 38 }, // 👈 ensures table never overlaps header
+  margin: { left: MARGIN, right: MARGIN, top: 40 },
   headStyles: {
     fillColor: [245, 245, 245],
     textColor: [70, 70, 70],
@@ -178,13 +180,28 @@ export const exportInvoiceToPDF = (
 
   didDrawPage: (data) => {
     const pageNumber = data.pageNumber;
-    const totalPages = doc.internal.getNumberOfPages();
-
-    // 🧭 Redraw header + footer on every page
     drawHeader(doc);
-    drawFooter(doc, pageNumber, totalPages);
+
+    // ✅ Use placeholder for total pages
+    doc.setFontSize(7);
+    doc.setTextColor(150, 150, 150);
+    const str = `Page ${pageNumber} of ${totalPagesExp}`;
+    doc.text(str, PAGE_WIDTH - MARGIN, PAGE_HEIGHT - 10, { align: "right" });
+
+    doc.text(
+      "This is a computer-generated document. No signature is required.",
+      PAGE_WIDTH / 2,
+      PAGE_HEIGHT - 10,
+      { align: "center" }
+    );
   },
 });
+
+// ✅ Replace placeholder with actual total pages count
+if (typeof doc.putTotalPages === "function") {
+  doc.putTotalPages(totalPagesExp);
+}
+
 
 
   // 🧾 TOTALS (no header redraw here)
