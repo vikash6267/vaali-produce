@@ -33,18 +33,27 @@ const PriceListTemplates = () => {
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
   const [loading, setLoading] = useState(false);
 
+  // Pagination state (server-side, fixed page size: 10)
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+
   const handleAddNew = () => {
     setCurrentTemplate(null);
     setIsFormOpen(true);
   };
 
-  const fetchProducts = async () => {
+  const fetchProducts = async (targetPage = 1) => {
     try {
       setLoading(true); // Show loader
-      const response = await getAllPriceListAPI();
-      console.log(response);
+      const query = `page=${targetPage}&limit=${PAGE_SIZE}`;
+      const response = await getAllPriceListAPI(query);
       if (response) {
-        setTemplates(response);
+        setTemplates(response.data || []);
+        setTotal(response.total || 0);
+        setTotalPages(response.totalPages || 1);
+        setPage(response.page || targetPage);
       }
     } catch (error) {
       console.error("Error fetching products:", error);
@@ -54,7 +63,7 @@ const PriceListTemplates = () => {
   };
 
   useEffect(() => {
-    fetchProducts();
+    fetchProducts(1);
   }, []);
 
   const handleEdit = (templateId: string) => {
@@ -66,8 +75,9 @@ const PriceListTemplates = () => {
   };
 
   const handleDelete = async (templateId: string) => {
-    setTemplates(templates.filter((t) => t.id !== templateId));
     await deltePriceAPI(templateId);
+    // Refetch current page to keep pagination consistent
+    await fetchProducts(page);
     toast({
       title: "Template Deleted",
       description: "The price list template has been deleted successfully",
@@ -79,7 +89,7 @@ const PriceListTemplates = () => {
       console.log(currentTemplate);
 
       await updatePriceList(template.id, template, token);
-      setTemplates(templates.map((t) => (t.id === template.id ? template : t)));
+      await fetchProducts(page);
       toast({
         title: "Template Updated",
         description: "Price list template has been updated successfully",
@@ -93,6 +103,7 @@ const PriceListTemplates = () => {
       // setTemplates([...templates, newTemplate]);
 
       await createPriceListAPI(template, token);
+      await fetchProducts(1); // Show newest first on first page
 
       toast({
         title: "Template Created",
@@ -154,6 +165,33 @@ const PriceListTemplates = () => {
                 fetchProducts={fetchProducts}
               />
             ))}
+            {/* Pagination Controls */}
+            <div className="flex items-center justify-between pt-2 border-t">
+              <p className="text-sm text-muted-foreground">
+                Showing {(page - 1) * PAGE_SIZE + 1}–{(page - 1) * PAGE_SIZE + templates.length} of {total}
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchProducts(Math.max(1, page - 1))}
+                  disabled={page === 1}
+                >
+                  Previous
+                </Button>
+                <span className="text-sm">
+                  Page {page} of {totalPages}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => fetchProducts(Math.min(totalPages, page + 1))}
+                  disabled={page === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
           </div>
         )}
       </div>

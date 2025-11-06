@@ -40,29 +40,36 @@ export const createPriceListAPI = async (formData, token) => {
 };
 
 
-export const getAllPriceListAPI = async () => {
+export const getAllPriceListAPI = async (queryParams = "") => {
     try {
-        const response = await apiConnector("GET", GET_ALL_PRICE_LIST);
+        const url = queryParams ? `${GET_ALL_PRICE_LIST}?${queryParams}` : GET_ALL_PRICE_LIST;
+        const response = await apiConnector("GET", url);
 
         if (!response?.data?.success) {
             throw new Error(response?.data?.message || "Something went wrong!");
         }
 
         // `_id` ko `id` me convert karna
-        const formattedPriceLists = response?.data?.data.map(priceList => ({
+        const formattedPriceLists = (response?.data?.data || []).map(priceList => ({
             ...priceList,
-            id: priceList._id, // `_id` ko `id` me change kiya
-            products: priceList.products.map(product => ({
+            id: priceList._id,
+            products: (priceList.products || []).map(product => ({
                 ...product,
-                id: product._id // Products ke andar bhi `_id` ko `id` me change kiya
+                id: product._id || product.id || product.product_id
             }))
         }));
 
-        return formattedPriceLists;
+        return {
+            data: formattedPriceLists,
+            total: response?.data?.total ?? formattedPriceLists.length,
+            page: response?.data?.page ?? 1,
+            limit: response?.data?.limit ?? (formattedPriceLists.length || 10),
+            totalPages: response?.data?.totalPages ?? 1,
+        };
     } catch (error) {
         console.error("GET Price List API ERROR:", error);
         toast.error(error?.response?.data?.message || "Failed to fetch Price Lists!");
-        return [];
+        return { data: [], total: 0, page: 1, limit: 10, totalPages: 1 };
     }
 };
 
