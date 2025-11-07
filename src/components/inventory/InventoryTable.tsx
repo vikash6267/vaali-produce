@@ -1,12 +1,19 @@
-"use client"
+"use client";
 
-import type React from "react"
-import { useEffect, useState } from "react"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { deleteProductAPI } from "@/services2/operations/product"
+import type React from "react";
+import { useEffect, useState } from "react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { deleteProductAPI } from "@/services2/operations/product";
 import {
   ChevronDown,
   ChevronUp,
@@ -21,72 +28,83 @@ import {
   Box,
   ImageIcon,
   Trash2,
-} from "lucide-react"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-import { isAfter, isBefore, addDays } from "date-fns"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import {updateBuyerQuantityAPI} from "@/services2/operations/order"
+import { isAfter, isBefore, addDays } from "date-fns";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { updateBuyerQuantityAPI } from "@/services2/operations/order";
 
-import AddProductForm from "./AddProductForm"
+import AddProductForm from "./AddProductForm";
 import {
   getSingleProductOrderAPI,
   trashProductQuanityAPI,
   refreshSingleProductAPI,
-  addQuantityProductAPI
-} from "@/services2/operations/product"
-import Swal from "sweetalert2"
-import { RootState } from "@/redux/store"
-import { useSelector } from "react-redux"
-import { toast } from 'react-toastify';
+  addQuantityProductAPI,
+} from "@/services2/operations/product";
+import Swal from "sweetalert2";
+import { RootState } from "@/redux/store";
+import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { Link } from "react-router-dom";
 
 interface Product {
-  id: string
-  _id?: string
-  name: string
-  category: string
-  quantity: number
-  totalSell?: number
-  totalPurchase?: number
-  unit: string
-  price: number
-  threshold?: number
-  lastUpdated: string
-  description?: string
-  image?: string
+  id: string;
+  _id?: string;
+  name: string;
+  category: string;
+  quantity: number;
+  totalSell?: number;
+  totalPurchase?: number;
+  unit: string;
+  price: number;
+  threshold?: number;
+  lastUpdated: string;
+  description?: string;
+  image?: string;
   summary?: {
-    totalRemaining?: number
-    totalPurchase?: number
-    totalSell?: number
-    unitPurchase?: number
-    unitRemaining?: number
-    unitSell?: number
-  }
-  weightVariation?: number
-  expiryDate?: string
-  batchInfo?: string
-  origin?: string
-  organic?: boolean
-  storageInstructions?: string
-  boxSize?: number
-  shippinCost?: number
-  pricePerBox?: number
-  featuredOffer?: boolean
-  popularityRank?: number
-  estimatedProfit?: number
-  recommendedOrder?: number
-  enablePromotions?: boolean
-  palette?: string
+    totalRemaining?: number;
+    totalPurchase?: number;
+    totalSell?: number;
+    unitPurchase?: number;
+    unitRemaining?: number;
+    unitSell?: number;
+  };
+  weightVariation?: number;
+  expiryDate?: string;
+  batchInfo?: string;
+  origin?: string;
+  organic?: boolean;
+  storageInstructions?: string;
+  boxSize?: number;
+  shippinCost?: number;
+  pricePerBox?: number;
+  featuredOffer?: boolean;
+  popularityRank?: number;
+  estimatedProfit?: number;
+  recommendedOrder?: number;
+  enablePromotions?: boolean;
+  palette?: string;
 }
 
 interface InventoryTableProps {
-  products: Product[]
-  onProductsSelect: (ids: string[]) => void
-  selectedProducts: string[]
-  onReorderProduct: (product: Product) => void
-  fetchProducts: () => void
-  endDate?: string
-  startDate?: string
+  products: Product[];
+  onProductsSelect: (ids: string[]) => void;
+  selectedProducts: string[];
+  onReorderProduct: (product: Product) => void;
+  fetchProducts: () => void;
+  endDate?: string;
+  startDate?: string;
 }
 
 const InventoryTable: React.FC<InventoryTableProps> = ({
@@ -95,106 +113,111 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   selectedProducts,
   onReorderProduct,
   fetchProducts,
-  startDate, endDate
+  startDate,
+  endDate,
 }) => {
-  const [sortField, setSortField] = useState("name")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
-  const [editProduct, setEditProduct] = useState(null)
-  const [isEditProduct, setIsEditProduct] = useState(false)
-  const [orderDetails, setOrderDetails] = useState(false)
-  const [productOrderData, setProductOrderData] = useState(null)
+  const [sortField, setSortField] = useState("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [editProduct, setEditProduct] = useState(null);
+  const [isEditProduct, setIsEditProduct] = useState(false);
+  const [orderDetails, setOrderDetails] = useState(false);
+  const [productOrderData, setProductOrderData] = useState(null);
 
   // New state for summary popup
-  const [summaryPopup, setSummaryPopup] = useState(false)
+  const [summaryPopup, setSummaryPopup] = useState(false);
   const [summaryData, setSummaryData] = useState<{
-    type: "purchased" | "sell" | "remaining"
-    product: Product
-  } | null>(null)
+    type: "purchased" | "sell" | "remaining";
+    product: Product;
+  } | null>(null);
 
   const [trashForm, setTrashForm] = useState({
     quantity: "",
     type: "box",
-    reason: ""
-  })
+    reason: "",
+  });
   const [addQuaForm, setAddQuaForm] = useState({
     quantity: "",
     type: "box",
-    reason: ""
-  })
+    reason: "",
+  });
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
   const handleSort = (field: string) => {
     if (sortField === field) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc")
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
     } else {
-      setSortField(field)
-      setSortDirection("asc")
+      setSortField(field);
+      setSortDirection("asc");
     }
-  }
+  };
 
   const sortedProducts = [...products].sort((a, b) => {
-    let aValue = a[sortField as keyof Product]
-    let bValue = b[sortField as keyof Product]
+    let aValue = a[sortField as keyof Product];
+    let bValue = b[sortField as keyof Product];
 
     if (typeof aValue === "string" && typeof bValue === "string") {
-      aValue = aValue.toLowerCase()
-      bValue = bValue.toLowerCase()
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
     }
 
-    if (aValue === bValue) return 0
+    if (aValue === bValue) return 0;
 
     if (sortDirection === "asc") {
-      return aValue > bValue ? 1 : -1
+      return aValue > bValue ? 1 : -1;
     } else {
-      return aValue < bValue ? 1 : -1
+      return aValue < bValue ? 1 : -1;
     }
-  })
+  });
 
   const handleSelectAll = () => {
     if (selectedProducts.length === products.length) {
-      onProductsSelect([])
+      onProductsSelect([]);
     } else {
-      onProductsSelect(products.map((p) => p.id))
+      onProductsSelect(products.map((p) => p.id));
     }
-  }
+  };
 
   const handleSelectProduct = (id: string) => {
-    const isSelected = selectedProducts.includes(id)
+    const isSelected = selectedProducts.includes(id);
     if (isSelected) {
-      onProductsSelect(selectedProducts.filter((p) => p !== id))
+      onProductsSelect(selectedProducts.filter((p) => p !== id));
     } else {
-      onProductsSelect([...selectedProducts, id])
+      onProductsSelect([...selectedProducts, id]);
     }
-  }
+  };
 
   const renderSortIcon = (field: string) => {
-    if (sortField !== field) return null
-    return sortDirection === "asc" ? <ChevronUp className="ml-1 h-4 w-4" /> : <ChevronDown className="ml-1 h-4 w-4" />
-  }
+    if (sortField !== field) return null;
+    return sortDirection === "asc" ? (
+      <ChevronUp className="ml-1 h-4 w-4" />
+    ) : (
+      <ChevronDown className="ml-1 h-4 w-4" />
+    );
+  };
 
   // Check if a product is nearing expiry (within 7 days)
   const isNearingExpiry = (product: Product) => {
-    if (!product.expiryDate) return false
-    const today = new Date()
-    const expiryDate = new Date(product.expiryDate)
-    const warningDate = addDays(today, 7) // 7 days from now
-    return isBefore(expiryDate, warningDate) && isAfter(expiryDate, today)
-  }
+    if (!product.expiryDate) return false;
+    const today = new Date();
+    const expiryDate = new Date(product.expiryDate);
+    const warningDate = addDays(today, 7); // 7 days from now
+    return isBefore(expiryDate, warningDate) && isAfter(expiryDate, today);
+  };
 
   const handleDelete = async (id) => {
-    await deleteProductAPI(id)
-    fetchProducts()
-  }
+    await deleteProductAPI(id);
+    fetchProducts();
+  };
 
   // Check if a product is expired
   const isExpired = (product: Product) => {
-    if (!product.expiryDate) return false
-    const today = new Date()
-    const expiryDate = new Date(product.expiryDate)
-    return isBefore(expiryDate, today)
-  }
+    if (!product.expiryDate) return false;
+    const today = new Date();
+    const expiryDate = new Date(product.expiryDate);
+    return isBefore(expiryDate, today);
+  };
 
-  const fetchProductOrder = async (id: string,) => {
+  const fetchProductOrder = async (id: string) => {
     const response = await getSingleProductOrderAPI(id, startDate, endDate);
     if (!response) return;
 
@@ -203,19 +226,21 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     setOrderDetails(true);
   };
 
-
   // Handle summary popup
-  const handleSummaryClick = (type: "purchased" | "sell" | "remaining", product: Product) => {
-    setSummaryData({ type, product })
-    setSummaryPopup(true)
-  }
+  const handleSummaryClick = (
+    type: "purchased" | "sell" | "remaining",
+    product: Product
+  ) => {
+    setSummaryData({ type, product });
+    setSummaryPopup(true);
+  };
 
   // Get summary popup content
   const getSummaryContent = () => {
-    if (!summaryData) return null
+    if (!summaryData) return null;
 
-    const { type, product } = summaryData
-    const summary = product.summary || {}
+    const { type, product } = summaryData;
+    const summary = product.summary || {};
 
     switch (type) {
       case "purchased":
@@ -226,7 +251,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
           unit: summary.unitPurchase || 0,
           color: "text-blue-600",
           bgColor: "bg-blue-50",
-        }
+        };
       case "sell":
         return {
           title: "Sell Details",
@@ -235,7 +260,7 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
           unit: summary.unitSell || 0,
           color: "text-green-600",
           bgColor: "bg-green-50",
-        }
+        };
       case "remaining":
         return {
           title: "Remaining Details",
@@ -245,11 +270,11 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
           product: product,
           color: "text-orange-600",
           bgColor: "bg-orange-50",
-        }
+        };
       default:
-        return null
+        return null;
     }
-  }
+  };
 
   const handleTrashSubmit = async () => {
     const { quantity, type, reason } = trashForm;
@@ -272,23 +297,15 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         token
       );
 
-
       // 🔄 Reset UI
       setSummaryPopup(false);
-      await fetchProducts()
+      await fetchProducts();
       setTrashForm({ quantity: "", type: "box", reason: "" });
     } catch (err) {
       console.error("❌ Trash Submit Error:", err);
       toast.error("Something went wrong while submitting."); // ❌ error toast
     }
   };
-
-
-
-
-
-
-
 
   const handleAddQuantitySubmit = async () => {
     const { quantity, type, reason } = addQuaForm;
@@ -311,10 +328,9 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
         token
       );
 
-
       // 🔄 Reset UI
       setSummaryPopup(false);
-      await fetchProducts()
+      await fetchProducts();
       setAddQuaForm({ quantity: "", type: "box", reason: "" });
     } catch (err) {
       console.error("❌ Trash Submit Error:", err);
@@ -322,44 +338,43 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
     }
   };
 
-
-
-
-  const [editIndex, setEditIndex] = useState(null)
-  const [quantities, setQuantities] = useState({})
+  const [editIndex, setEditIndex] = useState(null);
+  const [quantities, setQuantities] = useState({});
 
   // जब डायलॉग खुले तो buyers की quantity को state में डाल दो
   useEffect(() => {
     if (productOrderData?.buyers) {
-      const initial = {}
+      const initial = {};
       productOrderData.buyers.forEach((b, i) => {
-        initial[i] = b.quantity
-      })
-      setQuantities(initial)
+        initial[i] = b.quantity;
+      });
+      setQuantities(initial);
     }
-  }, [productOrderData])
+  }, [productOrderData]);
 
   const handleQuantityChange = (index, value) => {
-    if (value < 0) return // negative ना होने दे
+    if (value < 0) return; // negative ना होने दे
     setQuantities((prev) => ({
       ...prev,
       [index]: value,
-    }))
-  }
+    }));
+  };
 
   const saveQuantity = async (index) => {
-     const newQty = quantities[index];
-  const orderId = productOrderData.buyers[index].orderId;
-  const productId = productOrderData?.productId;
-if (newQty < 1) {
-    toast.error("❌ Quantity must be at least 1");
-    return;
-  }
-  const updatedItem = await updateBuyerQuantityAPI({ orderId, productId, quantity: newQty }, token);
-  console.log(newQty,orderId,productId)
-  fetchProducts()
-    
-  }
+    const newQty = quantities[index];
+    const orderId = productOrderData.buyers[index].orderId;
+    const productId = productOrderData?.productId;
+    if (newQty < 1) {
+      toast.error("❌ Quantity must be at least 1");
+      return;
+    }
+    const updatedItem = await updateBuyerQuantityAPI(
+      { orderId, productId, quantity: newQty },
+      token
+    );
+    console.log(newQty, orderId, productId);
+    fetchProducts();
+  };
   return (
     <div className="overflow-x-auto">
       <Table>
@@ -367,13 +382,21 @@ if (newQty < 1) {
           <TableRow>
             <TableHead className="w-[30px]">
               <Checkbox
-                checked={selectedProducts.length === products.length && products.length > 0}
+                checked={
+                  selectedProducts.length === products.length &&
+                  products.length > 0
+                }
                 onCheckedChange={handleSelectAll}
               />
             </TableHead>
             <TableHead className="w-[60px]">Image</TableHead>
-            <TableHead className="cursor-pointer" onClick={() => handleSort("name")}>
-              <div className="flex items-center">Product {renderSortIcon("name")}</div>
+            <TableHead
+              className="cursor-pointer"
+              onClick={() => handleSort("name")}
+            >
+              <div className="flex items-center">
+                Product {renderSortIcon("name")}
+              </div>
             </TableHead>
             <TableHead className="text-right cursor-pointer">
               <div className="flex items-center justify-end">Purchased</div>
@@ -387,8 +410,13 @@ if (newQty < 1) {
             <TableHead className="text-right">
               <div className="flex items-center justify-end">Price</div>
             </TableHead>
-            <TableHead className="text-right cursor-pointer" onClick={() => handleSort("lastUpdated")}>
-              <div className="flex items-center justify-end">Updated {renderSortIcon("lastUpdated")}</div>
+            <TableHead
+              className="text-right cursor-pointer"
+              onClick={() => handleSort("lastUpdated")}
+            >
+              <div className="flex items-center justify-end">
+                Updated {renderSortIcon("lastUpdated")}
+              </div>
             </TableHead>
             <TableHead className="text-right">Order Actions</TableHead>
             <TableHead className="w-[100px]"></TableHead>
@@ -397,7 +425,10 @@ if (newQty < 1) {
         <TableBody>
           {sortedProducts.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+              <TableCell
+                colSpan={10}
+                className="text-center text-muted-foreground py-8"
+              >
                 No products found
               </TableCell>
             </TableRow>
@@ -408,7 +439,11 @@ if (newQty < 1) {
                 className={`
                   ${selectedProducts.includes(product.id) ? "bg-muted/40" : ""}
                   ${isExpired(product) ? "bg-red-50 dark:bg-red-950/20" : ""}
-                  ${isNearingExpiry(product) && !isExpired(product) ? "bg-amber-50 dark:bg-amber-950/20" : ""}
+                  ${
+                    isNearingExpiry(product) && !isExpired(product)
+                      ? "bg-amber-50 dark:bg-amber-950/20"
+                      : ""
+                  }
                 `}
               >
                 <TableCell>
@@ -432,7 +467,9 @@ if (newQty < 1) {
                   )}
                 </TableCell>
                 <TableCell>
-                  <div className="font-medium truncate max-w-[200px]">{product.name}</div>
+                  <div className="font-medium truncate max-w-[200px]">
+                    {product.name}
+                  </div>
                   <div className="flex flex-wrap gap-1 mt-1">
                     {product.palette && (
                       <div
@@ -441,7 +478,10 @@ if (newQty < 1) {
                       />
                     )}
                     {product.organic && (
-                      <Badge variant="outline" className="bg-green-50 text-green-700 border-green-300 text-xs">
+                      <Badge
+                        variant="outline"
+                        className="bg-green-50 text-green-700 border-green-300 text-xs"
+                      >
                         Organic
                       </Badge>
                     )}
@@ -480,7 +520,9 @@ if (newQty < 1) {
                   {product.pricePerBox && product.boxSize ? (
                     <div className="flex items-center justify-end gap-1">
                       <Package className="h-3 w-3 text-muted-foreground" />
-                      <span className="font-medium">${product.pricePerBox.toFixed(2)}</span>
+                      <span className="font-medium">
+                        ${product.pricePerBox.toFixed(2)}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-sm text-muted-foreground">N/A</span>
@@ -506,14 +548,17 @@ if (newQty < 1) {
                       <DropdownMenuContent align="end">
                         <DropdownMenuItem
                           onClick={() => {
-                            setEditProduct(product.id)
-                            setIsEditProduct(true)
+                            setEditProduct(product.id);
+                            setIsEditProduct(true);
                           }}
                         >
                           <FileEdit className="h-4 w-4 mr-2" />
                           Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDelete(product.id)} className="text-red-600">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(product.id)}
+                          className="text-red-600"
+                        >
                           <Trash className="h-4 w-4 mr-2" />
                           Delete
                         </DropdownMenuItem>
@@ -531,12 +576,14 @@ if (newQty < 1) {
       <Dialog open={isEditProduct} onOpenChange={setIsEditProduct}>
         <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Edit Product</DialogTitle>
+            <DialogTitle className="text-xl font-semibold">
+              Edit Product
+            </DialogTitle>
           </DialogHeader>
           <AddProductForm
             onSuccess={() => {
-              fetchProducts()
-              setIsEditProduct(false)
+              fetchProducts();
+              setIsEditProduct(false);
             }}
             editProduct={editProduct}
             isEditProduct={isEditProduct}
@@ -563,27 +610,33 @@ if (newQty < 1) {
                     alt={productOrderData.productTitle}
                     className="w-16 h-16 object-cover rounded-md"
                   />
-                  <h3 className="text-lg font-medium">{productOrderData.productTitle}</h3>
+                  <h3 className="text-lg font-medium">
+                    {productOrderData.productTitle}
+                  </h3>
                 </div>
 
                 {/* Right Side: Refresh Button */}
                 <button
                   onClick={async () => {
-                    await refreshSingleProductAPI(productOrderData?.productId)
-                    fetchProducts()
+                    await refreshSingleProductAPI(productOrderData?.productId);
+                    fetchProducts();
                   }}
                   className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
                 >
                   Refresh History
                 </button>
               </div>
-
+              ;
               <div className="border rounded-md p-4">
                 <h4 className="font-medium mb-2">Buyers</h4>
-                {productOrderData.buyers && productOrderData.buyers.length > 0 ? (
+                {productOrderData.buyers &&
+                productOrderData.buyers.length > 0 ? (
                   <div className="space-y-3">
                     {productOrderData.buyers.map((buyer, index) => (
-                      <div key={index} className="border-b pb-2 last:border-b-0 last:pb-0">
+                      <div
+                        key={index}
+                        className="border-b pb-2 last:border-b-0 last:pb-0"
+                      >
                         <div className="flex justify-between items-center">
                           <span className="font-medium">{buyer.name}</span>
 
@@ -592,7 +645,12 @@ if (newQty < 1) {
                               <input
                                 type="number"
                                 value={quantities[index]}
-                                onChange={(e) => handleQuantityChange(index, parseInt(e.target.value))}
+                                onChange={(e) =>
+                                  handleQuantityChange(
+                                    index,
+                                    parseInt(e.target.value)
+                                  )
+                                }
                                 className="w-20 border rounded px-2 py-1"
                               />
                               <button
@@ -607,12 +665,22 @@ if (newQty < 1) {
                               <span className="text-sm bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
                                 {quantities[index] ?? buyer.quantity}
                               </span>
+
+                              {/* Original Manage button */}
                               <button
                                 onClick={() => setEditIndex(index)}
                                 className="px-2 py-1 bg-blue-100 text-blue-600 rounded hover:bg-blue-200 text-xs"
                               >
                                 Manage
                               </button>
+
+                              {/* New Full Order Manage button */}
+                              <Link
+                                to={`/orders/edit/${buyer.orderId}`}
+                                className="px-2 py-1 bg-purple-100 text-purple-600 rounded hover:bg-purple-200 text-xs"
+                              >
+                                Full Order
+                              </Link>
                             </div>
                           )}
                         </div>
@@ -625,10 +693,11 @@ if (newQty < 1) {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground">No orders in the last 7 days</p>
+                  <p className="text-muted-foreground">
+                    No orders in the last 7 days
+                  </p>
                 )}
               </div>
-
               <div>Total Orders - {productOrderData?.totalOrdersThisWeek}</div>
             </div>
           )}
@@ -636,13 +705,12 @@ if (newQty < 1) {
       </Dialog>
 
       {/* Summary Popup Dialog */}
-      <Dialog open={summaryPopup} onOpenChange={setSummaryPopup} >
+      <Dialog open={summaryPopup} onOpenChange={setSummaryPopup}>
         <DialogContent className="sm:max-w-[400px]">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold flex items-center gap-2">
               {getSummaryContent()?.icon}
               {getSummaryContent()?.title}
-
             </DialogTitle>
           </DialogHeader>
           {summaryData && (
@@ -655,28 +723,60 @@ if (newQty < 1) {
                   className="w-12 h-12 object-cover rounded-md"
                 />
                 <div>
-                  <h3 className="font-medium text-sm">{summaryData.product.name}</h3>
-                  <p className="text-xs text-muted-foreground">{summaryData.product.category}</p>
+                  <h3 className="font-medium text-sm">
+                    {summaryData.product.name}
+                  </h3>
+                  <p className="text-xs text-muted-foreground">
+                    {summaryData.product.category}
+                  </p>
                 </div>
               </div>
 
               {/* Summary Cards */}
               <div className="grid grid-cols-2 gap-4">
-                <div className={`p-4 rounded-lg border-2 ${getSummaryContent()?.bgColor} border-opacity-20`}>
+                <div
+                  className={`p-4 rounded-lg border-2 ${
+                    getSummaryContent()?.bgColor
+                  } border-opacity-20`}
+                >
                   <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 className={`h-5 w-5 ${getSummaryContent()?.color}`} />
-                    <span className="text-sm font-medium text-gray-700">Total</span>
+                    <BarChart3
+                      className={`h-5 w-5 ${getSummaryContent()?.color}`}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      Total
+                    </span>
                   </div>
-                  <div className={`text-2xl font-bold ${getSummaryContent()?.color}`}>{getSummaryContent()?.total}</div>
+                  <div
+                    className={`text-2xl font-bold ${
+                      getSummaryContent()?.color
+                    }`}
+                  >
+                    {getSummaryContent()?.total}
+                  </div>
                 </div>
 
-                <div className={`p-4 rounded-lg border-2 ${getSummaryContent()?.bgColor} border-opacity-20`}>
+                <div
+                  className={`p-4 rounded-lg border-2 ${
+                    getSummaryContent()?.bgColor
+                  } border-opacity-20`}
+                >
                   <div className="flex items-center gap-2 mb-2">
                     <Box className={`h-5 w-5 ${getSummaryContent()?.color}`} />
-                    <span className="text-sm font-medium text-gray-700">Unit</span>
+                    <span className="text-sm font-medium text-gray-700">
+                      Unit
+                    </span>
                   </div>
-                  <div className={`text-2xl font-bold ${getSummaryContent()?.color}`}>{getSummaryContent()?.unit}</div>
-                  <div className="text-xs text-muted-foreground mt-1">{summaryData.product.unit}</div>
+                  <div
+                    className={`text-2xl font-bold ${
+                      getSummaryContent()?.color
+                    }`}
+                  >
+                    {getSummaryContent()?.unit}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {summaryData.product.unit}
+                  </div>
                 </div>
               </div>
 
@@ -684,7 +784,11 @@ if (newQty < 1) {
               <div className="pt-2 border-t">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Last Updated:</span>
-                  <span className="font-medium">{new Date(summaryData.product.lastUpdated).toLocaleDateString()}</span>
+                  <span className="font-medium">
+                    {new Date(
+                      summaryData.product.lastUpdated
+                    ).toLocaleDateString()}
+                  </span>
                 </div>
               </div>
             </div>
@@ -706,7 +810,9 @@ if (newQty < 1) {
                     type="number"
                     min={1}
                     value={trashForm.quantity}
-                    onChange={(e) => setTrashForm({ ...trashForm, quantity: e.target.value })}
+                    onChange={(e) =>
+                      setTrashForm({ ...trashForm, quantity: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
                 </div>
@@ -716,7 +822,9 @@ if (newQty < 1) {
                   <label className="block text-sm font-medium">Type</label>
                   <select
                     value={trashForm.type}
-                    onChange={(e) => setTrashForm({ ...trashForm, type: e.target.value })}
+                    onChange={(e) =>
+                      setTrashForm({ ...trashForm, type: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="box">Box</option>
@@ -730,7 +838,9 @@ if (newQty < 1) {
                   <input
                     type="text"
                     value={trashForm.reason}
-                    onChange={(e) => setTrashForm({ ...trashForm, reason: e.target.value })}
+                    onChange={(e) =>
+                      setTrashForm({ ...trashForm, reason: e.target.value })
+                    }
                     placeholder="e.g. Expired or Broken"
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
@@ -747,31 +857,6 @@ if (newQty < 1) {
             </div>
           )}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
           {getSummaryContent()?.title === "Remaining Details DFG" && (
             <div className="pt-4 border-t">
               <h4 className="text-sm font-semibold mb-3 flex items-center gap-2 text-green-600">
@@ -787,7 +872,9 @@ if (newQty < 1) {
                     type="number"
                     min={1}
                     value={addQuaForm.quantity}
-                    onChange={(e) => setAddQuaForm({ ...addQuaForm, quantity: e.target.value })}
+                    onChange={(e) =>
+                      setAddQuaForm({ ...addQuaForm, quantity: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   />
                 </div>
@@ -797,7 +884,9 @@ if (newQty < 1) {
                   <label className="block text-sm font-medium">Type</label>
                   <select
                     value={addQuaForm.type}
-                    onChange={(e) => setAddQuaForm({ ...addQuaForm, type: e.target.value })}
+                    onChange={(e) =>
+                      setAddQuaForm({ ...addQuaForm, type: e.target.value })
+                    }
                     className="w-full px-3 py-2 border rounded-md text-sm"
                   >
                     <option value="box">Box</option>
@@ -805,10 +894,18 @@ if (newQty < 1) {
                   </select>
                 </div>
 
-
                 <div className=" flex flex-col">
-                  <p>  Previous Update Box  : {getSummaryContent()?.product?.manuallyAddBox?.quantity || 0}</p>
-                  <p>Previous Update Unit : {getSummaryContent()?.product?.manuallyAddUnit?.quantity || 0}</p>
+                  <p>
+                    {" "}
+                    Previous Update Box :{" "}
+                    {getSummaryContent()?.product?.manuallyAddBox?.quantity ||
+                      0}
+                  </p>
+                  <p>
+                    Previous Update Unit :{" "}
+                    {getSummaryContent()?.product?.manuallyAddUnit?.quantity ||
+                      0}
+                  </p>
                 </div>
                 {/* Submit Button */}
                 <button
@@ -820,25 +917,10 @@ if (newQty < 1) {
               </div>
             </div>
           )}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
+  );
+};
 
-export default InventoryTable
+export default InventoryTable;

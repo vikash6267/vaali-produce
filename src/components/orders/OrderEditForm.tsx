@@ -44,7 +44,7 @@ const formSchema = z.object({
       quantity: z.number().min(1, "Quantity must be at least 1"),
       unitPrice: z.number().min(0, "Unit price must be at least 0"),
       shippinCost: z.number().optional(),
-      pricingType: z.enum(["box", "unit"])
+      pricingType: z.enum(["box", "unit"]),
     })
   ),
 });
@@ -58,7 +58,6 @@ interface OrderEditFormProps {
   onCancel: () => void;
   onViewClientProfile?: () => void;
   shippingCost?: number;
-
 }
 
 const OrderEditForm: React.FC<OrderEditFormProps> = ({
@@ -67,34 +66,34 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   onCancel,
   onViewClientProfile,
   setStoreDetails,
-  shippingCost = 0
+  shippingCost = 0,
 }) => {
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState([]);
   const [products, setProducts] = useState([]);
 
-
-  console.log(order)
+  console.log(order);
   // Define default values for the form
   const defaultValues: OrderFormValues = {
     store: order?.store || "",
     status: order?.status || "pending",
-    items: (order?.items || [
-      {
-        productId: "",
-        productName: "",
-        quantity: 1,
-        unitPrice: 0,
-        pricingType: "box",
-        shippinCost: 0
-      },
-    ]).map((item) => ({
+    items: (
+      order?.items || [
+        {
+          productId: "",
+          productName: "",
+          quantity: 1,
+          unitPrice: 0,
+          pricingType: "box",
+          shippinCost: 0,
+        },
+      ]
+    ).map((item) => ({
       ...item,
       pricingType: item.pricingType === "unit" ? "unit" : "box",
-      shippinCost: item.shippinCost || 0// force correct typing
+      shippinCost: item.shippinCost || 0, // force correct typing
     })),
   };
-
 
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(formSchema),
@@ -133,7 +132,6 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   //   );
   // };
 
-
   // const calculateSubtotal = () => {
   //   const items = form.getValues("items");
   //   return items.reduce(
@@ -147,15 +145,12 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   //   return Math.max(...items.map((item) => item.shippinCost || 0), 0);
   // };
 
-
-
   const calculateSubtotal = () => {
     const items = form.getValues("items");
     return items.reduce(
       (total, item) => total + item.quantity * item.unitPrice,
       0
     );
-
   };
 
   const calculateShipping = () => {
@@ -164,23 +159,19 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     //   (total, item) => total + item.quantity * (item.shippinCost || 0),
     //   0
     // );
-    return shippingCost
+    return shippingCost;
   };
 
   const calculateTotal = () => {
     return calculateSubtotal() + calculateShipping();
   };
 
-
   const getMaxShippingCost = () => {
     const items = form.getValues("items");
     if (!items || items.length === 0) return 0;
 
-    return Math.max(...items.map(item => item.shippinCost || 0));
+    return Math.max(...items.map((item) => item.shippinCost || 0));
   };
-
-
-
 
   const fetchStores = async () => {
     setLoading(true);
@@ -211,7 +202,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
           id: product._id,
           lastUpdated: product?.updatedAt,
         }));
-        console.log(updatedProducts)
+        console.log(updatedProducts);
         setProducts(updatedProducts);
       }
     } catch (error) {
@@ -224,14 +215,12 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     fetchProducts();
   }, []);
 
-
-
   const productOptions: {
     value: string;
     label: string;
     pricePerBox: number;
     pricePerUnit: number;
-    shippinCost: number
+    shippinCost: number;
   }[] = products.map((product) => ({
     value: product.id,
     label: product.name,
@@ -240,15 +229,9 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     shippinCost: Number(product.shippinCost || 0), // Make sure this exists in product
   }));
 
-
-
   useEffect(() => {
-
-
-    setStoreDetails(form.getValues("store"))
-  }, [form.watch("store")])
-
-
+    setStoreDetails(form.getValues("store"));
+  }, [form.watch("store")]);
 
   return (
     <Form {...form}>
@@ -324,11 +307,12 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
         <div className="border p-4 rounded-md">
           <h3 className="font-medium mb-4">Order Items</h3>
 
-
-
           {form.watch("items").map((_, index) => {
             return (
-              <div key={index} className="grid grid-cols-12 gap-2 mb-4 items-center">
+              <div
+                key={index}
+                className="grid grid-cols-12 gap-2 mb-4 items-center"
+              >
                 {/* Product Select Dropdown */}
                 <div className="col-span-5">
                   <FormField
@@ -339,29 +323,42 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
                         <FormLabel>Product</FormLabel>
                         <FormControl>
                           <Select2
-                            value={productOptions.find(option => option.value === field.value)}
+                            value={productOptions.find(
+                              (option) => option.value === field.value
+                            )}
                             options={productOptions}
                             onChange={(selectedOption) => {
-                              const pricingType = form.getValues(`items.${index}.pricingType`);
-                              form.setValue(`items.${index}.productId`, selectedOption.value);
-                              form.setValue(`items.${index}.productName`, selectedOption.label);
+                              const pricingType = form.getValues(
+                                `items.${index}.pricingType`
+                              );
+                              form.setValue(
+                                `items.${index}.productId`,
+                                selectedOption.value
+                              );
+                              form.setValue(
+                                `items.${index}.productName`,
+                                selectedOption.label
+                              );
                               const unitPrice =
                                 pricingType === "unit"
                                   ? selectedOption.pricePerUnit
                                   : selectedOption.pricePerBox;
-                              form.setValue(`items.${index}.unitPrice`, unitPrice);
-                              form.setValue(`items.${index}.shippinCost`, selectedOption.shippinCost);
+                              form.setValue(
+                                `items.${index}.unitPrice`,
+                                unitPrice
+                              );
+                              form.setValue(
+                                `items.${index}.shippinCost`,
+                                selectedOption.shippinCost
+                              );
                             }}
                           />
-
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
                 </div>
-
-
 
                 {/* Pricing Type Selector */}
                 <div className="col-span-2">
@@ -377,14 +374,19 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
                             onValueChange={(value) => {
                               field.onChange(value);
                               const selectedProduct = productOptions.find(
-                                (opt) => opt.value === form.getValues(`items.${index}.productId`)
+                                (opt) =>
+                                  opt.value ===
+                                  form.getValues(`items.${index}.productId`)
                               );
                               if (selectedProduct) {
                                 const price =
                                   value === "box"
                                     ? selectedProduct.pricePerBox
                                     : selectedProduct.pricePerUnit;
-                                form.setValue(`items.${index}.unitPrice`, price);
+                                form.setValue(
+                                  `items.${index}.unitPrice`,
+                                  price
+                                );
                               }
                             }}
                           >
@@ -466,8 +468,6 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
             );
           })}
 
-
-
           <Button
             type="button"
             variant="outline"
@@ -492,8 +492,6 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
               <span>$ {calculateTotal().toFixed(2)}</span>
             </div>
           </div>
-
-
         </div>
 
         <div className="flex justify-end gap-3">
