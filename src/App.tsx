@@ -271,6 +271,14 @@ export default function App() {
           }
         />
         <Route
+          path="/orders/new/:id"
+          element={
+            <PrivateRoute>
+              <NewOrder />
+            </PrivateRoute>
+          }
+        />
+        <Route
           path="/orders/edit/:orderId"
           element={
             <PrivateRoute>

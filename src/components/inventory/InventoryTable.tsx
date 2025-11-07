@@ -626,7 +626,14 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                   Refresh History
                 </button>
               </div>
-              ;
+              <br />
+              <Link
+                to={`/orders/new/${productOrderData?.productId}`}
+                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+              >
+                Assing Product To Store
+              </Link>
+
               <div className="border rounded-md p-4">
                 <h4 className="font-medium mb-2">Buyers</h4>
                 {productOrderData.buyers &&

@@ -24,6 +24,7 @@ import { Order } from "@/types";
 import { getAllMembersAPI } from "@/services2/operations/auth";
 import { getAllProductAPI } from "@/services2/operations/product";
 import Select2, { GroupBase, Options } from "react-select";
+import { useParams } from "react-router-dom";
 
 // Define the OrderItem type with required fields
 interface OrderItem {
@@ -71,7 +72,7 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
   const [loading, setLoading] = useState(true);
   const [store, setStore] = useState([]);
   const [products, setProducts] = useState([]);
-
+  const { id } = useParams();
   console.log(order);
   // Define default values for the form
   const defaultValues: OrderFormValues = {
@@ -214,6 +215,28 @@ const OrderEditForm: React.FC<OrderEditFormProps> = ({
     fetchStores();
     fetchProducts();
   }, []);
+  // After fetchProducts
+  useEffect(() => {
+    if (products.length > 0 && id) {
+      const matchedProduct = products.find((p) => p._id === id);
+      if (matchedProduct) {
+        // Update the first item in form with this product
+        form.setValue(`items.0.productId`, matchedProduct._id);
+        form.setValue(`items.0.productName`, matchedProduct.name);
+
+        const pricingType = form.getValues(`items.0.pricingType`);
+        const unitPrice =
+          pricingType === "unit"
+            ? Number(matchedProduct.price)
+            : Number(matchedProduct.pricePerBox);
+        form.setValue(`items.0.unitPrice`, unitPrice);
+        form.setValue(
+          `items.0.shippinCost`,
+          Number(matchedProduct.shippinCost || 0)
+        );
+      }
+    }
+  }, [products, id]);
 
   const productOptions: {
     value: string;
