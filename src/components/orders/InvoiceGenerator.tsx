@@ -85,228 +85,141 @@ const InvoiceGenerator: React.FC<InvoiceGeneratorProps> = ({
   const [plateCount, setPlateCount] = useState("");
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
-  const handlePrint = () => {
-    if (!invoiceRef.current) return;
+ const handlePrint = () => { 
+  if (!invoiceRef.current) return;
 
-    const printWindow = window.open("", "", "height=600,width=1200");
-    if (!printWindow) return;
+  const printWindow = window.open("", "", "height=600,width=1200");
+  if (!printWindow) return;
 
-    const invoiceHTML = invoiceRef.current.innerHTML;
+  const invoiceHTML = invoiceRef.current.innerHTML;
 
-    const printCSS = `
-      <style>
-        * {
+  const printCSS = `
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: Arial, Helvetica, sans-serif;
+        line-height: 1.6;
+        color: #333;
+        background: #fff;
+        margin: 0;
+        padding: 0;
+      }
+
+      @page {
+        size: A4;
+        margin: 15mm;
+      }
+
+      .invoice-container {
+        width: 100%;
+        max-width: 210mm;
+        margin: 0 auto;
+        padding: 10mm 0;
+        page-break-after: always;
+      }
+
+      h2, h3, h4, p {
+        margin: 0 0 10px 0;
+      }
+
+      /* Add spacing around header and sections */
+      .invoice-header, .invoice-info, .invoice-table {
+        margin-bottom: 15px;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        border-spacing: 0;
+        margin-top: 15px;
+      }
+
+      th, td {
+        padding: 10px 8px;
+        border: 1px solid #ddd;
+        text-align: left;
+        vertical-align: middle;
+      }
+
+      th {
+        background-color: #f4f4f4;
+        font-weight: bold;
+      }
+
+      tr:nth-child(even) {
+        background-color: #fafafa;
+      }
+
+      img {
+        max-height: 100px;
+        margin-bottom: 10px;
+      }
+
+      .flex {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+      }
+
+      .text-right {
+        text-align: right;
+      }
+
+      .text-center {
+        text-align: center;
+      }
+
+      /* Proper gap between sections */
+      .section {
+        margin-bottom: 20px;
+      }
+
+      /* Print specific adjustments */
+      @media print {
+        body {
           margin: 0;
           padding: 0;
-          box-sizing: border-box;
         }
-        
-        body {
-          font-family: Arial, Helvetica, sans-serif;
-          line-height: 1.5;
-          color: #333;
-          background: white;
-        }
-        
-        @page {
-          size: A4;
-          margin: 10mm;
-          padding: 0;
-        }
-        
+
         .invoice-container {
-          max-width: 210mm;
-          height: 297mm;
-          margin: 0 auto;
-          padding: 20mm;
-          background: white;
-          box-shadow: none;
-          border: none;
           page-break-after: always;
+          padding: 10mm;
         }
-        
-        h2, h3, h4 {
-          margin-bottom: 5px;
-        }
-        
+
         table {
-          width: 100%;
-          border-collapse: collapse;
-          margin: 20px 0;
+          page-break-inside: auto;
         }
-        
-        th, td {
-          padding: 8px;
-          text-align: left;
-          border: 1px solid #ddd;
-        }
-        
-        th {
-          background-color: #f5f5f5;
-          font-weight: bold;
-        }
-        
-        tr:nth-child(even) {
-          background-color: #fafafa;
-        }
-        
-        .flex {
-          display: flex;
-        }
-        
-        .justify-between {
-          justify-content: space-between;
-        }
-        
-        .justify-end {
-          justify-content: flex-end;
-        }
-        
-        .gap-4 {
-          gap: 16px;
-        }
-        
-        .w-1/2 {
-          width: 50%;
-        }
-        
-        .w-64 {
-          width: 16rem;
-        }
-        
-        .text-right {
-          text-align: right;
-        }
-        
-        .text-center {
-          text-align: center;
-        }
-        
-        .text-sm {
-          font-size: 12px;
-        }
-        
-        .text-2xl {
-          font-size: 24px;
-        }
-        
-        .text-xl {
-          font-size: 18px;
-        }
-        
-        .font-bold {
-          font-weight: bold;
-        }
-        
-        .font-medium {
-          font-weight: 600;
-        }
-        
-        .border {
-          border: 1px solid #ddd;
-        }
-        
-        .border-t {
-          border-top: 1px solid #ddd;
-        }
-        
-        .border-b {
-          border-bottom: 1px solid #ddd;
-        }
-        
-        .py-2 {
-          padding: 8px 0;
-        }
-        
-        .py-3 {
-          padding: 12px 0;
-        }
-        
-        .mb-2 {
-          margin-bottom: 8px;
-        }
-        
-        .mb-4 {
-          margin-bottom: 16px;
-        }
-        
-        .mb-8 {
-          margin-bottom: 32px;
-        }
-        
-        .mt-8 {
-          margin-top: 32px;
-        }
-        
-        .pt-4 {
-          padding-top: 16px;
-        }
-        
-        .pt-8 {
-          padding-top: 32px;
-        }
-        
-        .pb-4 {
-          padding-bottom: 16px;
-        }
-        
-        img {
-          max-width: 100%;
-          height: 130px;
-        }
-        
-        .text-gray-600 {
-          color: #666;
-        }
-        
-        .text-gray-800 {
-          color: #333;
-        }
-        
-        .items-center {
-          display: flex;
-          align-items: center;
-        }
-        
-        .border-dashed {
-          border-style: dashed;
-        }
-        
-        .italic {
-          font-style: italic;
-        }
-        
-        @media print {
-          body, .invoice-container {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-          }
-          
-          .invoice-container {
-            page-break-after: always;
-            box-shadow: none;
-            border: none;
-          }
-        }
-      </style>
-    `;
 
-    printWindow.document.write(
-      `<!DOCTYPE html><html><head><meta charset="UTF-8">${printCSS}</head><body>${invoiceHTML}</body></html>`
-    );
-    printWindow.document.close();
+        tr {
+          page-break-inside: avoid;
+          page-break-after: auto;
+        }
 
-    setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 250);
+        thead {
+          display: table-header-group;
+        }
 
-    toast({
-      title: "Print requested",
-      description: "The invoice has been sent to your printer.",
-    });
-  };
+        tfoot {
+          display: table-footer-group;
+        }
+      }
+    </style>
+  `;
+
+  printWindow.document.write(
+    `<!DOCTYPE html><html><head><meta charset="UTF-8">${printCSS}</head><body>${invoiceHTML}</body></html>`
+  );
+  printWindow.document.close();
+
+  setTimeout(() => {
+    printWindow.print();
+    printWindow.close();
+  }, 300);
+};
+
 
   const updateShipping = async (cost: number, plates: number) => {
     console.log("Shipping cost:", cost);
