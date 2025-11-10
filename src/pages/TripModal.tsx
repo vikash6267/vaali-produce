@@ -379,11 +379,11 @@ console.log(editData)
             <>
               <div>
                 <label className="block text-sm font-medium mb-1">Capacity (kg)</label>
-                <input type="number" name="capacity_kg" value={formData.capacity_kg} onChange={handleChange} className="w-full border p-2 rounded" required />
+                <input type="number" readOnly name="capacity_kg" value={formData.capacity_kg} onChange={handleChange} className="w-full border p-2 rounded" required />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Capacity (m³)</label>
-                <input type="number" name="capacity_m3" value={formData.capacity_m3} onChange={handleChange} className="w-full border p-2 rounded" required />
+                <input type="number" readOnly name="capacity_m3" value={formData.capacity_m3} onChange={handleChange} className="w-full border p-2 rounded" required />
               </div>
             </>
           )}
