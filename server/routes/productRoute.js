@@ -15,7 +15,8 @@ const {
   addToTrash,
   compareProductSalesWithOrders,
   resetAndRebuildHistoryForSingleProductCtrl,
-  addToManually
+  addToManually,
+  calculateTripWeight
 
   
    
@@ -40,5 +41,9 @@ router.post("/trash", addToTrash);
 router.post("/addQuantity", addToManually);
 router.get("/com", compareProductSalesWithOrders);
 router.get('/reset-history/:productId', resetAndRebuildHistoryForSingleProductCtrl);
+
+
+
+router.post("/calculate-weight", calculateTripWeight);
 
 module.exports = router

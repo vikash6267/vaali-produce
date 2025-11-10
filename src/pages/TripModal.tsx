@@ -6,6 +6,7 @@ import { getAllDriversAPI } from "@/services2/operations/driverAndTruck";
 import { getAllOrderAPI } from "@/services2/operations/order";
 import { Loader2 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { calculateTripWeightAPI } from "@/services2/operations/product";
 
 const TRIP_STATUSES = ["Planned", "On Route", "Delivered", "Cancelled"];
 
@@ -47,6 +48,24 @@ console.log(editData)
   useEffect(() => {
     fetchDrivers();
   }, []);
+
+
+  const calculateWeightForSelectedOrders = async (selectedIds) => {
+  try {
+    if (selectedIds.length === 0) return;
+    const result = await calculateTripWeightAPI(selectedIds, token);
+    if (result) {
+      setFormData((prev) => ({
+        ...prev,
+        capacity_kg: result.totalWeightKg,
+        capacity_m3: result.totalVolumeM3,
+      }));
+    }
+  } catch (error) {
+    console.error("Error calculating weight:", error);
+  }
+};
+
 
   const fetchSelectedOrdersDetails = async (orderIds) => {
     if (orderIds.length === 0) return;
@@ -156,24 +175,25 @@ console.log(editData)
     }
   };
 
-  const toggleSelectOrder = (orderId) => {
-    setFormData((prev) => {
-      const isSelected = prev.orders.includes(orderId);
-      const newOrders = isSelected
-        ? prev.orders.filter((id) => id !== orderId)
-        : [...prev.orders, orderId];
+ const toggleSelectOrder = (orderId) => {
+  setFormData((prev) => {
+    const isSelected = prev.orders.includes(orderId);
+    const newOrders = isSelected
+      ? prev.orders.filter((id) => id !== orderId)
+      : [...prev.orders, orderId];
 
-      if (!isSelected && !selectedOrdersDetails.find(o => o.id === orderId)) {
-        // If a new order is selected and its details are missing, fetch them
-        fetchSelectedOrdersDetails([orderId]);
-      }
+    // Fetch details if needed
+    if (!isSelected && !selectedOrdersDetails.find(o => o.id === orderId)) {
+      fetchSelectedOrdersDetails([orderId]);
+    }
 
-      return {
-        ...prev,
-        orders: newOrders,
-      };
-    });
-  };
+    // Calculate after short delay to ensure updated state
+    setTimeout(() => calculateWeightForSelectedOrders(newOrders), 300);
+
+    return { ...prev, orders: newOrders };
+  });
+};
+
 
   const fetchOrders = async () => {
     setLoadingOrders(true);

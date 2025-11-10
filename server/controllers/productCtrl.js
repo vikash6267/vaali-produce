@@ -1631,6 +1631,127 @@ console.log(req.params)
 };
 
 
+
+const calculateTripWeight = async (req, res) => {
+  try {
+    const { orderIds } = req.body;
+    console.log("🟢 Incoming orderIds:", orderIds);
+
+    if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No orders provided" });
+    }
+
+    // Step 1: Fetch Orders
+    const orders = await Order.find({ _id: { $in: orderIds } }).lean();
+    console.log("🟡 Orders fetched:", orders.length);
+
+    if (!orders.length) {
+      return res.status(404).json({ success: false, message: "Orders not found" });
+    }
+
+    // Step 2: Extract Product IDs
+    const productIds = [];
+    for (const order of orders) {
+      if (Array.isArray(order.items)) {
+        for (const item of order.items) {
+          const pid = item.productId || item.product;
+          if (pid) productIds.push(pid.toString());
+        }
+      }
+    }
+
+    const uniqueProductIds = [...new Set(productIds)];
+    console.log("🟣 Total unique product IDs found:", uniqueProductIds.length);
+
+    if (!uniqueProductIds.length) {
+      return res.status(400).json({ success: false, message: "No product IDs found" });
+    }
+
+    // Step 3: Fetch Products
+    const products = await Product.find({ _id: { $in: uniqueProductIds } })
+      .select("name boxSize unitPurchase weightVariation")
+      .lean();
+    console.log("🔵 Products fetched:", products.length);
+
+    const productMap = {};
+    products.forEach((p) => (productMap[p._id.toString()] = p));
+
+    // Step 4: Calculate Totals
+    let totalWeightKg = 0;
+    let totalVolumeM3 = 0;
+    const productDetails = [];
+
+    for (const order of orders) {
+      if (!Array.isArray(order.items)) continue;
+
+      for (const item of order.items) {
+        const productId = (item.productId || item.product || "").toString();
+        const product = productMap[productId];
+        if (!product) {
+          console.warn("⚠️ Product not found for ID:", productId);
+          continue;
+        }
+
+        const qty = Number(item.quantity) || 0;
+        const boxSize = Number(product.boxSize) || 0;
+
+        // 🧠 Smart Weight Detection
+        let productWeightKg = 0;
+console.log(product)
+        if (product.weightVariation && product.weightVariation > 0) {
+          productWeightKg = product.weightVariation; // already in kg
+        } 
+
+        if (!productWeightKg) {
+          console.warn(`⚠️ Product "${product.name}" (${productId}) has no valid weight data`);
+        }
+
+        const totalProductWeight = productWeightKg * qty;
+        totalWeightKg += totalProductWeight;
+        totalVolumeM3 += boxSize * qty;
+
+        // Merge duplicates
+        const existing = productDetails.find((p) => p.productId === productId);
+        if (existing) {
+          existing.totalQty += qty;
+          existing.totalWeightKg += totalProductWeight;
+        } else {
+          productDetails.push({
+            productId,
+            productName: product.name,
+            totalQty: qty,
+            unitWeightKg: Math.round(productWeightKg * 100) / 100,
+            totalWeightKg: Math.round(totalProductWeight * 100) / 100,
+            boxSize,
+          });
+        }
+      }
+    }
+
+    // Step 5: Response
+    const responseData = {
+      totalWeightKg: Math.round(totalWeightKg * 100) / 100,
+      totalVolumeM3: Math.round(totalVolumeM3 * 100) / 100,
+      productDetails,
+    };
+
+    console.log("✅ Final Totals:", responseData);
+
+    res.status(200).json({
+      success: true,
+      message: "Trip weight calculated successfully",
+      data: responseData,
+    });
+  } catch (error) {
+    console.error("❌ Weight calculation failed:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
+
 module.exports = { 
     createProductCtrl, 
     getAllProductCtrl, 
@@ -1645,6 +1766,7 @@ module.exports = {
     addToTrash,
     resetAndRebuildHistoryForSingleProductCtrl,
     compareProductSalesWithOrders,
-    addToManually
+    addToManually,
+    calculateTripWeight
 
 };

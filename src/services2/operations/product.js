@@ -14,7 +14,8 @@ const { CREATE_PRODUCT,
     GET_ALL_PRODUCT_SUMMARY,
     TRASH_PRODUCT,
     REFRESH_PRODUCT,
-    QUANITY_ADD_PRODUCT
+    QUANITY_ADD_PRODUCT,
+    CALCULATE_PRODUCT_WEIGHT
 } = product
 
 export const createProductAPI = async (formData, token) => {
@@ -331,3 +332,32 @@ export const addQuantityProductAPI = async ( formData, token) => {
 
 
 
+export const calculateTripWeightAPI = async (orderIds, token) => {
+  const toastId = toast.loading("Calculating trip weight...");
+
+  try {
+    const response = await apiConnector(
+      "POST",
+      CALCULATE_PRODUCT_WEIGHT,
+      { orderIds },
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Weight calculation failed!");
+    }
+
+    toast.success("Weight calculated successfully!");
+    return response?.data?.data; // contains { totalWeightKg, totalVolumeM3 }
+  } catch (error) {
+    console.error("❌ calculateTripWeightAPI ERROR:", error);
+    toast.error(
+      error?.response?.data?.message || "Failed to calculate trip weight!"
+    );
+    return null;
+  } finally {
+    toast.dismiss(toastId);
+  }
+};
