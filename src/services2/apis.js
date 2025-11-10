@@ -165,4 +165,5 @@ export const trip = {
   CREATE_TRIP: BASE_URL + "/trips/create",
   UPDATE_TRIP: BASE_URL + "/trips/update",
   GET_ALL_TRIP: BASE_URL + "/trips/getAll",
+  GET_TRIP: BASE_URL + "/trips/get",
 }

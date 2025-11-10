@@ -7,9 +7,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import SingleTripModal from "./SingleTripModal"; // import modal
 
 const TripsList = ({ trips = [], onEdit }) => {
   const [selectedTrip, setSelectedTrip] = useState(null);
+  const [previewTripId, setPreviewTripId] = useState(null);
 
   return (
     <div className="overflow-x-auto">
@@ -47,6 +49,11 @@ const TripsList = ({ trips = [], onEdit }) => {
         </div>
       )}
 
+      {/* ================= PREVIEW MODAL ================= */}
+      {previewTripId && (
+        <SingleTripModal id={previewTripId} onClose={() => setPreviewTripId(null)} />
+      )}
+
       {/* ================= TRIPS TABLE ================= */}
       <Table className="min-w-full border rounded-lg overflow-hidden">
         <TableHeader className="bg-gray-200 text-sm font-semibold">
@@ -77,13 +84,11 @@ const TripsList = ({ trips = [], onEdit }) => {
               return (
                 <TableRow key={trip?._id} className="text-sm">
 
-                  {/* Driver */}
                   <TableCell>
                     <div className="font-semibold">{driver?.name || "No Driver"}</div>
                     <div className="text-xs text-gray-500">{driver?.phone || "-"}</div>
                   </TableCell>
 
-                  {/* Truck */}
                   <TableCell>
                     <div className="text-blue-600 font-semibold">
                       {truck?.truck_number || "No Truck"}
@@ -93,17 +98,14 @@ const TripsList = ({ trips = [], onEdit }) => {
                     </div>
                   </TableCell>
 
-                  {/* Route */}
                   <TableCell>
                     {trip?.route?.from || "-"} → {trip?.route?.to || "-"}
                   </TableCell>
 
-                  {/* Date */}
                   <TableCell>
                     {trip?.date ? new Date(trip.date).toLocaleDateString() : "--"}
                   </TableCell>
 
-                  {/* Orders (Count + View Button in same row) */}
                   <TableCell>
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-purple-700">
@@ -120,21 +122,25 @@ const TripsList = ({ trips = [], onEdit }) => {
                     </div>
                   </TableCell>
 
-                  {/* Capacity */}
                   <TableCell>
                     {trip?.capacity_kg || 0} kg / {trip?.capacity_m3 || 0} m³
                   </TableCell>
 
-                  {/* Status */}
                   <TableCell>{trip?.status || "-"}</TableCell>
 
-                  {/* Actions */}
-                  <TableCell>
+                  <TableCell className="flex gap-2">
                     <button
                       onClick={() => onEdit?.(trip)}
                       className="px-2 py-1 bg-yellow-500 text-white rounded text-xs"
                     >
                       Edit
+                    </button>
+
+                    <button
+                      onClick={() => setPreviewTripId(trip._id)}
+                      className="px-2 py-1 bg-green-500 text-white rounded text-xs"
+                    >
+                      Preview
                     </button>
                   </TableCell>
 

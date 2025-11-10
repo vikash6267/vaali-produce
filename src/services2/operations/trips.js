@@ -2,7 +2,7 @@ import { apiConnector } from "../apiConnector";
 import { trip } from "../apis";
 import { toast } from "react-toastify";
 
-const { CREATE_TRIP, UPDATE_TRIP, GET_ALL_TRIP } = trip;
+const { CREATE_TRIP, UPDATE_TRIP, GET_ALL_TRIP,GET_TRIP } = trip;
 
 export const addTripAPI = async (formData, token) => {
   const toastId = toast.loading("Adding Trip...");
@@ -59,6 +59,22 @@ export const getAllTripsAPI = async (token) => {
   } catch (error) {
     console.error("GET ALL TRIPS ERROR:", error);
     toast.error(error?.response?.data?.message || "Failed to fetch trips!");
+    return [];
+  } finally {
+    toast.dismiss(toastId);
+  }
+};
+export const getTripApi = async (token,  id) => {
+  const toastId = toast.loading("Fetching trip...");
+  try {
+    const response = await apiConnector("GET", `${GET_TRIP}/${id}`, null, {
+      Authorization: `Bearer ${token}`,
+    });
+
+    return response.data || [];
+  } catch (error) {
+    console.error("GET single TRIP ERROR:", error);
+    toast.error(error?.response?.data?.message || "Failed to fetch trip!");
     return [];
   } finally {
     toast.dismiss(toastId);

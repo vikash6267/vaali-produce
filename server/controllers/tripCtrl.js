@@ -164,8 +164,63 @@ const getAllTripsCtrl = async (req, res) => {
   }
 };
 
+const getSingleTripCtrl = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const trip = await Trip.findById(id)
+      .populate("driver") // full driver
+      .populate({
+        path: "orders",
+        populate: {
+          path: "store", // populate the store inside each order
+          model: "auth", // matches your schema ref
+        },
+      })
+      .lean();
+
+    if (!trip) {
+      return res.status(404).json({
+        success: false,
+        message: "Trip not found",
+      });
+    }
+
+    const driver = trip.driver;
+
+    // Find full truck object from driver's trucks
+    let fullTruck = null;
+    if (driver?.trucks?.length) {
+      fullTruck = driver.trucks.find(
+        (t) => t._id.toString() === trip.truck.toString()
+      );
+    }
+
+    const updatedTrip = {
+      ...trip,
+      driver: driver,                // Full driver object
+      selectedTruck: fullTruck || null,   // Full truck object
+    };
+
+    res.status(200).json({
+      success: true,
+      data: updatedTrip,
+    });
+  } catch (error) {
+    console.error("GET SINGLE TRIP ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+
 module.exports = {
   createTripCtrl,
   editTripCtrl,
-  getAllTripsCtrl,
+  getAllTripsCtrl,getSingleTripCtrl
 };

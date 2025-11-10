@@ -11,8 +11,9 @@ import { calculateTripWeightAPI } from "@/services2/operations/product";
 const TRIP_STATUSES = ["Planned", "On Route", "Delivered", "Cancelled"];
 
 const TripModal = ({ isOpen, onClose, editData, fetchTrips }) => {
+
   const token = useSelector((state: RootState) => state.auth.token);
-console.log(editData)
+
   const [formData, setFormData] = useState({
     routeFrom: "",
     routeTo: "",
