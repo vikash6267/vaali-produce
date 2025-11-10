@@ -13,6 +13,8 @@ import { getAllOrderAPI } from "@/services2/operations/order";
 import { RootState } from '@/redux/store';
 import { useSelector } from 'react-redux';
 import { Loader2 } from "lucide-react";
+import ManageDrivers from './ManageDrivers';
+import ManageTrips from './ManageTrips';
 
 const Orders = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
@@ -140,8 +142,25 @@ const Orders = () => {
               </TabsContent>
 
               <TabsContent value="advanced">
-                <OrderManagementTabs />
-              </TabsContent>
+  <Tabs defaultValue="routes" className="mt-4">
+    <TabsList className="w-full  grid grid-cols-2 mb-4">
+      <TabsTrigger value="routes">Manage Trips</TabsTrigger>
+      <TabsTrigger value="drivers">Manage Drivers</TabsTrigger>
+    </TabsList>
+
+    <TabsContent value="routes">
+      <ManageTrips/>
+    </TabsContent>
+
+    <TabsContent value="drivers">
+      <div className="p-4">
+        {/* Yaha ManageDrivers component rakho */}
+        <ManageDrivers />
+      </div>
+    </TabsContent>
+  </Tabs>
+</TabsContent>
+
             </Tabs>
           </div>
         </main>

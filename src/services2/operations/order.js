@@ -173,8 +173,6 @@ export const getOrderAPI = async (id,token) => {
         const response = await apiConnector("GET", `${GET_ORDER}/${id}`,{},{
             Authorization: `Bearer ${token}`,
         })
-
-
         if (!response?.data?.success) {
             throw new Error(response?.data?.message || "Something went wrong!");
         }

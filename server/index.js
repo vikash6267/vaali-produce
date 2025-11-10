@@ -50,6 +50,8 @@ app.use("/api/v1/pricing", require("./routes/groupPricing"))
 app.use("/api/v1/vendors", require("./routes/vendorRoute"))
 app.use("/api/v1/purchase-orders", require("./routes/purchaseOrderRoute"))
 app.use("/api/v1/credit-memo", require("./routes/creditMemosRoute"))
+app.use("/api/v1/drivers", require("./routes/driverAndTruckRoute"))
+app.use("/api/v1/trips", require("./routes/tripRoute"))
 
 
 

@@ -154,5 +154,14 @@ export const creditmemos = {
   CREATE_CREDIT_MEMO: BASE_URL + "/credit-memo/create",
   GET_CREDIT_MEMO_BY_ID: BASE_URL + "/credit-memo/by-order",
   UPDATE_CREDIT_MEMO_BY_ID: BASE_URL + "/credit-memo/update",
-
+}
+export const driver = {
+  CREATE_DRIVER: BASE_URL + "/drivers/create",
+  UPDATE_DRIVER: BASE_URL + "/drivers/update",
+  GET_ALL_DRIVER: BASE_URL + "/drivers/getAll",
+}
+export const trip = {
+  CREATE_TRIP: BASE_URL + "/trips/create",
+  UPDATE_TRIP: BASE_URL + "/trips/update",
+  GET_ALL_TRIP: BASE_URL + "/trips/getAll",
 }
