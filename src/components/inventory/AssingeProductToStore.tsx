@@ -9,7 +9,7 @@ import {
 
 import React, { useState, useEffect } from "react";
 import { getAllMembersAPI } from "@/services2/operations/auth";
-import { assignProductToStoreAPI } from "@/services2/operations/order"; // ✅ Import API
+import { assignProductToStoreAPI } from "@/services2/operations/order"; 
 import { ChevronDown } from "lucide-react";
 
 const AssingeProductToStore = ({ isOpen, onClose, productId, token }) => {
