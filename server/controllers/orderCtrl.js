@@ -2056,7 +2056,6 @@ const assignProductToStore = async (req, res) => {
       return res.status(400).json({ success: false, message: "productId and storeId are required" });
     }
 
-    // Fetch product & store as Mongoose documents
     const product = await Product.findById(productId);
     if (!product) return res.status(404).json({ success: false, message: "Product not found" });
 
@@ -2068,37 +2067,46 @@ const assignProductToStore = async (req, res) => {
     const monday = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - ((day + 6) % 7), 0,0,0,0));
     const sunday = new Date(Date.UTC(monday.getUTCFullYear(), monday.getUTCMonth(), monday.getUTCDate() + 6, 23,59,59,999));
 
-    // Check weekly stock
-    const filteredPurchase = (product.purchaseHistory || []).filter(p => new Date(p.date) >= monday && new Date(p.date) <= sunday);
-    const filteredSell = (product.salesHistory || []).filter(s => new Date(s.date) >= monday && new Date(s.date) <= sunday);
-    const filteredTrash = (product.quantityTrash || []).filter(t => new Date(t.date) >= monday && new Date(t.date) <= sunday);
+    const isWithinRange = (date) => new Date(date) >= monday && new Date(date) <= sunday;
+
+    // ✅ Week filter
+    const filteredPurchase = (product.purchaseHistory || []).filter(p => isWithinRange(p.date));
+    const filteredSell = (product.salesHistory || []).filter(s => isWithinRange(s.date));
+    const filteredLBPurchase = (product.lbPurchaseHistory || []).filter(p => isWithinRange(p.date));
+    const filteredLBSell = (product.lbSellHistory || []).filter(s => isWithinRange(s.date));
+    const filteredTrash = (product.quantityTrash || []).filter(t => isWithinRange(t.date));
 
     const totalPurchase = filteredPurchase.reduce((sum, p) => sum + p.quantity, 0);
     const totalSell = filteredSell.reduce((sum, s) => sum + s.quantity, 0);
+    const unitPurchase = filteredLBPurchase.reduce((sum, p) => sum + p.weight, 0);
+    const unitSell = filteredLBSell.reduce((sum, s) => sum + s.weight, 0);
+
     const trashBox = filteredTrash.filter(t => t.type === "box").reduce((sum, t) => sum + t.quantity, 0);
+    const trashUnit = filteredTrash.filter(t => t.type === "unit").reduce((sum, t) => sum + t.quantity, 0);
 
     const totalRemaining = Math.max(totalPurchase - totalSell - trashBox + (product.manuallyAddBox?.quantity || 0), 0);
+    const unitRemaining = Math.max(unitPurchase - unitSell - trashUnit + (product.manuallyAddUnit?.quantity || 0), 0);
 
+    // ✅ Check BOX availability (assign means 1 box)
     if (totalRemaining < 1) {
       return res.status(400).json({
         success: false,
         message: "Insufficient stock (week-wise check)",
-        insufficientStock: [
-          {
-            productId,
-            name: product.name,
-            available: totalRemaining,
-            requested: 1,
-            type: "box",
-            weekRange: `${monday.toISOString().split("T")[0]} to ${sunday.toISOString().split("T")[0]}`
-          }
-        ]
+        insufficientStock: [{
+          productId,
+          name: product.name,
+          available: totalRemaining,
+          requested: 1,
+          type: "box",
+          weekRange: `${monday.toISOString().split("T")[0]} to ${sunday.toISOString().split("T")[0]}`
+        }]
       });
     }
-
-    // Create order item
+// console.log("PRODUCT",product._id.toString(), "PRODUCT");
+// return
+    // ✅ Create order item
     const newItem = {
-      productId: product._id,
+      productId: product._id.toString(),
       productName: product.name,
       quantity: 1,
       unitPrice: product.price || 0,
@@ -2106,13 +2114,21 @@ const assignProductToStore = async (req, res) => {
       pricingType: "box",
     };
 
-    // Find or create weekly order
-    let order = await orderModel.findOne({ store: storeId, createdAt: { $gte: monday, $lte: sunday } }).sort({ createdAt: -1 });
-    if (!order) {
-      order = new orderModel({
-        store: storeId,
+    // ✅ Find or create weekly order
+    // let order = await orderModel.findOne({ store: storeId, createdAt: { $gte: monday, $lte: sunday } }).sort({ createdAt: -1 });
+   let order = await orderModel.findOne({ store: storeId, createdAt: { $gte: monday, $lte: sunday } }).sort({ createdAt: -1 });
+console.log(order,"ORDER");
+if (!order) {
+  console.log("🟡 No weekly order found, creating new order via createOrderCtrl...");
+
+  // call createOrderCtrl internally
+  return createOrderCtrl(
+    {
+      body: {
         items: [newItem],
-        orderNumber: await getNextOrderNumber(),
+        status: "pending",
+        total: newItem.unitPrice + (newItem.shippinCost || 0),
+        clientId: { value: storeId },
         billingAddress: {
           name: store.storeName || store.name,
           phone: store.phone || "",
@@ -2127,31 +2143,50 @@ const assignProductToStore = async (req, res) => {
           city: store.city || "",
           country: "USA",
         },
-        total: newItem.unitPrice * newItem.quantity,
-        createdAt: now,
-      });
-    } else {
+        orderType: "Regural",
+        
+       
+      },
+    },
+    res
+  );
+}
+ else {
       const exists = order.items.find(i => i.productId.toString() === productId);
       if (!exists) {
-        order.items.push(newItem);
-        order.total += newItem.unitPrice * newItem.quantity;
+        return updateOrderCtrl(
+    {
+      params: { id: order._id },
+      body: {
+        items: [...order.items, newItem], // old + new item
+        total: order.total + newItem.unitPrice + (newItem.shippinCost || 0)
+      }
+    },
+    res
+  );
       }
     }
 
-    // Update product quantities & sales history
+    // ✅ EXACT CREATE ORDER LOGIC FOR BOX
     const lastUpdated = product.updatedFromOrders?.[product.updatedFromOrders.length - 1];
-    const estimatedUnits = (lastUpdated?.perLb) || 1;
 
+    let avgUnitsPerBox = 0;
+    let estimatedUnitsUsed = 0;
+
+    if (lastUpdated && lastUpdated.perLb && lastUpdated.newQuantity) {
+      avgUnitsPerBox = lastUpdated.perLb;
+      estimatedUnitsUsed = avgUnitsPerBox * 1; // Assign 1 box
+    }
+
+    product.lbSellHistory.push({ date: now, weight: estimatedUnitsUsed, lb: "box" });
     product.salesHistory.push({ date: now, quantity: 1 });
-    product.lbSellHistory.push({ date: now, weight: estimatedUnits, lb: "box" });
 
     product.totalSell = (product.totalSell || 0) + 1;
-    product.remaining = Math.max(0, (product.remaining || 0) - 1);
-    product.unitSell = (product.unitSell || 0) + estimatedUnits;
-    product.unitRemaining = Math.max(0, (product.unitRemaining || 0) - estimatedUnits);
+    product.remaining = Math.max(0, product.remaining - 1);
+    product.unitRemaining = Math.max(0, product.unitRemaining - estimatedUnitsUsed);
+    product.unitSell = (product.unitSell || 0) + estimatedUnitsUsed;
 
-    await product.save();
-    await order.save();
+ 
 
     res.json({
       success: true,
