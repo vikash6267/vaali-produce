@@ -1635,21 +1635,15 @@ console.log(req.params)
 const calculateTripWeight = async (req, res) => {
   try {
     const { orderIds } = req.body;
-    console.log("🟢 Incoming orderIds:", orderIds);
-
     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
       return res.status(400).json({ success: false, message: "No orders provided" });
     }
 
-    // Step 1: Fetch Orders
     const orders = await Order.find({ _id: { $in: orderIds } }).lean();
-    console.log("🟡 Orders fetched:", orders.length);
-
     if (!orders.length) {
       return res.status(404).json({ success: false, message: "Orders not found" });
     }
 
-    // Step 2: Extract Product IDs
     const productIds = [];
     for (const order of orders) {
       if (Array.isArray(order.items)) {
@@ -1661,26 +1655,21 @@ const calculateTripWeight = async (req, res) => {
     }
 
     const uniqueProductIds = [...new Set(productIds)];
-    console.log("🟣 Total unique product IDs found:", uniqueProductIds.length);
-
     if (!uniqueProductIds.length) {
       return res.status(400).json({ success: false, message: "No product IDs found" });
     }
 
-    // Step 3: Fetch Products
     const products = await Product.find({ _id: { $in: uniqueProductIds } })
       .select("name boxSize unitPurchase weightVariation")
       .lean();
-    console.log("🔵 Products fetched:", products.length);
 
     const productMap = {};
     products.forEach((p) => (productMap[p._id.toString()] = p));
 
-    // Step 4: Calculate Totals
-    let totalWeightKg = 0;
+    let totalWeightKg = 0; // Will hold lbs value instead
     let totalVolumeM3 = 0;
     const productDetails = [];
-    const orderWiseDetails = []; // 🆕 for order-level breakdown
+    const orderWiseDetails = [];
 
     for (const order of orders) {
       if (!Array.isArray(order.items)) continue;
@@ -1692,57 +1681,50 @@ const calculateTripWeight = async (req, res) => {
       for (const item of order.items) {
         const productId = (item.productId || item.product || "").toString();
         const product = productMap[productId];
-        if (!product) {
-          console.warn("⚠️ Product not found for ID:", productId);
-          continue;
-        }
+        if (!product) continue;
 
         const qty = Number(item.quantity) || 0;
         const boxSize = Number(product.boxSize) || 0;
 
-        // 🧠 Smart Weight Detection
-        let productWeightKg = 0;
-        if (product.weightVariation && product.weightVariation > 0) {
-          productWeightKg = product.weightVariation;
-        } else {
-          console.warn(`⚠️ Product "${product.name}" (${productId}) has no valid weight data`);
-        }
+        let productWeightKg = product.weightVariation || 0;
 
-        const totalProductWeight = productWeightKg * qty;
-        orderTotalWeight += totalProductWeight;
-        orderTotalVolume += boxSize * qty;
-        totalWeightKg += totalProductWeight;
-        totalVolumeM3 += boxSize * qty;
+        // Convert weight to lbs but keep field names same
+        const unitWeightLbs = productWeightKg * 2.20462;
+        const totalWeightProductLbs = unitWeightLbs * qty;
 
-        // Merge duplicate products (for overall product summary)
+        orderTotalWeight += totalWeightProductLbs;
+        orderTotalVolume += boxSize * qty; // 🟢 volume per order
+
+        totalWeightKg += totalWeightProductLbs;
+        totalVolumeM3 += boxSize * qty; // 🟢 total volume overall
+
         const existing = productDetails.find((p) => p.productId === productId);
         if (existing) {
           existing.totalQty += qty;
-          existing.totalWeightKg += totalProductWeight;
+          existing.totalWeightKg += totalWeightProductLbs;
         } else {
           productDetails.push({
             productId,
             productName: product.name,
             totalQty: qty,
-            unitWeightKg: Math.round(productWeightKg * 100) / 100,
-            totalWeightKg: Math.round(totalProductWeight * 100) / 100,
+            unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
+            totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
             boxSize,
           });
         }
 
-        // Add per order product info
         orderProducts.push({
           productId,
           productName: product.name,
           qty,
-          unitWeightKg: Math.round(productWeightKg * 100) / 100,
-          totalWeightKg: Math.round(totalProductWeight * 100) / 100,
+          unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
+          totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
           boxSize,
         });
       }
 
       orderWiseDetails.push({
-        orderId: order._id, // 🆕 include order _id
+        orderId: order._id,
         orderNo: order.orderNo || null,
         totalWeightKg: Math.round(orderTotalWeight * 100) / 100,
         totalVolumeM3: Math.round(orderTotalVolume * 100) / 100,
@@ -1750,15 +1732,12 @@ const calculateTripWeight = async (req, res) => {
       });
     }
 
-    // Step 5: Final Response
     const responseData = {
       totalWeightKg: Math.round(totalWeightKg * 100) / 100,
       totalVolumeM3: Math.round(totalVolumeM3 * 100) / 100,
       productDetails,
-      orderWiseDetails, // 🆕 order-level summary
+      orderWiseDetails,
     };
-
-    console.log("✅ Final Totals:", responseData);
 
     res.status(200).json({
       success: true,
@@ -1774,6 +1753,8 @@ const calculateTripWeight = async (req, res) => {
     });
   }
 };
+
+
 
 
 module.exports = { 

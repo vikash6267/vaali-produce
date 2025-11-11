@@ -122,8 +122,8 @@ const SingleTripModal = ({ id, onClose }) => {
                 <tr className="bg-gray-100">
                   <th className="border px-2 py-1 text-left">Order Number</th>
                   <th className="border px-2 py-1 text-left">Store</th>
-                  <th className="border px-2 py-1 text-right">Capacity (kg)</th>
-                  <th className="border px-2 py-1 text-right">Volume (m³)</th>
+                  <th className="border px-2 py-1 text-right">Capacity (lbs)</th>
+                  <th className="border px-2 py-1 text-right">Box Size</th>
                 </tr>
               </thead>
               <tbody>

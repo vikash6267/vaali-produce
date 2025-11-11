@@ -167,7 +167,7 @@ const DriverModal = ({ isOpen, onClose, editData, fetchDrivers }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium">Capacity (kg)</label>
+                  <label className="block text-xs font-medium">Capacity (lbs)</label>
                   <input
                     type="number"
                     value={truck.capacity_kg}
@@ -178,7 +178,7 @@ const DriverModal = ({ isOpen, onClose, editData, fetchDrivers }) => {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium">Capacity (m³)</label>
+                  <label className="block text-xs font-medium">Box size</label>
                   <input
                     type="number"
                     value={truck.capacity_m3}

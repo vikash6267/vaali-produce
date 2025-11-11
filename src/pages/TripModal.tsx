@@ -11,6 +11,7 @@ import { calculateTripWeightAPI } from "@/services2/operations/product";
 const TRIP_STATUSES = ["Planned", "On Route", "Delivered", "Cancelled"];
 
 const TripModal = ({ isOpen, onClose, editData, fetchTrips }) => {
+  console.log(editData, "trip data")
 
   const token = useSelector((state: RootState) => state.auth.token);
 
@@ -122,48 +123,44 @@ const calculateWeightForSelectedOrders = async (selectedIds) => {
     }
   };
 
-  useEffect(() => {
+
+useEffect(() => {
     if (editData) {
-      // FIX: Extracting only the IDs from the orders array
-      const initialOrderIds = (editData.orders || []).map(order => order._id);
+        // ✅ FIX: Extract the actual Order ID (order_id._id)
+        const initialOrderIds = (editData.orders || [])
+            .map(order => order.order_id?._id) // <-- FIX IS HERE
+            .filter(id => id); // Remove any null/undefined entries
 
-      setFormData({
-        routeFrom: editData.route.from,
-        routeTo: editData.route.to,
-        date: editData.date.slice(0, 10),
-        driver: editData.driver._id,
-        truck: editData.truck,
-        orders: initialOrderIds, // Use the extracted IDs
-        capacity_kg: editData.capacity_kg,
-        capacity_m3: editData.capacity_m3,
-        status: editData.status || "Planned", 
-      });
+        setFormData({
+            routeFrom: editData.route.from,
+            routeTo: editData.route.to,
+            date: editData.date.slice(0, 10),
+            driver: editData.driver._id,
+            truck: editData.truck,
+            orders: initialOrderIds, // Use the correct extracted Order IDs
+            capacity_kg: editData.capacity_kg,
+            capacity_m3: editData.capacity_m3,
+            status: editData.status || "Planned",
+        });
 
-      if (initialOrderIds.length > 0) {
-        fetchSelectedOrdersDetails(initialOrderIds);
-      } else {
-        setSelectedOrdersDetails([]);
-      }
+        if (initialOrderIds.length > 0) {
+            // Note: fetchSelectedOrdersDetails is designed to fetch details for Order IDs
+            fetchSelectedOrdersDetails(initialOrderIds);
+            
+            // Additionally, trigger the calculation to set the initial selectedOrdersDetails state
+            // to be used by handleSubmit later.
+            calculateWeightForSelectedOrders(initialOrderIds); 
 
-      const selectedDriver = drivers.find((d) => d._id === editData.driver._id);
-      const activeTrucks = selectedDriver?.trucks.filter(t => t.active) || [];
-      setTrucks(activeTrucks);
-    } else {
-      setFormData({
-        routeFrom: "",
-        routeTo: "",
-        date: "",
-        driver: "",
-        truck: "",
-        orders: [],
-        capacity_kg: 0,
-        capacity_m3: 0,
-        status: "Planned", // डिफ़ॉल्ट स्टेटस अपडेटेड
-      });
-      setTrucks([]);
-      setSelectedOrdersDetails([]);
-    }
-  }, [editData, drivers]);
+        } else {
+            setSelectedOrdersDetails([]);
+        }
+        
+        const selectedDriver = drivers.find((d) => d._id === editData.driver._id);
+        const activeTrucks = selectedDriver?.trucks.filter(t => t.active) || [];
+        setTrucks(activeTrucks);
+
+    } 
+}, [editData, drivers]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -393,7 +390,7 @@ const handleSubmit = async (e) => {
 
           {selectedTruck && (
             <div className="mb-2 text-sm text-gray-600">
-              Truck Capacity: {selectedTruck.capacity_kg} kg, {selectedTruck.capacity_m3} m³
+              Truck Capacity: {selectedTruck.capacity_kg} lbs, {selectedTruck.capacity_m3} box size
             </div>
           )}
 
@@ -432,11 +429,11 @@ const handleSubmit = async (e) => {
           {formData.orders.length > 0 && (
             <>
               <div>
-                <label className="block text-sm font-medium mb-1">Capacity (kg)</label>
+                <label className="block text-sm font-medium mb-1">Capacity (lbs)</label>
                 <input type="number" readOnly name="capacity_kg" value={formData.capacity_kg} onChange={handleChange} className="w-full border p-2 rounded" required />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Capacity (m³)</label>
+                <label className="block text-sm font-medium mb-1">Box Size</label>
                 <input type="number" readOnly name="capacity_m3" value={formData.capacity_m3} onChange={handleChange} className="w-full border p-2 rounded" required />
               </div>
             </>
