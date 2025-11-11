@@ -2048,6 +2048,111 @@ const savedOrder = await order.save();
 };
 
 
+const assignProductToStore = async (req, res) => {
+  try {
+    const { productId, storeId } = req.body;
+
+    if (!productId || !storeId) {
+      return res.status(400).json({ success: false, message: "productId and storeId are required" });
+    }
+
+    // ✅ Fetch product & store as Mongoose documents
+    const product = await Product.findById(productId);
+    if (!product) return res.status(404).json({ success: false, message: "Product not found" });
+
+    const store = await authModel.findById(storeId);
+    if (!store) return res.status(404).json({ success: false, message: "Store not found" });
+
+    // --- Check if product quantity is available ---
+    if ((product.remaining || 0) <= 0) {
+      return res.status(400).json({ success: false, message: `Insufficient stock for ${product.name}` });
+    }
+
+    // --- Create item object ---
+    const newItem = {
+      productId: product._id,
+      productName: product.name,
+      quantity: 1, // always 1 for this assignment
+      unitPrice: product.price || 0,
+      shippinCost: product.shippinCost || 0,
+      pricingType: "box",
+    };
+
+    // --- Weekly order range ---
+    const now = new Date();
+    const day = now.getUTCDay();
+    const monday = new Date(now.setDate(now.getDate() - day));
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+
+    // --- Check for existing order this week ---
+    let order = await orderModel
+      .findOne({ store: storeId, createdAt: { $gte: monday, $lte: sunday } })
+      .sort({ createdAt: -1 });
+
+    if (!order) {
+      // --- Create new order ---
+      order = new orderModel({
+        store: storeId,
+        items: [newItem],
+        orderNumber: await getNextOrderNumber(),
+        billingAddress: {
+          name: store.storeName || store.name,
+          phone: store.phone || "",
+          address: store.address || "",
+          city: store.city || "",
+          country: "USA",
+        },
+        shippingAddress: {
+          name: store.storeName || store.name,
+          phone: store.phone || "",
+          address: store.address || "",
+          city: store.city || "",
+          country: "USA",
+        },
+        total: newItem.unitPrice * newItem.quantity,
+        createdAt: now,
+      });
+    } else {
+      // --- Add product if not exists in order ---
+      const exists = order.items.find(i => i.productId.toString() === productId);
+      if (!exists) {
+        order.items.push(newItem);
+        order.total += newItem.unitPrice * newItem.quantity;
+      }
+    }
+
+    // --- Reduce product quantity in DB ---
+    product.totalSell = (product.totalSell || 0) + 1;
+    product.remaining = Math.max(0, (product.remaining || 0) - 1);
+
+    // --- Optionally reduce unitRemaining if you track units ---
+    const lastUpdated = product.updatedFromOrders?.[product.updatedFromOrders.length - 1];
+    let estimatedUnits = 1;
+    if (lastUpdated && lastUpdated.perLb) {
+      estimatedUnits = lastUpdated.perLb; // per box unit
+    }
+    product.unitSell = (product.unitSell || 0) + estimatedUnits;
+    product.unitRemaining = Math.max(0, (product.unitRemaining || 0) - estimatedUnits);
+
+    await product.save(); // ✅ Persist quantity changes
+    await order.save();
+
+    res.json({
+      success: true,
+      message: "Product assigned and quantity updated in Product model",
+      order,
+    });
+
+  } catch (error) {
+    console.error("Assign Product Error:", error);
+    res.status(500).json({ success: false, message: "Internal Server Error" });
+  }
+};
+
+
+
+
 module.exports = {
   createOrderCtrl,
   getAllOrderCtrl,
@@ -2065,5 +2170,6 @@ module.exports = {
   getPendingOrders,
   invoiceMailCtrl,
   markOrderAsUnpaid,
-  updateBuyerQuantityCtrl
+  updateBuyerQuantityCtrl,
+  assignProductToStore
 };

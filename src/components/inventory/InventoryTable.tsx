@@ -57,6 +57,7 @@ import { RootState } from "@/redux/store";
 import { useSelector } from "react-redux";
 import { toast } from "react-toastify";
 import { Link } from "react-router-dom";
+import AssingeProductToStore from "./AssingeProductToStore";
 
 interface Product {
   id: string;
@@ -122,7 +123,10 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
   const [isEditProduct, setIsEditProduct] = useState(false);
   const [orderDetails, setOrderDetails] = useState(false);
   const [productOrderData, setProductOrderData] = useState(null);
+const [assingProductToStore, setAssingProductToStore] = useState(false);
 
+  const openModal = () => setAssingProductToStore(true);
+  const closeModal = () => setAssingProductToStore(false);
   // New state for summary popup
   const [summaryPopup, setSummaryPopup] = useState(false);
   const [summaryData, setSummaryData] = useState<{
@@ -627,12 +631,16 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
                 </button>
               </div>
               <br />
-              <Link
-                to={`/orders/new/${productOrderData?.productId}`}
-                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-              >
-                Assing Product To Store
-              </Link>
+               <div>
+      <button
+        onClick={openModal}
+        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+      >
+        Assign Product To Store
+      </button>
+
+      
+    </div>
 
               <div className="border rounded-md p-4">
                 <h4 className="font-medium mb-2">Buyers</h4>
@@ -710,6 +718,11 @@ const InventoryTable: React.FC<InventoryTableProps> = ({
           )}
         </DialogContent>
       </Dialog>
+      <AssingeProductToStore
+        isOpen={assingProductToStore}
+        onClose={closeModal}
+        productId={productOrderData?.productId}
+      />
 
       {/* Summary Popup Dialog */}
       <Dialog open={summaryPopup} onOpenChange={setSummaryPopup}>

@@ -84,6 +84,7 @@ export const order = {
   DASHBOARD_DATA: BASE_URL + "/order/dashboard",
   PENDING_ORDER_DATA: BASE_URL + "/order/pending",
   SEND_INVOICE_MAIL: BASE_URL + "/order/invoiceMail",
+  ASSIGN_PRODUCT_TO_STORE: BASE_URL + "/order/assign-product",
 
 
   HARD_DELETE_ORDER: BASE_URL + "/order/hard-delete", // append /:id when using

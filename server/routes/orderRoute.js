@@ -18,7 +18,8 @@ const {
     invoiceMailCtrl,
     markOrderAsUnpaid,
     deleteOrderHardCtrl,
-    updateBuyerQuantityCtrl
+    updateBuyerQuantityCtrl,
+    assignProductToStore
 
 } = require("../controllers/orderCtrl");
 
@@ -42,6 +43,7 @@ router.post("/invoiceMail/:id", invoiceMailCtrl);
 
 
 router.patch("/update-quantity", updateBuyerQuantityCtrl);
+router.post("/assign-product", assignProductToStore);
 
 
 

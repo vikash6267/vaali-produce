@@ -19,7 +19,8 @@ const { CREATE_PRODUCT,
     SEND_INVOICE_MAIL,
     UPDATE_PAYMENT_UNPAID_ORDER,
     HARD_DELETE_ORDER,
-    UPDATE_ORDER_QUANTITY
+    UPDATE_ORDER_QUANTITY,
+    ASSIGN_PRODUCT_TO_STORE
 } = order
 
 
@@ -568,6 +569,40 @@ export const updateBuyerQuantityAPI = async (formData, token) => {
     console.error("UPDATE_ORDER_QUANTITY API ERROR:", error);
     toast.error(error?.response?.data?.message || "Failed to update quantity!");
     return null;
+  } finally {
+    toast.dismiss(toastId);
+  }
+};
+
+
+
+export const assignProductToStoreAPI = async (formData, token) => {
+  const toastId = toast.loading("Assigning product to store...");
+
+  try {
+    const response = await apiConnector(
+      "POST", // Use POST as this creates/updates an order
+      `${ASSIGN_PRODUCT_TO_STORE}`,
+      formData,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Something went wrong!");
+    }
+
+    toast.success(response?.data?.message || "Product assigned successfully!");
+    return response.data; // Only return the data, easier for frontend usage
+
+  } catch (error) {
+    console.error("assignProductToStoreAPI ERROR:", error);
+    toast.error(
+      error?.response?.data?.message || error?.message || "Failed to assign product!"
+    );
+    return null;
+
   } finally {
     toast.dismiss(toastId);
   }
