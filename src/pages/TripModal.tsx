@@ -51,21 +51,40 @@ const TripModal = ({ isOpen, onClose, editData, fetchTrips }) => {
   }, []);
 
 
-  const calculateWeightForSelectedOrders = async (selectedIds) => {
+const calculateWeightForSelectedOrders = async (selectedIds) => {
   try {
-    if (selectedIds.length === 0) return;
+    console.log("🟢 [calculateWeightForSelectedOrders] selectedIds:", selectedIds);
+
     const result = await calculateTripWeightAPI(selectedIds, token);
-    if (result) {
-      setFormData((prev) => ({
-        ...prev,
-        capacity_kg: result.totalWeightKg,
-        capacity_m3: result.totalVolumeM3,
-      }));
-    }
+    if (!result) return;
+
+    console.log("🧩 API Raw Result:", result);
+
+    // ✅ Update overall totals
+    setFormData((prev) => ({
+      ...prev,
+      capacity_kg: result.totalWeightKg || 0,
+      capacity_m3: result.totalVolumeM3 || 0,
+    }));
+
+    // ✅ Replace selectedOrdersDetails directly
+    const updatedOrders = result.orderWiseDetails?.map((o) => ({
+      _id: o.orderId,
+      capacity_kg: o.totalWeightKg || 0,
+      capacity_m3: o.totalVolumeM3 || 0,
+    })) || [];
+
+    console.log("✅ [Updated Orders for State]:", updatedOrders);
+
+    setSelectedOrdersDetails(updatedOrders);
   } catch (error) {
-    console.error("Error calculating weight:", error);
+    console.error("❌ [calculateWeightForSelectedOrders] Error:", error);
   }
 };
+
+
+
+
 
 
   const fetchSelectedOrdersDetails = async (orderIds) => {
@@ -239,28 +258,62 @@ const TripModal = ({ isOpen, onClose, editData, fetchTrips }) => {
 
   const handleSearchOrders = () => fetchOrders();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      route: { from: formData.routeFrom, to: formData.routeTo },
-      date: formData.date,
-      driver: formData.driver,
-      truck: formData.truck,
-      orders: formData.orders,
-      capacity_kg: Number(formData.capacity_kg),
-      capacity_m3: Number(formData.capacity_m3),
-      status: formData.status, // API पेलोड में स्टेटस शामिल करें
+const handleSubmit = async (e) => {
+  e.preventDefault();
+
+  console.log("🚀 [handleSubmit] FormData:", JSON.stringify(formData, null, 2));
+  console.log("🚀 [handleSubmit] SelectedOrdersDetails:", JSON.stringify(selectedOrdersDetails, null, 2));
+
+  // 🟢 Prepare order-wise capacity array
+  const formattedOrders = formData.orders.map((orderId) => {
+    console.log("🔄 Mapping orderId:", orderId);
+
+    // Important: use _id, not id
+    const orderDetail = selectedOrdersDetails.find(
+  (o) => o._id?.toString() === orderId?.toString()
+);
+
+
+    console.log(
+      "   🔍 Matched orderDetail:",
+      orderDetail ? orderDetail : "❌ No Match Found"
+    );
+
+    return {
+      order_id: orderId,
+      capacity_kg: Number(orderDetail?.capacity_kg || 0),
+      capacity_m3: Number(orderDetail?.capacity_m3 || 0),
     };
+  });
 
-    if (editData) {
-      await updateTripAPI(editData._id, payload, token)();
-    } else {
-      await addTripAPI(payload, token);
-    }
+  console.log("🧾 [handleSubmit] Formatted Orders:", JSON.stringify(formattedOrders, null, 2));
 
-    await fetchTrips();
-    onClose();
+  const payload = {
+    route: { from: formData.routeFrom, to: formData.routeTo },
+    date: formData.date,
+    driver: formData.driver,
+    truck: formData.truck,
+    orders: formattedOrders,
+    capacity_kg: Number(formData.capacity_kg) || 0,
+    capacity_m3: Number(formData.capacity_m3) || 0,
+    status: formData.status,
   };
+
+  console.log("📦 [handleSubmit] Final Payload:", JSON.stringify(payload, null, 2));
+
+  if (editData) {
+    await updateTripAPI(editData._id, payload, token)();
+  } else {
+    await addTripAPI(payload, token);
+  }
+
+  await fetchTrips();
+  onClose();
+};
+
+
+
+
 
   if (!isOpen) return null;
 

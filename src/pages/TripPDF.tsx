@@ -12,86 +12,124 @@ const TripPDF = ({ trip }: TripPDFProps) => {
     const doc = new jsPDF();
     let y = 20;
 
-    // ---------- HEADER ----------
+    // 🟩 Title
     doc.setFontSize(16);
-    // doc.text(`Trip Preview - ${trip._id}`, 14, y);
+    doc.text(`Trip Preview - ${trip._id}`, 14, y);
     y += 10;
 
-    // ---------- ROUTE LEFT + DATE + STATUS RIGHT ----------
+    // 🟩 Route & Date & Status
     doc.setFontSize(12);
+    doc.text(`Route: ${trip.route.from} → ${trip.route.to}`, 14, y);
+    doc.text(`Date: ${new Date(trip.date).toLocaleDateString()}`, 120, y);
+    y += 6;
+    doc.text(`Status: ${trip.status}`, 14, y);
+    y += 10;
 
-    // FIX: Changed '→' to '->' and ensured default font is used (no special font call needed)
-    doc.text(`Route: ${trip.route.from} - ${trip.route.to}`, 14, y);
+    // 🟩 Driver Details
+    doc.setFontSize(13);
+    doc.text("Driver Details", 14, y);
+    y += 6;
+
+    doc.setFontSize(11);
+    doc.text(`Name: ${trip.driver?.name || "-"}`, 14, y);
+    y += 5;
+    doc.text(`Phone: ${trip.driver?.phone || "-"}`, 14, y);
+    y += 5;
+    doc.text(`License No: ${trip.driver?.license_number || "-"}`, 14, y);
+    y += 5;
     doc.text(
-      `Date: ${new Date(trip.date).toLocaleDateString()}`,
-      120,
+      `License Expiry: ${
+        trip.driver?.license_expiry_date
+          ? new Date(trip.driver.license_expiry_date).toLocaleDateString()
+          : "-"
+      }`,
+      14,
       y
     );
+    y += 10;
+
+    // 🟩 Truck Details
+    doc.setFontSize(13);
+    doc.text("Truck Details", 14, y);
     y += 6;
 
-    doc.text(`Status: ${trip.status}`, 120, y);
-    y += 12;
-
-    // ---------- DRIVER LEFT + TRUCK RIGHT ----------
-    doc.text("Driver Details:", 14, y);
-    doc.text("Truck Details:", 120, y);
-    y += 6;
-
-    doc.text(`Name: ${trip.driver.name}`, 14, y);
-    doc.text(`Truck Number: ${trip.selectedTruck.truck_number}`, 120, y);
-    y += 6;
-
-    doc.text(`Phone: ${trip.driver.phone}`, 14, y);
+    doc.setFontSize(11);
+    doc.text(`Truck Number: ${trip.selectedTruck?.truck_number || "-"}`, 14, y);
+    y += 5;
     doc.text(
-      `Capacity: ${trip.selectedTruck.capacity_kg} kg / ${trip.selectedTruck.capacity_m3} m³`,
-      120,
+      `Capacity: ${trip.selectedTruck?.capacity_kg || 0} kg / ${
+        trip.selectedTruck?.capacity_m3 || 0
+      } m³`,
+      14,
       y
     );
-    y += 6;
+    y += 10;
 
-    doc.text(`License: ${trip.driver.license_number}`, 14, y);
-    doc.text(
-      `License Expiry: ${new Date(
-        trip.driver.license_expiry_date
-      ).toLocaleDateString()}`,
-      120,
-      y
-    );
-    y += 12;
-
-    // ---------- ORDERS ----------
-    trip.orders.forEach((order, index) => {
-      doc.text(`Order ${index + 1}: ${order.orderNumber}`, 14, y);
-      y += 6;
-
-      const tableColumn = ["Product Name", "Qty", "Unit Price"];
-      const tableRows = order.items.map((item) => [
-        item.productName,
-        item.quantity,
-        `$${item.unitPrice}`,
-      ]);
-
-      // ✅ Keep cyan theme (DEFAULT AUTO-TABLE THEME)
-      autoTable(doc, {
-        startY: y,
-        head: [tableColumn],
-        body: tableRows,
-        theme: "grid",
-        margin: { left: 14, right: 14 },
-        styles: { fontSize: 10 },
-      });
-
-      y = (doc as any).lastAutoTable.finalY + 10;
+    // 🟩 Orders Per Store Summary
+    const storeCountMap: Record<string, number> = {};
+    trip.orders.forEach((order: any) => {
+      const storeName =
+        order.store?.storeName ||
+        order.orderData?.store?.storeName ||
+        "Unknown Store";
+      storeCountMap[storeName] = (storeCountMap[storeName] || 0) + 1;
     });
 
-    // ---------- TRIP CAPACITY ----------
+    doc.setFontSize(13);
+    doc.text("Orders Per Store", 14, y);
+    y += 6;
+    doc.setFontSize(11);
+    Object.entries(storeCountMap).forEach(([store, count]) => {
+      doc.text(`${store}: ${count} order(s)`, 14, y);
+      y += 5;
+    });
+    y += 10;
+
+    // 🟩 Orders Table (Like in Modal)
+    doc.setFontSize(13);
+    doc.text("Order Details", 14, y);
+    y += 6;
+
+    const tableData = trip.orders.map((order: any) => {
+      const orderData = order.orderData || order.order_id || {};
+      return [
+        orderData.orderNumber || "-",
+        order.store?.storeName || orderData.store?.storeName || "Unknown",
+        `${order.capacity_kg || 0}`,
+        `${order.capacity_m3 || 0}`,
+      ];
+    });
+
+    autoTable(doc, {
+      startY: y,
+      head: [["Order Number", "Store", "Capacity (kg)", "Volume (m³)"]],
+      body: tableData,
+      theme: "grid",
+      headStyles: { fillColor: [230, 230, 230] },
+      styles: { fontSize: 10 },
+      margin: { left: 14, right: 14 },
+    });
+
+    y = (doc as any).lastAutoTable.finalY + 10;
+
+    // 🟩 Trip Capacity
+    doc.setFontSize(12);
     doc.text(
       `Trip Capacity: ${trip.capacity_kg} kg / ${trip.capacity_m3} m³`,
       14,
       y
     );
+    y += 10;
 
-    // ---------- DOWNLOAD ----------
+    // 🟩 Timestamp Footer
+    doc.setFontSize(10);
+    doc.text(
+      `Generated on: ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
+      14,
+      y
+    );
+
+    // 🟩 Save File
     doc.save(`Trip_${trip._id}.pdf`);
   };
 

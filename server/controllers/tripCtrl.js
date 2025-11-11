@@ -11,32 +11,31 @@ const createTripCtrl = async (req, res) => {
       route,
       date,
       driver: driverId,
-      truck: truckId, // truck _id inside driver.trucks
+      truck: truckId,
       orders = [],
       capacity_kg = 0,
       capacity_m3 = 0,
+      status = "Planned",
     } = req.body;
 
-    // Validate required fields
     if (!route?.from || !route?.to || !date || !driverId || !truckId) {
       return res.status(400).json({
         success: false,
-        message: "Route, date, driver and truck are required",
+        message: "Route, date, driver, and truck are required",
       });
     }
 
-    // Fetch driver and check truck exists
+    // Validate driver and truck
     const driver = await Driver.findById(driverId);
     if (!driver) {
       return res.status(404).json({ success: false, message: "Driver not found" });
     }
-
     const truck = driver.trucks.id(truckId);
     if (!truck) {
       return res.status(404).json({ success: false, message: "Truck not found for this driver" });
     }
 
-    // Capacity validation
+    // Validate total trip capacity
     if (capacity_kg > truck.capacity_kg) {
       return res.status(400).json({
         success: false,
@@ -50,15 +49,22 @@ const createTripCtrl = async (req, res) => {
       });
     }
 
-    // Create trip
+    // Validate orders
+    const formattedOrders = orders.map((o) => ({
+      order_id: o.order_id,
+      capacity_kg: o.capacity_kg || 0,
+      capacity_m3: o.capacity_m3 || 0,
+    }));
+
     const newTrip = await Trip.create({
       route,
       date,
       driver: driverId,
       truck: truckId,
-      orders,
+      orders: formattedOrders,
       capacity_kg,
       capacity_m3,
+      status,
     });
 
     res.status(201).json({
@@ -78,35 +84,61 @@ const createTripCtrl = async (req, res) => {
 const editTripCtrl = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
+    const {
+      route,
+      date,
+      driver,
+      truck,
+      orders = [],
+      capacity_kg,
+      capacity_m3,
+      status,
+    } = req.body;
 
-    // If truck or driver changed, validate truck exists in driver
-    if (updates.driver || updates.truck) {
-      const driver = await Driver.findById(updates.driver || undefined);
-      if (!driver) {
-        return res.status(404).json({ success: false, message: "Driver not found" });
-      }
-      const truck = driver.trucks.id(updates.truck);
-      if (!truck) {
-        return res.status(404).json({ success: false, message: "Truck not found for this driver" });
-      }
-
-      // Capacity validation
-      if (updates.capacity_kg > truck.capacity_kg) {
-        return res.status(400).json({
-          success: false,
-          message: `Trip weight ${updates.capacity_kg}kg exceeds truck capacity ${truck.capacity_kg}kg`,
-        });
-      }
-      if (updates.capacity_m3 > truck.capacity_m3) {
-        return res.status(400).json({
-          success: false,
-          message: `Trip volume ${updates.capacity_m3}m³ exceeds truck capacity ${truck.capacity_m3}m³`,
-        });
-      }
+    const driverData = await Driver.findById(driver);
+    if (!driverData) {
+      return res.status(404).json({ success: false, message: "Driver not found" });
     }
 
-    const updatedTrip = await Trip.findByIdAndUpdate(id, updates, { new: true });
+    const truckData = driverData.trucks.id(truck);
+    if (!truckData) {
+      return res.status(404).json({ success: false, message: "Truck not found for this driver" });
+    }
+
+    if (capacity_kg > truckData.capacity_kg) {
+      return res.status(400).json({
+        success: false,
+        message: `Trip weight ${capacity_kg}kg exceeds truck capacity ${truckData.capacity_kg}kg`,
+      });
+    }
+    if (capacity_m3 > truckData.capacity_m3) {
+      return res.status(400).json({
+        success: false,
+        message: `Trip volume ${capacity_m3}m³ exceeds truck capacity ${truckData.capacity_m3}m³`,
+      });
+    }
+
+    const formattedOrders = orders.map((o) => ({
+      order_id: o.order_id,
+      capacity_kg: o.capacity_kg || 0,
+      capacity_m3: o.capacity_m3 || 0,
+    }));
+
+    const updatedTrip = await Trip.findByIdAndUpdate(
+      id,
+      {
+        route,
+        date,
+        driver,
+        truck,
+        orders: formattedOrders,
+        capacity_kg,
+        capacity_m3,
+        status,
+      },
+      { new: true }
+    );
+
     if (!updatedTrip) {
       return res.status(404).json({ success: false, message: "Trip not found" });
     }
@@ -128,67 +160,52 @@ const editTripCtrl = async (req, res) => {
 const getAllTripsCtrl = async (req, res) => {
   try {
     const trips = await Trip.find()
-      .populate("driver")      // ✅ FULL driver populate
-      .populate("orders")      // ✅ full orders
+      .populate("driver")
+      .populate("orders.order_id")
       .lean();
 
     const updatedTrips = trips.map((trip) => {
       const driver = trip.driver;
-
-      // ✅ Find full truck object from driver's trucks
       let fullTruck = null;
       if (driver?.trucks?.length) {
         fullTruck = driver.trucks.find(
           (t) => t._id.toString() === trip.truck.toString()
         );
       }
-
       return {
         ...trip,
-        driver: driver, // ✅ Full driver object
-        selectedTruck: fullTruck || null // ✅ Full truck object
+        driver,
+        selectedTruck: fullTruck || null,
       };
     });
 
-    res.status(200).json({
-      success: true,
-      data: updatedTrips,
-    });
+    res.status(200).json({ success: true, data: updatedTrips });
   } catch (error) {
     console.error("GET ALL TRIPS ERROR:", error);
-    res.status(500).json({
-      success: false,
-      message: "Server error",
-      error: error.message,
-    });
+    res.status(500).json({ success: false, message: "Server error", error: error.message });
   }
 };
 
+// ======================================
+// ✅ Get Single Trip
+// ======================================
 const getSingleTripCtrl = async (req, res) => {
   try {
     const { id } = req.params;
 
     const trip = await Trip.findById(id)
-      .populate("driver") // full driver
+      .populate("driver")
       .populate({
-        path: "orders",
-        populate: {
-          path: "store", // populate the store inside each order
-          model: "auth", // matches your schema ref
-        },
+        path: "orders.order_id",
+        populate: { path: "store", model: "auth" },
       })
       .lean();
 
     if (!trip) {
-      return res.status(404).json({
-        success: false,
-        message: "Trip not found",
-      });
+      return res.status(404).json({ success: false, message: "Trip not found" });
     }
 
     const driver = trip.driver;
-
-    // Find full truck object from driver's trucks
     let fullTruck = null;
     if (driver?.trucks?.length) {
       fullTruck = driver.trucks.find(
@@ -196,15 +213,20 @@ const getSingleTripCtrl = async (req, res) => {
       );
     }
 
-    const updatedTrip = {
-      ...trip,
-      driver: driver,                // Full driver object
-      selectedTruck: fullTruck || null,   // Full truck object
-    };
+    // 🧩 Combine populated order_id info with trip.orders capacity
+    const mergedOrders = trip.orders.map((o) => ({
+      ...o,
+      orderData: o.order_id, // populated Order
+      store: o.order_id?.store || null,
+    }));
 
     res.status(200).json({
       success: true,
-      data: updatedTrip,
+      data: {
+        ...trip,
+        orders: mergedOrders,
+        selectedTruck: fullTruck || null,
+      },
     });
   } catch (error) {
     console.error("GET SINGLE TRIP ERROR:", error);
@@ -217,10 +239,9 @@ const getSingleTripCtrl = async (req, res) => {
 };
 
 
-
-
 module.exports = {
   createTripCtrl,
   editTripCtrl,
-  getAllTripsCtrl,getSingleTripCtrl
+  getAllTripsCtrl,
+  getSingleTripCtrl,
 };
