@@ -713,7 +713,23 @@ const [assingProductToStore, setAssingProductToStore] = useState(false);
                   </p>
                 )}
               </div>
-              <div>Total Orders - {productOrderData?.totalOrdersThisWeek}</div>
+              <div className="flex items-center gap-4">
+  <div>Total Orders - {productOrderData?.totalOrdersThisWeek}</div>
+
+  {(() => {
+    const currentProduct = products.find(
+      p => p._id === productOrderData?.productId
+    );
+    const remaining = currentProduct?.summary?.totalRemaining || 0;
+
+    return (
+      <span>
+        Remaining Products: <span className="text-orange-600">{remaining}</span>
+      </span>
+    );
+  })()}
+</div>
+
             </div>
           )}
         </DialogContent>
