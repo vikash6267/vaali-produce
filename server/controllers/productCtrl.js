@@ -1632,6 +1632,128 @@ console.log(req.params)
 
 
 
+// const calculateTripWeight = async (req, res) => {
+//   try {
+//     const { orderIds } = req.body;
+//     if (!orderIds || !Array.isArray(orderIds) || orderIds.length === 0) {
+//       return res.status(400).json({ success: false, message: "No orders provided" });
+//     }
+
+//     const orders = await Order.find({ _id: { $in: orderIds } }).lean();
+//     if (!orders.length) {
+//       return res.status(404).json({ success: false, message: "Orders not found" });
+//     }
+
+//     const productIds = [];
+//     for (const order of orders) {
+//       if (Array.isArray(order.items)) {
+//         for (const item of order.items) {
+//           const pid = item.productId || item.product;
+//           if (pid) productIds.push(pid.toString());
+//         }
+//       }
+//     }
+
+//     const uniqueProductIds = [...new Set(productIds)];
+//     if (!uniqueProductIds.length) {
+//       return res.status(400).json({ success: false, message: "No product IDs found" });
+//     }
+
+//     const products = await Product.find({ _id: { $in: uniqueProductIds } })
+//       .select("name boxSize unitPurchase weightVariation")
+//       .lean();
+
+//     const productMap = {};
+//     products.forEach((p) => (productMap[p._id.toString()] = p));
+
+//     let totalWeightKg = 0; // Will hold lbs value instead
+//     let totalVolumeM3 = 0;
+//     const productDetails = [];
+//     const orderWiseDetails = [];
+
+//     for (const order of orders) {
+//       if (!Array.isArray(order.items)) continue;
+
+//       let orderTotalWeight = 0;
+//       let orderTotalVolume = 0;
+//       const orderProducts = [];
+
+//       for (const item of order.items) {
+//         const productId = (item.productId || item.product || "").toString();
+//         const product = productMap[productId];
+//         if (!product) continue;
+
+//         const qty = Number(item.quantity) || 0;
+//         const boxSize = Number(product.boxSize) || 0;
+
+//         let productWeightKg = product.weightVariation || 0;
+
+//         // Convert weight to lbs but keep field names same
+//         const unitWeightLbs = productWeightKg * 2.20462;
+//         const totalWeightProductLbs = unitWeightLbs * qty;
+
+//         orderTotalWeight += totalWeightProductLbs;
+//         orderTotalVolume += boxSize * qty; // 🟢 volume per order
+
+//         totalWeightKg += totalWeightProductLbs;
+//         totalVolumeM3 += boxSize * qty; // 🟢 total volume overall
+
+//         const existing = productDetails.find((p) => p.productId === productId);
+//         if (existing) {
+//           existing.totalQty += qty;
+//           existing.totalWeightKg += totalWeightProductLbs;
+//         } else {
+//           productDetails.push({
+//             productId,
+//             productName: product.name,
+//             totalQty: qty,
+//             unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
+//             totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
+//             boxSize,
+//           });
+//         }
+
+//         orderProducts.push({
+//           productId,
+//           productName: product.name,
+//           qty,
+//           unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
+//           totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
+//           boxSize,
+//         });
+//       }
+
+//       orderWiseDetails.push({
+//         orderId: order._id,
+//         orderNo: order.orderNo || null,
+//         totalWeightKg: Math.round(orderTotalWeight * 100) / 100,
+//         totalVolumeM3: Math.round(orderTotalVolume * 100) / 100,
+//         products: orderProducts,
+//       });
+//     }
+
+//     const responseData = {
+//       totalWeightKg: Math.round(totalWeightKg * 100) / 100,
+//       totalVolumeM3: Math.round(totalVolumeM3 * 100) / 100,
+//       productDetails,
+//       orderWiseDetails,
+//     };
+
+//     res.status(200).json({
+//       success: true,
+//       message: "Trip weight calculated successfully",
+//       data: responseData,
+//     });
+//   } catch (error) {
+//     console.error("❌ Weight calculation failed:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Internal Server Error",
+//       error: error.message,
+//     });
+//   }
+// };
+
 const calculateTripWeight = async (req, res) => {
   try {
     const { orderIds } = req.body;
@@ -1660,14 +1782,16 @@ const calculateTripWeight = async (req, res) => {
     }
 
     const products = await Product.find({ _id: { $in: uniqueProductIds } })
-      .select("name boxSize unitPurchase weightVariation")
+      .select("name boxSize unitPurchase weightVariation pricingType")
       .lean();
 
     const productMap = {};
     products.forEach((p) => (productMap[p._id.toString()] = p));
 
-    let totalWeightKg = 0; // Will hold lbs value instead
+    // old naming
+    let totalWeightKg = 0;
     let totalVolumeM3 = 0;
+
     const productDetails = [];
     const orderWiseDetails = [];
 
@@ -1676,6 +1800,7 @@ const calculateTripWeight = async (req, res) => {
 
       let orderTotalWeight = 0;
       let orderTotalVolume = 0;
+
       const orderProducts = [];
 
       for (const item of order.items) {
@@ -1686,29 +1811,37 @@ const calculateTripWeight = async (req, res) => {
         const qty = Number(item.quantity) || 0;
         const boxSize = Number(product.boxSize) || 0;
 
-        let productWeightKg = product.weightVariation || 0;
+        let finalUnitWeight = 0;
 
-        // Convert weight to lbs but keep field names same
-        const unitWeightLbs = productWeightKg * 2.20462;
-        const totalWeightProductLbs = unitWeightLbs * qty;
+        // apply rule
+        if (product.pricingType === "box") {
+          finalUnitWeight = Number(product.weightVariation) || 0;
+        } else {
+          finalUnitWeight = Number(product.weightVariation) || 0;
+        }
 
-        orderTotalWeight += totalWeightProductLbs;
-        orderTotalVolume += boxSize * qty; // 🟢 volume per order
+        const totalWeightProduct = finalUnitWeight * qty;
 
-        totalWeightKg += totalWeightProductLbs;
-        totalVolumeM3 += boxSize * qty; // 🟢 total volume overall
+        orderTotalWeight += totalWeightProduct;
+        orderTotalVolume += boxSize * qty;
+
+        totalWeightKg += totalWeightProduct;
+        totalVolumeM3 += boxSize * qty;
 
         const existing = productDetails.find((p) => p.productId === productId);
         if (existing) {
           existing.totalQty += qty;
-          existing.totalWeightKg += totalWeightProductLbs;
+          existing.totalWeightKg += totalWeightProduct;
         } else {
           productDetails.push({
             productId,
             productName: product.name,
             totalQty: qty,
-            unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
-            totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
+
+            // old keys
+            unitWeightKg: Math.round(finalUnitWeight * 100) / 100,
+            totalWeightKg: Math.round(totalWeightProduct * 100) / 100,
+
             boxSize,
           });
         }
@@ -1717,8 +1850,11 @@ const calculateTripWeight = async (req, res) => {
           productId,
           productName: product.name,
           qty,
-          unitWeightKg: Math.round(unitWeightLbs * 100) / 100,
-          totalWeightKg: Math.round(totalWeightProductLbs * 100) / 100,
+
+          // old keys
+          unitWeightKg: Math.round(finalUnitWeight * 100) / 100,
+          totalWeightKg: Math.round(totalWeightProduct * 100) / 100,
+
           boxSize,
         });
       }
@@ -1726,8 +1862,11 @@ const calculateTripWeight = async (req, res) => {
       orderWiseDetails.push({
         orderId: order._id,
         orderNo: order.orderNo || null,
+
+        // old keys
         totalWeightKg: Math.round(orderTotalWeight * 100) / 100,
         totalVolumeM3: Math.round(orderTotalVolume * 100) / 100,
+
         products: orderProducts,
       });
     }

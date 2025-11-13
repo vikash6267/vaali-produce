@@ -22,7 +22,7 @@ import { exportInvoiceToPDF } from "@/utils/pdf"
 import { getAllStoresAPI } from "@/services2/operations/auth"
 import { getSinglePriceAPI } from "@/services2/operations/priceList"
 import Select2 from "react-select"
-import { createOrderAPI } from "@/services2/operations/order"
+import { createOrderAPI, getUserLatestOrdersAPI } from "@/services2/operations/order"
 import { getUserAPI } from "@/services2/operations/auth"
 import type { RootState } from "@/redux/store"
 import { useSelector } from "react-redux"
@@ -31,7 +31,10 @@ import StoreRegistration from "./StoreRegistration"
 import AddressForm from "@/components/AddressFields"
 import { getAllProductAPI } from "@/services2/operations/product"
 import { useLocation } from 'react-router-dom'; // or usePathname() if you're using Next.js
-
+import {
+  
+  getAllOrderAPI
+} from "@/services2/operations/order"
 const CreateOrderModalStore = () => {
   const user = useSelector((state: RootState) => state.auth?.user ?? null)
   const [selectedStore, setSelectedStore] = useState<{
@@ -50,6 +53,7 @@ const CreateOrderModalStore = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [orderConfirmed, setOrderConfirmed] = useState(false)
   const [orderDetails, setOrderDetails] = useState<any>(null)
+  const [isReviewMode, setIsReviewMode] = useState(false)
   const { toast } = useToast()
   const [stores, setStores] = useState([])
   const token = useSelector((state: RootState) => state.auth?.token ?? null)
@@ -62,6 +66,8 @@ const CreateOrderModalStore = () => {
   const navigate = useNavigate()
   const location = useLocation(); // React Router v6+
   const [nextWeek, setNextWeek] = useState(false);
+  const [userOrders, setUserOrders] = useState([])
+  const [purchasedProductIds, setPurchasedProductIds] = useState(new Set())
 
   useEffect(() => {
     if (location.pathname.includes('/store/nextweek')) {
@@ -138,6 +144,25 @@ const CreateOrderModalStore = () => {
     }
   }
 
+  const fetchUserOrders = async (storeId) => {
+    try {
+      const response = await getUserLatestOrdersAPI(storeId, 5);
+      
+      if (response && response.success) {
+        setUserOrders(response.orders || []);
+        
+        // Use the purchasedProductIds from backend
+        const productIds = new Set(response.purchasedProductIds || []);
+        setPurchasedProductIds(productIds);
+        
+        console.log(`✅ Fetched ${response.orders?.length || 0} latest orders`);
+        console.log(`📦 Found ${productIds.size} unique purchased products`);
+      }
+    } catch (error) {
+      console.error("Error fetching user orders:", error);
+    }
+  }
+
   useEffect(() => {
     fetchProducts()
   }, [])
@@ -172,6 +197,11 @@ const CreateOrderModalStore = () => {
     }
     fetchTmplate()
     fetchStores()
+    
+    // If user is already logged in, fetch their orders
+    if (user && user._id) {
+      fetchUserOrders(user._id);
+    }
   }, [])
 
   const handleFindUser = async () => {
@@ -203,6 +233,9 @@ const CreateOrderModalStore = () => {
         label: response.storeName,
         value: response._id,
       })
+      
+      // Fetch user's latest orders to sort products
+      await fetchUserOrders(response._id);
     } else {
       setIsGroupOpen(true)
     }
@@ -409,6 +442,19 @@ exportInvoiceToPDF({
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
 
     return matchesSearch && matchesCategory
+  }).sort((a, b) => {
+    // If category is "all", sort by purchased products first
+    if (selectedCategory === "all") {
+      const aIsPurchased = purchasedProductIds.has(a.id);
+      const bIsPurchased = purchasedProductIds.has(b.id);
+      
+      // Purchased products come first
+      if (aIsPurchased && !bIsPurchased) return -1;
+      if (!aIsPurchased && bIsPurchased) return 1;
+    }
+    
+    // Otherwise maintain original order
+    return 0;
   })
 
   const handleClose = () => {
@@ -493,11 +539,19 @@ exportInvoiceToPDF({
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto p-4 sm:p-6">
           <DialogHeader>
             <DialogTitle className="text-xl sm:text-2xl">
-              {orderConfirmed ? "Order Invoice" : nextWeek ? "Next Week Order":"Create Order from Price List"}
+              {orderConfirmed 
+                ? "Order Invoice" 
+                : isReviewMode 
+                ? "Review Your Order" 
+                : nextWeek 
+                ? "Next Week Order"
+                : "Create Order from Price List"}
             </DialogTitle>
        { !nextWeek &&    <DialogDescription className="text-sm sm:text-base">
               {orderConfirmed
                 ? "Your order has been created successfully. You can download the confirmation PDF."
+                : isReviewMode
+                ? "Please review your order details before confirming."
                 : `Create a new order based on "${template?.name}" price list.`}
             </DialogDescription>}
           </DialogHeader>
@@ -543,7 +597,7 @@ exportInvoiceToPDF({
     <span className="text-sm">Finding user details...</span>
   </div>
 ) : (
-  !nextWeek && (
+  !nextWeek && !isReviewMode && (
     <AddressForm
       billingAddress={billingAddress}
       setBillingAddress={setBillingAddress}
@@ -555,9 +609,143 @@ exportInvoiceToPDF({
   )
 )}
 
+                {/* Review Mode Display */}
+                {isReviewMode ? (
+                  <div className="space-y-4">
+                    {/* Store Info */}
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <h3 className="font-semibold text-blue-900 mb-2">Store Information</h3>
+                      <p className="text-sm text-blue-800">
+                        <span className="font-medium">Store:</span> {selectedStore?.label}
+                      </p>
+                    </div>
 
+                    {/* Address Info */}
+                    {!nextWeek && (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                          <h3 className="font-semibold text-gray-900 mb-2">Billing Address</h3>
+                          <div className="text-sm text-gray-700 space-y-1">
+                            <p><span className="font-medium">Name:</span> {billingAddress.name}</p>
+                            <p><span className="font-medium">Email:</span> {billingAddress.email}</p>
+                            <p><span className="font-medium">Phone:</span> {billingAddress.phone}</p>
+                            <p><span className="font-medium">Address:</span> {billingAddress.address}</p>
+                            <p><span className="font-medium">City:</span> {billingAddress.city}, {billingAddress.postalCode}</p>
+                            <p><span className="font-medium">State:</span> {billingAddress.country}</p>
+                          </div>
+                        </div>
 
-        { selectedStore?.value || true  ? 
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                          <h3 className="font-semibold text-gray-900 mb-2">Shipping Address</h3>
+                          {sameAsBilling ? (
+                            <p className="text-sm text-gray-600 italic">Same as billing address</p>
+                          ) : (
+                            <div className="text-sm text-gray-700 space-y-1">
+                              <p><span className="font-medium">Name:</span> {shippingAddress.name}</p>
+                              <p><span className="font-medium">Email:</span> {shippingAddress.email}</p>
+                              <p><span className="font-medium">Phone:</span> {shippingAddress.phone}</p>
+                              <p><span className="font-medium">Address:</span> {shippingAddress.address}</p>
+                              <p><span className="font-medium">City:</span> {shippingAddress.city}, {shippingAddress.postalCode}</p>
+                              <p><span className="font-medium">State:</span> {shippingAddress.country}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Selected Products */}
+                    <div className="border rounded-lg overflow-hidden">
+                      <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-4">
+                        <h3 className="font-semibold text-lg">Selected Products</h3>
+                        <p className="text-sm text-blue-100">Review your order items below</p>
+                      </div>
+                      
+                      <div className="overflow-x-auto">
+                        <Table>
+                          <TableHeader>
+                            <TableRow className="bg-gray-50">
+                              <TableHead className="font-semibold">Product</TableHead>
+                              <TableHead className="hidden sm:table-cell font-semibold">Category</TableHead>
+                              {!nextWeek && <TableHead className="text-right font-semibold">Unit Price</TableHead>}
+                              <TableHead className="text-center font-semibold">Quantity</TableHead>
+                              {!nextWeek && <TableHead className="text-right font-semibold">Total</TableHead>}
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {template?.products
+                              ?.filter(product => (quantities[product.id] || 0) > 0)
+                              .map((product) => {
+                                const quantity = quantities[product.id] || 0;
+                                const selectedType = priceType[product.id] || "box";
+                                const price = selectedType === "unit" ? product.price : product[priceCategory] || product.pricePerBox;
+                                const total = price * quantity;
+
+                                return (
+                                  <TableRow key={product.id} className="hover:bg-gray-50">
+                                    <TableCell className="font-medium">
+                                      <div className="flex items-center gap-3">
+                                        <img
+                                          src={product.image || "/placeholder.svg"}
+                                          alt={product.name}
+                                          className="h-12 w-12 object-cover rounded"
+                                          loading="lazy"
+                                        />
+                                        <span className="text-sm">{product.name}</span>
+                                      </div>
+                                    </TableCell>
+                                    <TableCell className="hidden sm:table-cell text-sm">{product.category}</TableCell>
+                                    {!nextWeek && (
+                                      <TableCell className="text-right">
+                                        <div className="text-sm">
+                                          <span className="font-medium">{formatCurrency(price)}</span>
+                                          <span className="text-xs text-gray-500 block">
+                                            {selectedType === "unit" ? "per LB" : "per Box"}
+                                          </span>
+                                        </div>
+                                      </TableCell>
+                                    )}
+                                    <TableCell className="text-center">
+                                      <span className="font-semibold text-blue-600">
+                                        {quantity} {selectedType === "unit" ? "LB" : selectedType !== "box" ? selectedType : ""}
+                                      </span>
+                                    </TableCell>
+                                    {!nextWeek && (
+                                      <TableCell className="text-right font-semibold text-green-600">
+                                        {formatCurrency(total)}
+                                      </TableCell>
+                                    )}
+                                  </TableRow>
+                                );
+                              })}
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </div>
+
+                    {/* Order Summary */}
+                    {!nextWeek && (
+                      <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-lg p-6">
+                        <h3 className="font-bold text-lg text-gray-800 mb-4">Order Summary</h3>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center pb-2 border-b border-gray-300">
+                            <span className="text-gray-700">Subtotal:</span>
+                            <span className="font-semibold text-lg">{formatCurrency(calculateSubtotal())}</span>
+                          </div>
+                          <div className="flex justify-between items-center pb-2 border-b border-gray-300">
+                            <span className="text-gray-700">Shipping Cost:</span>
+                            <span className="font-semibold text-lg">{formatCurrency(calculateShipping())}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-2">
+                            <span className="text-xl font-bold text-gray-900">Total Amount:</span>
+                            <span className="text-2xl font-bold text-green-600">{formatCurrency(calculateTotal())}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  /* Product Selection Mode */
+                  selectedStore?.value ? 
                   <div className="border rounded-md overflow-hidden">
                   <div className="flex flex-col md:flex-row items-center gap-2 sm:gap-4 p-3 sm:p-4">
                     <Input
@@ -659,10 +847,11 @@ exportInvoiceToPDF({
                    </p>
                  </div>
                </div>
+                )
         }
 
-                {/* Summary Row */}
-             {!nextWeek &&   <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
+                {/* Summary Row - Only show in product selection mode */}
+             {!nextWeek && !isReviewMode &&   <div className="flex flex-col sm:flex-row justify-end px-3 sm:px-6 py-3 sm:py-4 bg-muted border-t">
                   <div className="w-full sm:max-w-xl">
                     <div className="grid grid-cols-3 gap-2 font-medium text-muted-foreground text-xs sm:text-sm mb-1">
                       <div className="text-center">Subtotal</div>
@@ -682,16 +871,55 @@ exportInvoiceToPDF({
                 <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto order-2 sm:order-1">
                   Cancel
                 </Button>
-                <Button
-                  onClick={handleCreateOrder}
-                  disabled={!selectedStore || isSubmitting || calculateTotal() === 0}
-                  className="w-full sm:w-auto order-1 sm:order-2"
-                >
-                  <ShoppingCart className="mr-2 h-4 w-4" />
-                  {
-                    nextWeek ? "Create  Week Order" : "Create Order"
-                  }
-                </Button>
+                
+                {isReviewMode ? (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setIsReviewMode(false)} 
+                      className="w-full sm:w-auto order-1 sm:order-2"
+                    >
+                      ← Back to Edit
+                    </Button>
+                    <Button
+                      onClick={handleCreateOrder}
+                      disabled={!selectedStore || isSubmitting}
+                      className="w-full sm:w-auto order-1 sm:order-2 bg-green-600 hover:bg-green-700"
+                    >
+                      {isSubmitting ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Creating...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          Confirm Order
+                        </>
+                      )}
+                    </Button>
+                  </>
+                ) : (
+                  <Button
+                    onClick={() => {
+                      const selectedItems = template?.products?.filter(p => (quantities[p.id] || 0) > 0);
+                      if (!selectedItems || selectedItems.length === 0) {
+                        toast({
+                          title: "No Products Selected",
+                          description: "Please select at least one product to review",
+                          variant: "destructive",
+                        });
+                        return;
+                      }
+                      setIsReviewMode(true);
+                    }}
+                    disabled={!selectedStore || calculateTotal() === 0}
+                    className="w-full sm:w-auto order-1 sm:order-2"
+                  >
+                    <ShoppingCart className="mr-2 h-4 w-4" />
+                    {nextWeek ? "Review Week Order" : "Review Order"}
+                  </Button>
+                )}
               </DialogFooter>
             </>
           ) : (

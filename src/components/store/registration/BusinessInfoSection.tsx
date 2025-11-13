@@ -13,23 +13,31 @@ interface BusinessInfoSectionProps {
 
 const BusinessInfoSection: React.FC<BusinessInfoSectionProps> = ({ form }) => {
   return (
-    <div className="space-y-4">
-      <h2 className="text-lg font-semibold border-b pb-2">Business Information</h2>
+    <div className="space-y-5 animate-in fade-in duration-500">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="bg-blue-100 p-2 rounded-lg">
+          <Store className="h-5 w-5 text-blue-600" />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-800">Business Information</h2>
+          <p className="text-sm text-gray-500">Tell us about your store</p>
+        </div>
+      </div>
       
       <FormField
         control={form.control}
         name="storeName"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Store Name</FormLabel>
+            <FormLabel className="text-sm font-semibold text-gray-700">Store Name *</FormLabel>
             <FormControl>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                  <Store className="h-4 w-4" />
-                </span>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Store className="h-5 w-5 text-gray-400" />
+                </div>
                 <Input 
-                  placeholder="Your Store Name" 
-                  className="rounded-l-none" 
+                  placeholder="e.g., Fresh Market Downtown" 
+                  className="pl-10 h-11 border-2 focus:border-blue-500 transition-colors" 
                   {...field} 
                 />
               </div>
@@ -44,15 +52,15 @@ const BusinessInfoSection: React.FC<BusinessInfoSectionProps> = ({ form }) => {
         name="ownerName"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Owner Name</FormLabel>
+            <FormLabel className="text-sm font-semibold text-gray-700">Owner Name *</FormLabel>
             <FormControl>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                  <UserRound className="h-4 w-4" />
-                </span>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <UserRound className="h-5 w-5 text-gray-400" />
+                </div>
                 <Input 
-                  placeholder="Owner's Full Name" 
-                  className="rounded-l-none" 
+                  placeholder="e.g., John Smith" 
+                  className="pl-10 h-11 border-2 focus:border-blue-500 transition-colors" 
                   {...field} 
                 />
               </div>
@@ -67,16 +75,16 @@ const BusinessInfoSection: React.FC<BusinessInfoSectionProps> = ({ form }) => {
         name="email"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Email Address</FormLabel>
+            <FormLabel className="text-sm font-semibold text-gray-700">Email Address *</FormLabel>
             <FormControl>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                  <Mail className="h-4 w-4" />
-                </span>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-gray-400" />
+                </div>
                 <Input 
                   type="email" 
                   placeholder="contact@yourstore.com" 
-                  className="rounded-l-none" 
+                  className="pl-10 h-11 border-2 focus:border-blue-500 transition-colors" 
                   {...field} 
                 />
               </div>
@@ -91,15 +99,15 @@ const BusinessInfoSection: React.FC<BusinessInfoSectionProps> = ({ form }) => {
         name="phone"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Phone Number</FormLabel>
+            <FormLabel className="text-sm font-semibold text-gray-700">Phone Number *</FormLabel>
             <FormControl>
-              <div className="flex">
-                <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-gray-300 bg-gray-50 text-gray-500">
-                  <Phone className="h-4 w-4" />
-                </span>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <Phone className="h-5 w-5 text-gray-400" />
+                </div>
                 <Input 
                   placeholder="(555) 123-4567" 
-                  className="rounded-l-none" 
+                  className="pl-10 h-11 border-2 focus:border-blue-500 transition-colors" 
                   {...field} 
                 />
               </div>
@@ -114,14 +122,15 @@ const BusinessInfoSection: React.FC<BusinessInfoSectionProps> = ({ form }) => {
         name="businessDescription"
         render={({ field }) => (
           <FormItem>
-            <FormLabel>Business Description</FormLabel>
+            <FormLabel className="text-sm font-semibold text-gray-700">Business Description</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Tell us about your business..." 
-                className="min-h-[100px]"
+                placeholder="Tell us about your business, products, and services..." 
+                className="min-h-[120px] border-2 focus:border-blue-500 transition-colors resize-none"
                 {...field} 
               />
             </FormControl>
+            <p className="text-xs text-gray-500 mt-1">Optional: Help us understand your business better</p>
             <FormMessage />
           </FormItem>
         )}

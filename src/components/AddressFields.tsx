@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import React, { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 const AddressForm = ({
   billingAddress,
@@ -10,128 +11,136 @@ const AddressForm = ({
   setSameAsBilling,
 }) => {
   const [canSubmit, setCanSubmit] = useState(false);
+  const [isBillingOpen, setIsBillingOpen] = useState(true);
+  const [isShippingOpen, setIsShippingOpen] = useState(true);
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div 
+        className="flex items-center justify-between cursor-pointer bg-gray-50 p-3 rounded-md hover:bg-gray-100 transition"
+        onClick={() => setIsBillingOpen(!isBillingOpen)}
+      >
         <h4 className="font-medium">Billing Address</h4>
+        {isBillingOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
       </div>
 
-      <div className="grid gap-3">
-        <div className="grid gap-1.5">
-          <label htmlFor="billing-name" className="text-sm font-medium">
-            Full Name
-          </label>
-          <Input
-            id="billing-name"
-            required
-            placeholder="Your name"
-            value={billingAddress.name}
-            onChange={(e) =>
-              setBillingAddress({ ...billingAddress, name: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <label htmlFor="billing-email" className="text-sm font-medium">
-            Email Address
-          </label>
-          <Input
-            id="billing-email"
-            type="email"
-            placeholder="you@example.com"
-            value={billingAddress.email}
-            onChange={(e) =>
-              setBillingAddress({ ...billingAddress, email: e.target.value })
-            }
-          />
-        </div>
-        <div className="grid gap-1.5">
-          <label htmlFor="billing-email" className="text-sm font-medium">
-            Phone
-          </label>
-          <Input
-            id="billing-email"
-            type="number"
-            required
-
-            placeholder="01234567890"
-            value={billingAddress.phone}
-            onChange={(e) =>
-              setBillingAddress({ ...billingAddress, phone: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="grid gap-1.5">
-          <label htmlFor="billing-address" className="text-sm font-medium">
-            Address
-          </label>
-          <Input
-            id="billing-address"
-            placeholder="Street address"
-            required
-            
-            value={billingAddress.address}
-            onChange={(e) =>
-              setBillingAddress({ ...billingAddress, address: e.target.value })
-            }
-          />
-        </div>
-
-        <div className="grid grid-cols-2 gap-2">
+      {isBillingOpen && (
+        <div className="grid gap-3 mt-3">
           <div className="grid gap-1.5">
-            <label htmlFor="billing-city" className="text-sm font-medium">
-              City
+            <label htmlFor="billing-name" className="text-sm font-medium">
+              Full Name
             </label>
             <Input
-              id="billing-city"
-              placeholder="City"
-            required
-
-              value={billingAddress.city}
+              id="billing-name"
+              required
+              placeholder="Your name"
+              value={billingAddress.name}
               onChange={(e) =>
-                setBillingAddress({ ...billingAddress, city: e.target.value })
+                setBillingAddress({ ...billingAddress, name: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="billing-email" className="text-sm font-medium">
+              Email Address
+            </label>
+            <Input
+              id="billing-email"
+              type="email"
+              placeholder="you@example.com"
+              value={billingAddress.email}
+              onChange={(e) =>
+                setBillingAddress({ ...billingAddress, email: e.target.value })
               }
             />
           </div>
           <div className="grid gap-1.5">
-            <label htmlFor="billing-postal" className="text-sm font-medium">
-              Postal Code
+            <label htmlFor="billing-phone" className="text-sm font-medium">
+              Phone
             </label>
             <Input
-              id="billing-postal"
-              placeholder="Postal code"
-            required
+              id="billing-phone"
+              type="number"
+              required
 
-              value={billingAddress.postalCode}
+              placeholder="01234567890"
+              value={billingAddress.phone}
               onChange={(e) =>
-                setBillingAddress({
-                  ...billingAddress,
-                  postalCode: e.target.value,
-                })
+                setBillingAddress({ ...billingAddress, phone: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="billing-address" className="text-sm font-medium">
+              Address
+            </label>
+            <Input
+              id="billing-address"
+              placeholder="Street address"
+              required
+              
+              value={billingAddress.address}
+              onChange={(e) =>
+                setBillingAddress({ ...billingAddress, address: e.target.value })
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <div className="grid gap-1.5">
+              <label htmlFor="billing-city" className="text-sm font-medium">
+                City
+              </label>
+              <Input
+                id="billing-city"
+                placeholder="City"
+              required
+
+                value={billingAddress.city}
+                onChange={(e) =>
+                  setBillingAddress({ ...billingAddress, city: e.target.value })
+                }
+              />
+            </div>
+            <div className="grid gap-1.5">
+              <label htmlFor="billing-postal" className="text-sm font-medium">
+                Postal Code
+              </label>
+              <Input
+                id="billing-postal"
+                placeholder="Postal code"
+              required
+
+                value={billingAddress.postalCode}
+                onChange={(e) =>
+                  setBillingAddress({
+                    ...billingAddress,
+                    postalCode: e.target.value,
+                  })
+                }
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-1.5">
+            <label htmlFor="billing-country" className="text-sm font-medium">
+            State
+            </label>
+            <Input
+              id="billing-country"
+              required
+
+              placeholder="State"
+              value={billingAddress.country}
+              onChange={(e) =>
+                setBillingAddress({ ...billingAddress, country: e.target.value })
               }
             />
           </div>
         </div>
-
-        <div className="grid gap-1.5">
-          <label htmlFor="billing-country" className="text-sm font-medium">
-          State
-          </label>
-          <Input
-            id="billing-country"
-            required
-
-            placeholder="State"
-            value={billingAddress.country}
-            onChange={(e) =>
-              setBillingAddress({ ...billingAddress, country: e.target.value })
-            }
-          />
-        </div>
-      </div>
+      )}
 
       <div className="flex items-center gap-2 py-1">
   <input
@@ -155,11 +164,16 @@ const AddressForm = ({
 
       {!sameAsBilling && (
         <>
-          <div className="flex items-center justify-between mt-4">
+          <div 
+            className="flex items-center justify-between cursor-pointer bg-gray-50 p-3 rounded-md hover:bg-gray-100 transition mt-4"
+            onClick={() => setIsShippingOpen(!isShippingOpen)}
+          >
             <h4 className="font-medium">Shipping Address</h4>
+            {isShippingOpen ? <ChevronUp className="h-5 w-5" /> : <ChevronDown className="h-5 w-5" />}
           </div>
 
-          <div className="grid gap-3">
+          {isShippingOpen && (
+            <div className="grid gap-3 mt-3">
             <div className="grid gap-1.5">
               <label htmlFor="shipping-name" className="text-sm font-medium">
                 Full Name
@@ -193,19 +207,19 @@ const AddressForm = ({
             </div>
 
             <div className="grid gap-1.5">
-          <label htmlFor="billing-email" className="text-sm font-medium">
-            Phone
-          </label>
-          <Input
-            id="billing-email"
-            type="email"
-            placeholder="01234567890"
-            value={shippingAddress.phone}
-            onChange={(e) =>
-              setShippingAddress({ ...billingAddress, phone: e.target.value })
-            }
-          />
-        </div>
+              <label htmlFor="shipping-phone" className="text-sm font-medium">
+                Phone
+              </label>
+              <Input
+                id="shipping-phone"
+                type="number"
+                placeholder="01234567890"
+                value={shippingAddress.phone}
+                onChange={(e) =>
+                  setShippingAddress({ ...shippingAddress, phone: e.target.value })
+                }
+              />
+            </div>
             <div className="grid gap-1.5">
               <label htmlFor="shipping-address" className="text-sm font-medium">
                 Address
@@ -275,6 +289,7 @@ const AddressForm = ({
               />
             </div>
           </div>
+          )}
         </>
       )}
     </div>

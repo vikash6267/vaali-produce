@@ -20,7 +20,8 @@ const { CREATE_PRODUCT,
     UPDATE_PAYMENT_UNPAID_ORDER,
     HARD_DELETE_ORDER,
     UPDATE_ORDER_QUANTITY,
-    ASSIGN_PRODUCT_TO_STORE
+    ASSIGN_PRODUCT_TO_STORE,
+    GET_USER_LATEST_ORDERS
 } = order
 
 
@@ -605,5 +606,30 @@ export const assignProductToStoreAPI = async (formData, token) => {
 
   } finally {
     toast.dismiss(toastId);
+  }
+};
+
+// Get user's latest orders with purchased product IDs
+export const getUserLatestOrdersAPI = async (storeId, limit = 5) => {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${GET_USER_LATEST_ORDERS}/${storeId}?limit=${limit}`
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Failed to fetch latest orders");
+    }
+
+    return response.data;
+
+  } catch (error) {
+    console.error("getUserLatestOrdersAPI ERROR:", error);
+    return {
+      success: false,
+      orders: [],
+      purchasedProductIds: [],
+      message: error?.response?.data?.message || error?.message || "Failed to fetch latest orders"
+    };
   }
 };

@@ -53,6 +53,9 @@ export async function login(email, password, navigate, dispatch) {
       title: `Login Successfully!`,
       text: `Have a nice day!`,
       icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#3B82F6",
+      allowOutsideClick: true,
     });
     dispatch(setToken(response?.data?.token));
     dispatch(setUser(response.data.user));
@@ -91,9 +94,12 @@ export async function signUp(formData, navigate, dispatch) {
     }
 
     Swal.fire({
-      title: `User Register Succesfull!`,
+      title: `User Register Successful!`,
       text: `Have a nice day!`,
       icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#3B82F6",
+      allowOutsideClick: true,
     });
 
     // dispatch(setToken(response?.data?.token));
@@ -139,9 +145,12 @@ export async function createMemberAPI(formData) {
     }
 
     Swal.fire({
-      title: `Member Created Succesfull!`,
+      title: `Member Created Successfully!`,
       text: `Have a nice day!`,
       icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#3B82F6",
+      allowOutsideClick: true,
     });
 
 
@@ -273,9 +282,12 @@ export function logout(navigate) {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     Swal.fire({
-      title: `User Logout Succesfull!`,
+      title: `User Logout Successful!`,
       text: `Have a nice day!`,
       icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#3B82F6",
+      allowOutsideClick: true,
     });
     navigate("/");
   };
@@ -295,15 +307,18 @@ export const updatePassword = async (email, newPassword) => {
   });
 
   try {
-    const response = await apiConnector("PUT", `${FORGOT_PASSWORD_API}`, { email, newPassword })
+    const response = await apiConnector("PUT", `${UPDATE_PASSWORD_API}`, { email, newPassword })
     if (!response.data.success) {
       throw new Error(response.data.message);
     }
 
     Swal.fire({
-      title: `Password Update  Succesfull!`,
+      title: `Password Update Successful!`,
       text: `Have a nice day!`,
       icon: "success",
+      confirmButtonText: "OK",
+      confirmButtonColor: "#3B82F6",
+      allowOutsideClick: true,
     });
 
   } catch (error) {

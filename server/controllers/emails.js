@@ -107,3 +107,105 @@ exports.priceListSendMulti = async (req, res) => {
     });
   }
 };
+
+
+exports.sendByPriceCategory = async (req, res) => {
+  try {
+    const { templateId } = req.body;
+
+    if (!templateId) {
+      return res.status(400).json({
+        success: false,
+        message: "Template ID is required",
+      });
+    }
+
+    const authModel = require("../models/authModel");
+
+    const stores = await authModel.find({ 
+      role: "store",
+      email: { $exists: true, $ne: "" }
+    }).select('email storeName priceCategory');
+
+    if (!stores || stores.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "No stores found",
+      });
+    }
+
+    const priceCategoryMap = {
+      "pricePerBox": "price",
+      "price": "price",
+      "aPrice": "aPrice",
+      "bPrice": "bPrice",
+      "cPrice": "cPrice",
+      "restaurantPrice": "restaurantPrice"
+    };
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const store of stores) {
+      try {
+        const priceCategory = store.priceCategory || "pricePerBox";
+        const catValue = priceCategoryMap[priceCategory] || "price";
+
+        const url = `http://valiproduce.shop/store/template?templateId=${templateId}&cat=${catValue}`;
+
+        const html = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 20px; border-radius: 10px; background: #ffffff;">
+            <h2 style="color: #333; text-align: center;">📜 Your Price List is Ready!</h2>
+            <p style="color: #555; text-align: center; font-size: 16px;">Hello <strong>${store.storeName}</strong>, we have the latest price list for you with your special pricing.</p>
+            <div style="text-align: center; margin: 20px 0;">
+              <a href="${url}"
+                 style="display: inline-block; background: #007bff; color: white; padding: 12px 20px; font-size: 16px; border-radius: 5px; text-decoration: none;">
+                View Your Price List
+              </a>
+            </div>
+            <div style="background: #f0f8ff; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="color: #333; font-size: 14px; margin: 0;">
+                <strong>Your Pricing Category:</strong> ${priceCategory === "pricePerBox" ? "Standard Price" : priceCategory.toUpperCase()}
+              </p>
+            </div>
+            <p style="color: #666; font-size: 14px; text-align: center;">If you have any questions, feel free to contact us.</p>
+            <hr style="border: none; border-top: 1px solid #ddd; margin: 20px 0;">
+            <p style="color: #888; font-size: 12px; text-align: center;">This is an automated email, please do not reply.</p>
+          </div>
+        `;
+
+        const subject = `📜 New Price List Available - ${priceCategory === "pricePerBox" ? "Standard" : priceCategory.toUpperCase()} Pricing`;
+
+        // ❌ MAIL SENDING DISABLED
+        // await mailSender(store.email, subject, html, null, null, null);
+
+        console.log(
+          `DEBUG ONLY → Email NOT sent to ${store.storeName} (${store.email}) | cat=${catValue} | url=${url}`
+        );
+
+        successCount++;
+
+      } catch (emailError) {
+        console.error(`❌ Failed (debug) for ${store.email}:`, emailError);
+        failCount++;
+      }
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Debug mode: Mail sending is disabled",
+      totalStores: stores.length,
+      totalProcessed: successCount,
+      totalFailed: failCount,
+    });
+
+  } catch (error) {
+    console.error("Send by price category error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error sending emails by price category (debug mode)",
+      error: error.message,
+    });
+  }
+};
+

@@ -14,6 +14,7 @@ import {
   Download,
   FileText,
   Check,
+  Loader2,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -67,6 +68,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
   const [isMultiEmail, setMultiEmail] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
+  const [isSendByPriceCategory, setIsSendByPriceCategory] = useState(false);
   const { toast } = useToast();
   const token = useSelector((state: RootState) => state.auth?.token ?? null);
 
@@ -103,6 +105,44 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
     const url = `http://valiproduce.shop/store/template?templateId=${template.id}`;
     console.log(url);
     await priceListEmailMulti({ url, selectedStore }, token);
+  };
+
+  const sendByPriceCategory = async () => {
+    setIsSendingEmail(true);
+    try {
+      // Call backend API to send to all stores by price category
+      const response = await fetch(`${import.meta.env.VITE_APP_BASE_URL || 'http://localhost:5000/api'}/email/send-by-price-category`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          templateId: template.id,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast({
+          title: "Success!",
+          description: `Price list sent to ${data.totalSent} stores based on their price categories`,
+        });
+        setIsSendByPriceCategory(false);
+      } else {
+        throw new Error(data.message || "Failed to send emails");
+      }
+    } catch (error) {
+      console.error("Error sending by price category:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to send price list to stores",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleSendEmail = async (emailData) => {
@@ -206,31 +246,36 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
             )}
           </div>
 
-          {/* 🚀 Copy URL Button */}
-          <div className=" flex gap-2">
-            <button
+          {/* 🚀 Copy URL Buttons - Direct Copy */}
+          <div className="flex gap-2">
+            <button 
               onClick={() => {
-                const catValue =
-                  selectedPricing === "pricePerBox" ? "price" : selectedPricing;
-                const url = `http://valiproduce.shop/store/template?templateId=${template.id}&cat=${catValue}`;
+                const url = `http://valiproduce.shop/store/template?templateId=${template.id}`;
                 navigator.clipboard.writeText(url);
-                alert("URL copied to clipboard!");
+                toast({
+                  title: "URL Copied!",
+                  description: "Template URL has been copied to clipboard",
+                });
               }}
               className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
             >
+              <Copy className="h-4 w-4 inline mr-1" />
               Copy URL
             </button>
-            <button
+            
+            <button 
               onClick={() => {
-                const catValue =
-                  selectedPricing === "pricePerBox" ? "price" : selectedPricing;
-                const url = `http://valiproduce.shop/store/nextweek?templateId=${template.id}&cat=${catValue}`;
+                const url = `http://valiproduce.shop/store/nextweek?templateId=${template.id}`;
                 navigator.clipboard.writeText(url);
-                alert("URL copied to clipboard!");
+                toast({
+                  title: "URL Copied!",
+                  description: "Next week order URL has been copied to clipboard",
+                });
               }}
-              className="mt-4 px-4 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              className="mt-4 px-4 py-1 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
             >
-              Copy Next Week Order URL
+              <Copy className="h-4 w-4 inline mr-1" />
+              Copy Next Week URL
             </button>
           </div>
         </div>
@@ -378,6 +423,16 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
         <Button
           size="sm"
           variant="outline"
+          onClick={() => setIsSendByPriceCategory(true)}
+          className="text-orange-600 border-orange-200 hover:bg-orange-50"
+        >
+          <Mail className="h-4 w-4 mr-1" />
+          Send to All by Price
+        </Button>
+
+        <Button
+          size="sm"
+          variant="outline"
           onClick={() => onCreateOrder(template.id)}
           className="text-purple-600 border-purple-200 hover:bg-purple-50"
         >
@@ -464,6 +519,64 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
               isLoading={isSendingEmail}
             >
               Send Price List
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSendByPriceCategory} onOpenChange={setIsSendByPriceCategory}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Send to All by Price Category</DialogTitle>
+            <DialogDescription>
+              Automatically send price list to all stores based on their price category.
+              Each store will receive the URL with their assigned pricing.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="font-semibold text-blue-900 mb-2">How it works:</h4>
+              <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                <li>Stores with <strong>pricePerBox</strong> → Get Price URL</li>
+                <li>Stores with <strong>aPrice</strong> → Get A Price URL</li>
+                <li>Stores with <strong>bPrice</strong> → Get B Price URL</li>
+                <li>Stores with <strong>cPrice</strong> → Get C Price URL</li>
+                <li>Stores with <strong>restaurantPrice</strong> → Get Restaurant Price URL</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> This will send emails to all stores in the system based on their price category settings.
+              </p>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsSendByPriceCategory(false)}
+              disabled={isSendingEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={sendByPriceCategory}
+              disabled={isSendingEmail}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isSendingEmail ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="mr-2 h-4 w-4" />
+                  Send to All Stores
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

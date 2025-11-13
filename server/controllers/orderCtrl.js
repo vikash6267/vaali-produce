@@ -2206,9 +2206,81 @@ if (!order) {
   }
 };
 
+// Get user's latest orders with purchased products
+const getUserLatestOrdersCtrl = async (req, res) => {
+  try {
+    const { storeId } = req.params;
+    const limit = parseInt(req.query.limit) || 5;
 
+    if (!storeId) {
+      return res.status(400).json({
+        success: false,
+        message: "Store ID is required",
+      });
+    }
 
+    // Validate if storeId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(storeId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid Store ID format",
+      });
+    }
 
+    // Fetch latest orders for the store
+    const orders = await orderModel
+      .find({ 
+        store: new mongoose.Types.ObjectId(storeId),
+        isDelete: { $ne: true }
+      })
+      .sort({ createdAt: -1 })
+      .limit(limit)
+      .select('items orderNumber createdAt total')
+      .lean();
+
+    if (!orders || orders.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No orders found for this store",
+        orders: [],
+        purchasedProductIds: [],
+      });
+    }
+
+    // Extract unique product IDs from all orders
+    const productIdsSet = new Set();
+    
+    orders.forEach(order => {
+      if (order.items && Array.isArray(order.items)) {
+        order.items.forEach(item => {
+          if (item.productId) {
+            productIdsSet.add(item.productId.toString());
+          } else if (item.product) {
+            productIdsSet.add(item.product.toString());
+          }
+        });
+      }
+    });
+
+    const purchasedProductIds = Array.from(productIdsSet);
+
+    return res.status(200).json({
+      success: true,
+      message: "Latest orders fetched successfully",
+      orders,
+      purchasedProductIds,
+      totalOrders: orders.length,
+    });
+
+  } catch (error) {
+    console.error("Error fetching user latest orders:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Internal Server Error while fetching latest orders",
+      error: error.message,
+    });
+  }
+};
 
 module.exports = {
   createOrderCtrl,
@@ -2228,5 +2300,6 @@ module.exports = {
   invoiceMailCtrl,
   markOrderAsUnpaid,
   updateBuyerQuantityCtrl,
-  assignProductToStore
+  assignProductToStore,
+  getUserLatestOrdersCtrl
 };
