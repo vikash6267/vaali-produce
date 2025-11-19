@@ -2105,14 +2105,14 @@ const assignProductToStore = async (req, res) => {
 // console.log("PRODUCT",product._id.toString(), "PRODUCT");
 // return
     // ✅ Create order item
-    const newItem = {
+   const newItem = {
       productId: product._id.toString(),
       productName: product.name,
       quantity: 1,
-      unitPrice: product.price || 0,
+      unitPrice: product.pricePerBox || 0,
       shippinCost: product.shippinCost || 0,
-      pricingType: "box",
-    };
+      pricingType: "box",
+    };
 
     // ✅ Find or create weekly order
     // let order = await orderModel.findOne({ store: storeId, createdAt: { $gte: monday, $lte: sunday } }).sort({ createdAt: -1 });
