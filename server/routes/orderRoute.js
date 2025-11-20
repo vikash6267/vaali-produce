@@ -24,7 +24,7 @@ const {
 
 } = require("../controllers/orderCtrl");
 
-router.post("/create", auth, createOrderCtrl)
+router.post("/create", createOrderCtrl)
 router.get("/getAll", auth,  getAllOrderCtrl)
 router.get("/get/:id", auth, getOrderForStoreCtrl)
 router.delete("/delete/:id", auth, deleteOrderCtrl)
