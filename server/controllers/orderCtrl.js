@@ -70,6 +70,7 @@ const createOrderCtrl = async (req, res) => {
       orderType = "Regural",
       orderNumber,
       createdAt,
+      isAdminOrder
     } = req.body;
 
     console.log(createdAt);
@@ -170,7 +171,7 @@ for (const item of items) {
 }
 
 // --- STEP 2: Block order if insufficient stock ---
-if (insufficientStock.length > 0) {
+if (insufficientStock.length > 0 && isAdminOrder ) {
   return res.status(400).json({
     success: false,
     message: "Insufficient stock for some items (week-wise check)",

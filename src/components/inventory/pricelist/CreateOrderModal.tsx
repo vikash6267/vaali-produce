@@ -289,6 +289,7 @@ const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   };
   const ONo = generateOrderNumber()
     const order = {
+      isAdminOrder : true,
       id: `${Math.floor(Math.random() * 10000)
         .toString()
         .padStart(4, "0")}`,
