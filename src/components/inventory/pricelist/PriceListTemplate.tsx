@@ -46,6 +46,7 @@ import { priceListEmailMulti } from "@/services2/operations/email";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { createPriceListAPI } from "@/services2/operations/priceList";
+import SendOrderToStore from "./SendOrderToStore";
 
 interface PriceListTemplateProps {
   template: PriceListTemplateType;
@@ -65,6 +66,7 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
 }) => {
   const formattedDate = format(new Date(template.createdAt), "MMMM dd, yyyy");
   const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
+  const [sendOrder, setSendOrder] = useState(false);
   const [isMultiEmail, setMultiEmail] = useState(false);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [isConfirmationVisible, setIsConfirmationVisible] = useState(false);
@@ -413,11 +415,20 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
         <Button
           size="sm"
           variant="outline"
+          onClick={() => setSendOrder(true)}
+          className="text-green-600 border-green-200 hover:bg-green-50"
+        >
+          <Send className="h-4 w-4 mr-1" />
+          Send Order To Store
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
           onClick={() => setMultiEmail(true)}
           className="text-green-600 border-green-200 hover:bg-green-50"
         >
           <Send className="h-4 w-4 mr-1" />
-          Send to Bulk Stores
+          Send to Bulk Stores 
         </Button>
 
         <Button
@@ -488,6 +499,11 @@ const PriceListTemplate: React.FC<PriceListTemplateProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+    <SendOrderToStore
+  open={sendOrder}
+  onClose={setSendOrder}
+  template={template}
+/>
 
       <Dialog open={isMultiEmail} onOpenChange={setMultiEmail}>
         <DialogContent className="max-w-md">

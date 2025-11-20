@@ -204,43 +204,62 @@ const CreateOrderModalStore = () => {
     }
   }, [])
 
-  const handleFindUser = async () => {
-    setStoreLoading(true)
+ const handleFindUser = async (userEmail) => {
+    if (!userEmail) return;
 
-    const response = await getUserAPI({ email, setIsGroupOpen })
+    setStoreLoading(true);
+    try {
+      const response = await getUserAPI({ email: userEmail, setIsGroupOpen });
 
-    
-    if (response.priceCategory === "price") {
-      setPriceCategory("pricePerBox");
-    } else {
-      setPriceCategory(response.priceCategory);
-    }
-    
-    setShippinC(response.shippingCost)
-    // console.log(response)
-    setBillingAddress({
-      name: response.ownerName || "",
-      email: response.email || "",
-      phone: response.phone || "",
-      address: response.address || "",
-      city: response.city || "",
-      postalCode: response.zipCode || "",
-      country: response.state || "",
-    })
+      if (!response) {
+        setIsGroupOpen(true);
+        return;
+      }
 
-    if (response) {
+      if (response.priceCategory === "price") {
+        setPriceCategory("pricePerBox");
+      } else {
+        setPriceCategory(response.priceCategory);
+      }
+
+      setShippinC(response.shippingCost);
+
+      setBillingAddress({
+        name: response.ownerName || "",
+        email: response.email || "",
+        phone: response.phone || "",
+        address: response.address || "",
+        city: response.city || "",
+        postalCode: response.zipCode || "",
+        country: response.state || "",
+      });
+
       setSelectedStore({
         label: response.storeName,
         value: response._id,
-      })
-      
+      });
+
       // Fetch user's latest orders to sort products
       await fetchUserOrders(response._id);
-    } else {
-      setIsGroupOpen(true)
+    } catch (err) {
+      console.error("Error fetching user:", err);
+      setIsGroupOpen(true);
+    } finally {
+      setStoreLoading(false);
     }
-    setStoreLoading(false)
-  }
+  };
+
+  // ✅ Extract email from query and call function with it
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    const emailFromQuery = query.get("email");
+
+    if (emailFromQuery) {
+      setEmail(emailFromQuery);            // store in state if needed
+      handleFindUser(emailFromQuery);      // pass directly to function
+    }
+  }, [location.search]);
+   
 
   const handleQuantityChange = (productId, value) => {
     setQuantities((prev) => ({

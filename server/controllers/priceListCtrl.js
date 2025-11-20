@@ -1,4 +1,5 @@
 const PriceListTemplate = require("../models/PriceListTemplate");
+const mailSender = require("../utils/mailSender");
 
 // ✅ Create a new Price List Template
 exports.createPriceListTemplate = async (req, res) => {
@@ -119,5 +120,42 @@ exports.deletePriceListTemplate = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: "Internal server error.", error: error.message });
+  }
+};
+
+exports.sendOrderEmail = async (req, res) => {
+  try {
+    const { email, url } = req.body;
+
+    if (!email || !url) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Email and URL are required" 
+      });
+    }
+
+    // Prepare email content
+    const subject = "Your Order is Ready!";
+    const message = `
+      <p>You can purchase your order by clicking on the link below:</p>
+      <a href="${url}" target="_blank">${url}</a>
+    `;
+
+    // Send email
+    await mailSender(email, subject, message);
+
+    // Success response
+    return res.status(200).json({
+      success: true,
+      message: "Order email sent successfully",
+    });
+  } catch (error) {
+    console.error("Error sending order email:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to send order email",
+      error: error.message,
+    });
   }
 };

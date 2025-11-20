@@ -56,6 +56,7 @@ export const priceList = {
   GET_PRICE_LIST: BASE_URL + "/price-list-templates/get",
   DELETE_PRICE_LIST: BASE_URL + "/price-list-templates/delete",
   UPDATE_PRICE_LIST: BASE_URL + "/price-list-templates/update",
+  SEND_ORDER_TO_STORE: BASE_URL + "/price-list-templates/send-order-to-store",
 
 }
 
